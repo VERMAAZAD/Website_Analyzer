@@ -5,13 +5,14 @@ import './Users.css';
 import Layout from '../Layouts/Layout';
 import { useNavigate } from 'react-router-dom'; // 🔁 Add for navigation
 
+
 const Users = () => {
   const [users, setUsers] = useState([]);
   const token = localStorage.getItem('token');
   const navigate = useNavigate(); // 🧭 for navigation
 
   useEffect(() => {
-    axios.get('http://localhost:5000/admin/users', {
+    axios.get(`${import.meta.env.VITE_APP_URI}/admin/users`, {
       headers: { Authorization: `Bearer ${token}` },
     }).then(res => {
       const onlyUsers = res.data.filter(user => user.role !== 'admin'); // ✅ Filter admin

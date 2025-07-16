@@ -19,7 +19,7 @@ function UrlScan() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/scraper/categories', {
+        const res = await axios.get(`${import.meta.env.VITE_APP_URI}/api/scraper/categories`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`
           }
@@ -46,7 +46,7 @@ function UrlScan() {
     setResult(null);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/scraper/scan', {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/scraper/scan`, {
         domain: domain.trim(),
       });
       setResult(response.data);
@@ -72,7 +72,7 @@ function UrlScan() {
     }
 
     try {
-      await axios.post('http://localhost:5000/api/scraper/save', {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/scraper/save`, {
         domain: domain.trim(),
         data: result,
         brandCategory,

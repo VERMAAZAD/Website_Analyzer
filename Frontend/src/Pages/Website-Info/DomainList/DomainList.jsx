@@ -35,8 +35,8 @@ function DomainList() {
       try {
         const token = localStorage.getItem("token");
         const url = category
-          ? `http://localhost:5000/api/scraper/by-category/${encodeURIComponent(category)}`
-          : 'http://localhost:5000/api/scraper/all';
+          ? `${import.meta.env.VITE_APP_URI}/api/scraper/by-category/${encodeURIComponent(category)}`
+          : `${import.meta.env.VITE_APP_URI}/api/scraper/all`;
 
         const res = await axios.get(url, {
           headers: { Authorization: `Bearer ${token}` }
@@ -80,7 +80,7 @@ function DomainList() {
     }
 
     try {
-      const res = await axios.get(`http://localhost:5000/api/scraper/domain/${baseDomain}`, {
+      const res = await axios.get(`${import.meta.env.VITE_APP_URI}/api/scraper/domain/${baseDomain}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`
         }
@@ -98,7 +98,7 @@ function DomainList() {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:5000/api/scraper/domain/${domainToDelete}`, {
+      await axios.delete(`${import.meta.env.VITE_APP_URI}/api/scraper/domain/${domainToDelete}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 

@@ -13,7 +13,7 @@ const UserDomains = () => {
   useEffect(() => {
     const fetchDomains = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/admin/user/${id}/domains`, {
+        const res = await axios.get(`${import.meta.env.VITE_APP_URI}/admin/user/${id}/domains`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const allDomains = res.data;

@@ -18,13 +18,13 @@ const Home = () => {
     setLoading(true);
     try {
       const [categoriesRes, countsRes] = await Promise.all([
-        axios.get("http://localhost:5000/api/scraper/categories", {
+        axios.get(`${import.meta.env.VITE_APP_URI}/api/scraper/categories`, {
           headers: { Authorization: `Bearer ${token}` },
 
           
         }),
         
-        axios.get("http://localhost:5000/api/scraper/category-counts", {
+        axios.get(`${import.meta.env.VITE_APP_URI}/api/scraper/category-counts`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);

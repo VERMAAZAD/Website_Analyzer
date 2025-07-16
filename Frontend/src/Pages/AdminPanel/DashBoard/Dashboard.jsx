@@ -12,10 +12,10 @@ const Dashboard = () => {
   const navigate = useNavigate();
   useEffect(() => {
     const fetchData = async () => {
-      const usersRes = await axios.get('http://localhost:5000/admin/users', {
+      const usersRes = await axios.get(`${import.meta.env.VITE_APP_URI}/admin/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const domainRes = await axios.get('http://localhost:5000/admin/scraped-data', {
+      const domainRes = await axios.get(`${import.meta.env.VITE_APP_URI}/admin/scraped-data`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUsers(usersRes.data.length);

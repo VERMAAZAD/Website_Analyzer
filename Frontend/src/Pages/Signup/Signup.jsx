@@ -28,7 +28,7 @@ const Signup = () => {
   }
 
   try {
-    const url = `http://localhost:5000/auth/signup`;
+    const url = `${import.meta.env.VITE_APP_URI}/auth/signup`;
     const token = localStorage.getItem("token");
 
     const response = await fetch(url, {

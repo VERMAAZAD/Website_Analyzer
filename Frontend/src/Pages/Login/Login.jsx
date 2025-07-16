@@ -28,7 +28,7 @@ const Login = () => {
             }
 
              try {
-            const url = `http://localhost:5000/auth/login`;
+            const url = `${import.meta.env.VITE_APP_URI}/auth/login`;
             const response = await fetch(url, {
                 method: "POST",
                 headers: {
