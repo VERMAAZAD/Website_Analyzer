@@ -1,0 +1,14 @@
+.users-page {
+  padding: 2rem;
+}
+.users-page ul {
+  list-style: none;
+  padding: 0;
+}
+.users-page li {
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  background: #f1f1f1;
+  border-left: 4px solid #2980b9;
+  border-radius: 4px;
+}

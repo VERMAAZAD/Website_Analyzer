@@ -1,0 +1,33 @@
+.header {
+  height: 60px;
+  background-color: #f1f2f6;
+    display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border-bottom: 1px solid #dcdde1;
+  z-index: 999;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.menu-btn {
+  font-size: 24px;
+  background: none;
+  border: none;
+  margin-right: 15px;
+  cursor: pointer;
+}
+
+@media (min-width: 768px) {
+  .menu-btn {
+    display: none;
+  }
+  
+}
+
+@media (max-width: 768px) {
+  .header h1{
+    font-size: 1.5rem !important;
+  }
+}

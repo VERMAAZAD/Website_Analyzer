@@ -1,0 +1,27 @@
+.dashboard-content {
+  /* margin-left: 220px; */
+  padding: 2rem;
+}
+.dashboard-cards {
+  display: flex;
+  gap: 2rem;
+}
+.card {
+  background: white;
+  border-radius: 10px;
+  padding: 1.5rem;
+  width: 200px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  transition: transform 0.3s ease;
+}
+.card:hover {
+  transform: translateY(-5px);
+}
+.card h3 {
+  color: #2c3e50;
+}
+.card p {
+  font-size: 1.5rem;
+  color: #16a085;
+}
