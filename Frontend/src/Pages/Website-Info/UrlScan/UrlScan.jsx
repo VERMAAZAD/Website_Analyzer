@@ -46,7 +46,7 @@ function UrlScan() {
     setResult(null);
 
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/scraper/scan`, {
+      const response = await axios.post(`${import.meta.env.VITE_API_URI}/api/scraper/scan`, {
         domain: domain.trim(),
       });
       setResult(response.data);
@@ -72,7 +72,7 @@ function UrlScan() {
     }
 
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/scraper/save`, {
+      await axios.post(`${import.meta.env.VITE_API_URI}/api/scraper/save`, {
         domain: domain.trim(),
         data: result,
         brandCategory,

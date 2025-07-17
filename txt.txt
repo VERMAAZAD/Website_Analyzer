@@ -1,0 +1,54 @@
+server {
+    listen 80;
+    root /root/webanalyzer/Frontend/dist;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}
+
+
+
+server {
+        listen 80;
+        server_name monitorchecker.com www.monitorchecker.com;
+        root /root/webanalyzer/Frontend/dist;
+
+        location / {
+                try_files $uri $uri/ =404;
+        }
+}
+
+ server {
+    listen 80;
+    server_name monitorchecker.com www.monitorchecker.com;
+
+    location / {
+        root /root/webanalyzer/Frontend/dist;
+        try_files $uri /index.html;
+    }
+}
+
+ln -s ../sites-available/monitorchecker.com.conf
+
+sudo certbot --nginx -d api.monitorchecker.com -d www.api.monitorchecker.com
+
+sudo certbot --nginx -d api.monitorchecker.com -d www.api.monitorchecker.com
+server {
+        listen 80;
+	server_name api.monitorchecker.com www.api.monitorchecker.com;
+
+        location / {
+                proxy_pass http://localhost:5000;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection 'upgrade';
+                proxy_set_header Host $host;
+                proxy_cache_bypass $http_upgrade;
+        }
+}
+
+
+sudo certbot --nginx -d api.monitorchecker.com -d www.api.monitorchecker.com
+
+sudo certbot --nginx -d api.mywebsite.com -d www.api.mywebsite.com
