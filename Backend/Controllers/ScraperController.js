@@ -24,7 +24,16 @@ exports.scrapeWebsite = async (req, res) => {
   if (!domain) return res.status(400).json({ error: 'Domain is required' });
 
   try {
-    const response = await axios.get(domain);
+    const response = await axios.get(domain, {
+  headers: {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/114.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
+    'Accept-Language': 'en-US,en;q=0.9',
+  },
+  timeout: 15000,
+  validateStatus: (status) => status < 500
+});
+
     const html = response.data;
     const $ = cheerio.load(html);
 
@@ -65,9 +74,21 @@ exports.scrapeWebsite = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Scrape Error:', error.message);
-    res.status(500).json({ error: 'Something went wrong while scraping.' });
-  }
+  console.error('❌ Scrape Error:', {
+    message: error.message,
+    code: error.code,
+    status: error.response?.status,
+    headers: error.response?.headers,
+    url: domain,
+    data: error.response?.data
+  });
+
+  res.status(500).json({
+    error: 'Something went wrong while scraping.',
+    details: error.message,
+    status: error.response?.status
+  });
+}
 };
 
 // [2] Save scraped data to DB
