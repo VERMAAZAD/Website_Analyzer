@@ -12,7 +12,7 @@ function ErrorDomains() {
   useEffect(() => {
     const fetchErrorDomains = async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_APP_URI}/api/scraper/errors`, {
+        const res = await axios.get(`${import.meta.env.VITE_API_URI}/api/scraper/errors`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         });
         setErrorDomains(res.data);

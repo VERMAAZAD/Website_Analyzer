@@ -12,7 +12,7 @@ const Users = () => {
   const navigate = useNavigate(); // 🧭 for navigation
 
   useEffect(() => {
-    axios.get(`${import.meta.env.VITE_APP_URI}/admin/users`, {
+    axios.get(`${import.meta.env.VITE_API_URI}/admin/users`, {
       headers: { Authorization: `Bearer ${token}` },
     }).then(res => {
       const onlyUsers = res.data.filter(user => user.role !== 'admin'); // ✅ Filter admin

@@ -19,7 +19,7 @@ function UrlScan() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_APP_URI}/api/scraper/categories`, {
+        const res = await axios.get(`${import.meta.env.VITE_API_URI}/api/scraper/categories`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`
           }
@@ -46,13 +46,13 @@ function UrlScan() {
     setResult(null);
 
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URI}/api/scraper/scan`, {
+      const response = await axios.post(`http://localhost:5000/api/scraper/scan`, {
         domain: domain.trim(),
       });
       setResult(response.data);
     } catch (error) {
-      console.error('Scrape error:', error);
-      setResult({ error: 'Something went wrong while scraping.' });
+      setResult(error.response?.data || { error: 'Something went wrong while scraping.' });
+
     } finally {
       setLoading(false);
     }

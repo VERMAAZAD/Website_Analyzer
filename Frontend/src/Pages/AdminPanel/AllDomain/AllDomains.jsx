@@ -8,7 +8,7 @@ const AllDomains = () => {
   const token = localStorage.getItem('token');
 
   useEffect(() => {
-    axios.get(`${import.meta.env.VITE_APP_URI}/admin/scraped-data`, {
+    axios.get(`${import.meta.env.VITE_API_URI}/admin/scraped-data`, {
       headers: { Authorization: `Bearer ${token}` },
     }).then(res => setDomains(res.data));
   }, []);
