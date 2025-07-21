@@ -11,6 +11,7 @@
   border-radius: 10px;
   padding: 1.5rem;
   width: 200px;
+  cursor: pointer;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   text-align: center;
   transition: transform 0.3s ease;

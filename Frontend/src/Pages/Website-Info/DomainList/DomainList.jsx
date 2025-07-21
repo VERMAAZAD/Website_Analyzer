@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import Layout from '../../../components/Layouts/Layout';
 import './DomainList.css';
 
 const extractBaseDomain = (url) => {
@@ -23,49 +22,43 @@ function DomainList() {
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [lastReloadTime, setLastReloadTime] = useState(null);
+  const [notes, setNotes] = useState({});
 
   const location = useLocation();
   const navigate = useNavigate();
   const queryParams = new URLSearchParams(location.search);
   const category = queryParams.get("category");
 
- const fetchDomains = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const token = localStorage.getItem("token");
-        const url = category
-          ? `${import.meta.env.VITE_API_URI}/api/scraper/by-category/${encodeURIComponent(category)}`
-          : `${import.meta.env.VITE_API_URI}/api/scraper/all`;
+  // ✅ Fetch domains
+  const fetchDomains = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const token = localStorage.getItem("token");
+      const url = category
+        ? `${import.meta.env.VITE_API_URI}/api/scraper/by-category/${encodeURIComponent(category)}`
+        : `${import.meta.env.VITE_API_URI}/api/scraper/all`;
 
-        const res = await axios.get(url, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+      const res = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
-        if (Array.isArray(res.data)) {
-          setDomains(res.data);
-          setLastReloadTime(new Date()); 
-        } else {
-          throw new Error("Unexpected response format");
-        }
-      } catch (err) {
-        console.error('Failed to fetch domains:', err);
-        setError("Failed to load domains. Please try again.");
-      } finally {
-        setLoading(false);
+      if (Array.isArray(res.data)) {
+        setDomains(res.data);
+        setLastReloadTime(new Date());
+      } else {
+        throw new Error("Unexpected response format");
       }
-    };
+    } catch (err) {
+      console.error('Failed to fetch domains:', err);
+      setError("Failed to load domains. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  useEffect(() => {
-    fetchDomains();
 
-    const intervalId = setInterval(() => {
-    fetchDomains();
-  }, 300000); // Auto-refresh every 60s
-
-  return () => clearInterval(intervalId);
-  }, [category]);
-
+  // ✅ Handle domain expand/collapse and fetch details
   const handleDomainClick = async (domain) => {
     const baseDomain = extractBaseDomain(domain);
 
@@ -76,6 +69,7 @@ function DomainList() {
 
     if (scrapedDataMap[baseDomain]) {
       setSelectedDomain(baseDomain);
+      await fetchNoteForDomain(baseDomain); // Fetch note
       return;
     }
 
@@ -87,6 +81,7 @@ function DomainList() {
       });
       setScrapedDataMap(prev => ({ ...prev, [baseDomain]: res.data }));
       setSelectedDomain(baseDomain);
+      await fetchNoteForDomain(baseDomain); // Fetch note
     } catch (err) {
       console.error('Error fetching domain data:', err);
     }
@@ -119,27 +114,29 @@ function DomainList() {
     }
   };
 
+  useEffect(() => {
+    fetchDomains();
+  }, [category]);
+
   const filteredDomains = domains.filter(site =>
     site.domain.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <Layout>
       <div className="domain-container">
         <div className="top-bar">
           <h2>{category ? `Domains in "${category}"` : 'Saved Scraped Domains'}</h2>
-         <div className="button-group">
+          <div className="button-group">
             <button className="add-url-btn" onClick={() => navigate('/urlscan')}>+ Add URL</button>
-            <button className="refresh-btn" onClick={fetchDomains}>🔄 Refresh Now</button>
           </div>
         </div>
 
-
- {lastReloadTime && (
+        {lastReloadTime && (
           <p className="reload-info">
             Last Reload: {lastReloadTime.toLocaleTimeString()}
           </p>
         )}
+
         <input
           type="text"
           placeholder="Search domains..."
@@ -166,6 +163,7 @@ function DomainList() {
                     <span className="domain-text" onClick={() => handleDomainClick(site.domain)}>
                       {site.domain}
                     </span>
+                    
                     <button
                       className="domain-delete"
                       onClick={() => handleDeleteDomain(baseDomain)}
@@ -173,6 +171,7 @@ function DomainList() {
                     >
                       ❌
                     </button>
+                    
                   </div>
 
                   {selectedDomain === baseDomain && scraped && (
@@ -203,6 +202,8 @@ function DomainList() {
                           </ul>
                         </>
                       )}
+                      {scraped.affiliateLink && (<><h4>Affiliate Link:</h4><p>{scraped.affiliateLink}</p></>)}
+                      {scraped.issueDate && (<><h4>Domain Issue Date:</h4><p>{new Date(scraped.issueDate).toLocaleString()}</p></>)}
                       {scraped.images?.length > 0 && (
                         <>
                           <h4>Images:</h4>
@@ -210,8 +211,6 @@ function DomainList() {
                             {scraped.images.map((src, idx) => {
                               let imgSrc = src.startsWith('http') ? src : `https://${scraped.domain}${src}`;
                               const alt = scraped.altTags?.[idx] || 'No alt text';
-                              imgSrc = imgSrc.replace(/(\.[a-z]{2,})(?=assets\/)/, '$1/')
-                                .replace(/(\.[a-z]{2,})\.\//, '$1/');
                               return (
                                 <li key={idx} className="image-item">
                                   <p><strong>URL:</strong> <a href={imgSrc} target="_blank" rel="noopener noreferrer">{imgSrc}</a></p>
@@ -226,12 +225,7 @@ function DomainList() {
                       {scraped.wordCount && (<><h4>Word Count:</h4><p>{scraped.wordCount}</p></>)}
                       <h4>Schema.org Present:</h4>
                       <p>{scraped.schemaPresent ? '✅ Yes' : '❌ No'}</p>
-                      {scraped.lastChecked && (
-                        <>
-                          <h4>Last Checked:</h4>
-                          <p>{new Date(scraped.lastChecked).toLocaleString()}</p>
-                        </>
-                      )}
+                      {scraped.lastChecked && (<><h4>Last Checked:</h4><p>{new Date(scraped.lastChecked).toLocaleString()}</p></>)}
                     </div>
                   )}
                 </li>
@@ -240,7 +234,6 @@ function DomainList() {
           </ul>
         )}
       </div>
-    </Layout>
   );
 }
 

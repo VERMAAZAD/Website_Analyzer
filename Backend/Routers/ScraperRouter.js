@@ -9,10 +9,14 @@ const {
   getCategoryCounts,
   getDomainsByCategory,
   deleteScrapedSite,
-  getErrorDomains
+  refreshStatusesAndGetErrors,
+  testAffiliateLinks,
+  getExpiringDomains,
+  renewDomain,
 } = require('../Controllers/ScraperController');
 const ensureAuthenticated = require('../Middlewares/Auth');
-const auth = require("../Middlewares/Auth")
+const auth = require("../Middlewares/Auth");
+const { updateChangedDomains } = require('../Controllers/UpdaterController');
 
 router.post('/scan', scrapeWebsite);
 router.post('/save', auth, ensureAuthenticated, saveScrapedData);
@@ -22,7 +26,11 @@ router.get('/categories', auth, ensureAuthenticated, getAllCategories);
 router.get('/category-counts', auth, ensureAuthenticated, getCategoryCounts); 
 router.get('/by-category/:category', auth, ensureAuthenticated, getDomainsByCategory);
 router.delete('/domain/:domain', auth, ensureAuthenticated, deleteScrapedSite);
-router.get('/error-domains', auth, ensureAuthenticated, getErrorDomains);
+router.get('/refresh-and-errors', auth, ensureAuthenticated, refreshStatusesAndGetErrors);
+router.get('/check-affiliate-errors', auth, ensureAuthenticated, testAffiliateLinks);
+router.get('/expiring', auth, ensureAuthenticated, getExpiringDomains);
+router.post('/renew', auth, ensureAuthenticated, renewDomain);
+router.get('/update-changed', auth, ensureAuthenticated, updateChangedDomains);
 
 
 

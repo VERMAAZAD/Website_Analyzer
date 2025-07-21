@@ -20,7 +20,6 @@ const Users = () => {
     });
   }, []);
 
-  // 🔁 When user clicked, redirect to UserDomains page
   const handleUserClick = (user) => {
     navigate(`/admin/user/${user._id}/domains/${encodeURIComponent(user.name)}`);
   };

@@ -1,7 +1,7 @@
 /* Container Layout */
 .urlscan-container {
   max-width: 600px;
-  margin: 3rem auto;
+  margin: 1rem auto;
   padding: 2rem;
   background: #ffffffcc;
   backdrop-filter: blur(12px);
@@ -15,6 +15,7 @@
   text-align: center;
   font-size: 2rem;
   color: #2b2e4a;
+      margin-top: 0px;
   margin-bottom: 1.5rem;
   animation: fadeInDown 0.5s ease-in-out;
 }
@@ -27,20 +28,34 @@
   animation: fadeInUp 0.5s ease-in-out;
 }
 
-.urlscan-container input[type="text"],
-.urlscan-container select {
-  padding: 0.75rem 1rem;
-  font-size: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  background-color: #fff;
+.urlscan-container .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
-.urlscan-container input[type="text"]:focus,
+.urlscan-container label {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 0.95rem;
+}
+
+.urlscan-container input[type="text"],
+.urlscan-container input[type="date"],
+.urlscan-container select {
+  padding: 0.55rem 0.9rem;
+  font-size: 0.95rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background-color: #fff;
+  color: #111827;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.urlscan-container input:focus,
 .urlscan-container select:focus {
   border-color: #4c6ef5;
-  box-shadow: 0 0 0 4px rgba(76, 110, 245, 0.2);
+  box-shadow: 0 0 0 2px rgba(76, 110, 245, 0.15);
   outline: none;
 }
 
@@ -54,6 +69,7 @@
   border-radius: 10px;
   cursor: pointer;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  margin-top: 1rem;
 }
 
 .urlscan-container button:hover:not(:disabled) {

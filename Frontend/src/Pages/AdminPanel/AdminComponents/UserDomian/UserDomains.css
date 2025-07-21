@@ -15,6 +15,11 @@
   margin-bottom: 10px;
   border-radius: 6px;
   transition: 0.3s;
+  cursor: pointer; 
+}
+
+.domain-item:hover {
+  background-color: #e8e8e8; 
 }
 
 .domain-item.error {

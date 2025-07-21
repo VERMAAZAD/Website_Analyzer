@@ -26,3 +26,4 @@ app.use('/admin', AdminRouter);
 app.listen(PORT, () => {
     console.log('Server is Running');
 })
+require('./cron/autoUpdater'); 

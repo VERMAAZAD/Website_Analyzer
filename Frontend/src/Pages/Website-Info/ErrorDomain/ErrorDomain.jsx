@@ -1,58 +1,58 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import axios from 'axios';
-import Layout from '../../../components/Layouts/Layout';
-import { useNavigate } from 'react-router-dom';
-import "./ErrorDomain.css"
+import './ErrorDomain.css';
 
 function ErrorDomains() {
   const [errorDomains, setErrorDomains] = useState([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+
+  const fetchRefreshedErrorDomains = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URI}/api/scraper/refresh-and-errors`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      console.log("Refreshed Error Domains →", res.data);
+      setErrorDomains(res.data);
+    } catch (err) {
+      console.error("❌ Failed to fetch error domains", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchErrorDomains = async () => {
-      try {
-        const res = await axios.get(`${import.meta.env.VITE_API_URI}/api/scraper/errors`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-        });
-        setErrorDomains(res.data);
-      } catch (err) {
-        console.error("Failed to fetch error domains", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchErrorDomains();
+    fetchRefreshedErrorDomains();
   }, []);
 
   return (
-    <Layout>
-      <div className="errordomain-container">
-        <div className="top-bar">
-          <h2>Domains with Errors (StatusCode ≠ 200)</h2>
-          <button className="add-url-btn" onClick={() => navigate('/urlscan')}>
-            + Add URL
-          </button>
-        </div>
-
-        {loading ? (
-          <p>Loading...</p>
-        ) : errorDomains.length === 0 ? (
-          <p>All domains are healthy ✅</p>
-        ) : (
-          <ul className="errordomain-list">
-            {errorDomains.map((site, index) => (
-              <li key={index} className="errordomain-card">
-                <strong>{site.domain}</strong>
-                <p>Status Code: {site.statusCode || 'Unknown'}</p>
-                <p>Last Checked: {new Date(site.lastChecked).toLocaleString()}</p>
-              </li>
-            ))}
-          </ul>
-        )}
+    <div className="errordomain-container">
+      <div className="top-bar">
+        <h2>Domains with Errors (StatusCode ≠ 200)</h2>
+        <button className="add-url-btn" onClick={fetchRefreshedErrorDomains}>
+          🔁 Refresh All
+        </button>
       </div>
-    </Layout>
+
+      {loading ? (
+        <p>Loading...</p>
+      ) : errorDomains.length === 0 ? (
+        <p>All domains are healthy ✅</p>
+      ) : (
+        <ul className="errordomain-list">
+          {errorDomains.map((domain, index) => (
+            <li key={index} className="errordomain-card">
+              <strong>{domain}</strong>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 

@@ -27,6 +27,8 @@ const ScrapedSiteSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  affiliateLink: { type: String, default: null },
+  issueDate: { type: Date, default: null },
 });
 
 module.exports = mongoose.model('ScrapedSite', ScrapedSiteSchema);

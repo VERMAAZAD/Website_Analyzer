@@ -2,7 +2,7 @@ import React from 'react';
 import './Sidebar.css';
 import { Link, useNavigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
-import { handleSuccess } from '../../utils';
+import { handleSuccess } from '../../toastutils';
 
 const Sidebar = ({ isOpen, onClose }) => {
   
@@ -27,8 +27,12 @@ const Sidebar = ({ isOpen, onClose }) => {
         <li><Link to="/home"> User Dashboard</Link></li>
         <li><Link to="/urlscan">UrlScan</Link></li>
         <li><Link to="/domains">Domain List</Link></li>
-        <li onClick={handleLogout}><Link>Logout</Link></li>
-        <Link to="/errors">Error Domains</Link>
+       <li><Link to="/domain-errors">Error Domains</Link></li>
+       <li><Link to="/affiliate-errors">Error Affiliate</Link></li>
+       <li><Link to="/domain-expire">Expire Domain</Link></li>
+        <li className="logout" onClick={handleLogout}>
+        <Link>Logout</Link>
+        </li>
       </ul>
       <ToastContainer/>
     </div>

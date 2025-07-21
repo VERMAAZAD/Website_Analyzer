@@ -57,9 +57,7 @@ const Home = () => {
       <section className="dashboard">
         <div className="top-bar">
           <h2>All Product Category</h2>
-          <button className="refresh-btn" onClick={fetchCategoriesAndCounts}>
-            🔄 Refresh
-          </button>
+           
         </div>
 
          {lastReloadTime && (
@@ -67,7 +65,6 @@ const Home = () => {
             Last Reload: {lastReloadTime.toLocaleTimeString()}
           </p>
         )} 
-
         
         <input
           type="text"

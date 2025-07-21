@@ -6,6 +6,9 @@ const User = require('../Models/User'); // update path as per your project
 
 
 const MongoDB_URL = process.env.MONGO_CONN;
+const ADMIN_NAME = process.env.ADMIN_NAME;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 const createAdmin = async () => {
   try {
     await mongoose.connect(MongoDB_URL);
@@ -17,11 +20,11 @@ const createAdmin = async () => {
       return;
     }
 
-    const hashedPassword = await bcrypt.hash('dmrohitkharayat', 10); // change password
+    const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 10); // change password
 
     const adminUser = new User({
-      name: 'Rohit Kharayat',
-      email: 'dmrohitkharayat@gmail.com',
+      name: ADMIN_NAME,
+      email: ADMIN_EMAIL,
       password: hashedPassword,
       role: 'admin'
     });

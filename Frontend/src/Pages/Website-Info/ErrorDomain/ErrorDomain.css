@@ -1,101 +1,94 @@
-/* Container */
+/* ErrorDomain.css */
+
 .errordomain-container {
   padding: 2rem;
   max-width: 1000px;
   margin: auto;
+  font-family: 'Segoe UI', sans-serif;
 }
 
-/* Top Bar */
 .top-bar {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.top-bar h2 {
-  font-size: 1.8rem;
-  color: #333;
-  margin: 0.5rem 0;
-}
-
-/* Add URL Button */
-.add-url-btn {
-  background-color: #1e88e5;
-  color: #fff;
-  border: none;
-  padding: 0.6rem 1.2rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-  font-size: 1rem;
-}
-
-.add-url-btn:hover {
-  background-color: #1565c0;
-  transform: translateY(-2px);
-}
-
-/* Domain List */
-.errordomain-list {
-  list-style: none;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  margin-bottom: 2rem;
   gap: 1rem;
 }
 
-/* Domain Card */
+.top-bar h2 {
+  font-size: 1.6rem;
+  color: #333;
+}
+
+
+.add-url-btn {
+  background: linear-gradient(to right, #6366f1, #4f46e5); 
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.3s ease;
+}
+
+.add-url-btn:hover {
+ background: linear-gradient(to right, #4f46e5, #2563eb);
+  transform: scale(1.02);
+}
+
+.errordomain-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.2rem;
+  list-style: none;
+  padding: 0;
+}
+
 .errordomain-card {
-  background-color: #fdfdfd;
-  border: 1px solid #ddd;
+  background: #fff;
+  border-left: 4px solid #f44336;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  padding: 1.2rem;
   border-radius: 12px;
-  padding: 1rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  animation: fadeInUp 0.4s ease both;
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
 }
 
 .errordomain-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-5px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
 }
 
 .errordomain-card strong {
   font-size: 1.1rem;
   color: #222;
-  display: block;
-  margin-bottom: 0.5rem;
 }
 
 .errordomain-card p {
-  margin: 0.2rem 0;
-  color: #444;
+  margin: 0.4rem 0;
   font-size: 0.95rem;
+  color: #444;
 }
 
-/* Animation */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.errordomain-card .status-success {
+  color: green;
+  font-weight: bold;
 }
 
-/* Responsive Fix */
-@media (max-width: 500px) {
+.errordomain-card .status-error {
+  color: red;
+  font-weight: bold;
+}
+
+/* Responsive tweaks */
+@media (max-width: 600px) {
   .top-bar {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
   }
 
   .add-url-btn {
     width: 100%;
-    margin-top: 0.5rem;
   }
 }

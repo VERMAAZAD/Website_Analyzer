@@ -11,3 +11,4 @@ const extractBaseDomain = (url) => {
 };
 
 module.exports = extractBaseDomain;
+

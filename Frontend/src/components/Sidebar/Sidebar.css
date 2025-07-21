@@ -1,6 +1,9 @@
 .sidebar {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* Push content */
   width: 210px;
-  background-color: #1f2937; /* Dark blue-gray */
+  background-color: #1f2937;
   color: #ffffff;
   height: 100vh;
   padding: 20px;
@@ -43,9 +46,25 @@
 }
 
 .nav-links {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   list-style: none;
   padding: 0;
   margin: 0;
+}
+.nav-links li.logout {
+  margin-top: auto;
+  font-weight: 500;
+  color: #f87171;
+  cursor: pointer;
+  padding: 8px 12px;
+  transition: background 0.3s ease;
+  border-radius: 6px;
+}
+.nav-links li.logout:hover {
+  background-color: #7f1d1d;
+  color: #fff;
 }
 
 .nav-links li {

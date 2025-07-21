@@ -18,7 +18,8 @@ const Dashboard = () => {
       const domainRes = await axios.get(`${import.meta.env.VITE_API_URI}/admin/scraped-data`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setUsers(usersRes.data.length);
+       const onlyUsers = usersRes.data.filter(user => user.role !== 'admin'); // or 'admin' depending on your schema
+      setUsers(onlyUsers.length);
       setDomains(domainRes.data.length);
     };
     fetchData();

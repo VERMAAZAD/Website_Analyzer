@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './UrlScan.css';
 import Layout from '../../../components/Layouts/Layout';
-import { handleError, handleSuccess } from '../../../utils';
-import { ToastContainer } from 'react-toastify';
+import { handleError, handleSuccess } from '../../../toastutils';
 
 function UrlScan() {
   const [domain, setDomain] = useState('');
@@ -14,6 +13,8 @@ function UrlScan() {
   const [customCategory, setCustomCategory] = useState('');
   const [useCustom, setUseCustom] = useState(false);
   const [categories, setCategories] = useState([]); // ✅ fetched from backend
+    const [affiliateLink, setAffiliateLink] = useState(null);
+ const [issueDate, setIssueDate] = useState('');
 
   // ✅ Fetch brand categories from backend
   useEffect(() => {
@@ -26,7 +27,7 @@ function UrlScan() {
         });
         setCategories(res.data);
       } catch (err) {
-        console.error("❌ Failed to fetch categories", err);
+        handleError("❌ Failed to fetch categories", err);
       }
     };
 
@@ -44,12 +45,16 @@ function UrlScan() {
     setLoading(true);
     setSaved(false);
     setResult(null);
+    setAffiliateLink(null);
 
     try {
-      const response = await axios.post(`http://localhost:5000/api/scraper/scan`, {
+      const response = await axios.post(`${import.meta.env.VITE_API_URI}/api/scraper/scan`, {
         domain: domain.trim(),
       });
       setResult(response.data);
+       if (response.data.affiliateLink) {
+        setAffiliateLink(response.data.affiliateLink);
+      }
     } catch (error) {
       setResult(error.response?.data || { error: 'Something went wrong while scraping.' });
 
@@ -76,6 +81,7 @@ function UrlScan() {
         domain: domain.trim(),
         data: result,
         brandCategory,
+         issueDate: issueDate || null,
       }, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`
@@ -95,64 +101,84 @@ function UrlScan() {
 
   return (
     <Layout>
-      <div className="urlscan-container">
-        <h2>Scan Website</h2>
-        <form onSubmit={handleScan}>
-          <input
-            type="text"
-            value={domain}
-            onChange={(e) => setDomain(e.target.value)}
-            placeholder="Enter Domain e.g. https://example.com"
-            required
-          />
+   <div className="urlscan-container">
+  <h2>Scan Website</h2>
+  <form onSubmit={handleScan}>
+    {/* Domain Input */}
+    <label htmlFor="domain">Domain</label>
+    <input
+      type="text"
+      id="domain"
+      value={domain}
+      onChange={(e) => setDomain(e.target.value)}
+      placeholder="Enter Domain e.g. https://example.com"
+      required
+    />
 
-          <select
-            value={category}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (val === '__custom__') {
-                setUseCustom(true);
-                setCategory('');
-              } else {
-                setUseCustom(false);
-                setCategory(val);
-              }
-            }}
-            required={!useCustom}
-          >
-            <option value="">Select Brand Category</option>
-            {categories.map((cat, idx) => (
-              <option key={idx} value={cat}>{cat}</option>
-            ))}
-            <option value="__custom__">Add custom category...</option>
-          </select>
+    {/* Issue Date Input */}
+    <label htmlFor="issueDate">Issue Date</label>
+    <input
+      type="date"
+      id="issueDate"
+      value={issueDate}
+      onChange={(e) => setIssueDate(e.target.value)}
+      placeholder="Select issue date"
+    />
 
-          {useCustom && (
-            <input
-              type="text"
-              value={customCategory}
-              onChange={(e) => setCustomCategory(e.target.value)}
-              placeholder="Enter custom brand category"
-              required
-            />
-          )}
+    {/* Brand Category Select */}
+    <label htmlFor="category">Brand Category</label>
+    <select
+      id="category"
+      value={category}
+      onChange={(e) => {
+        const val = e.target.value;
+        if (val === '__custom__') {
+          setUseCustom(true);
+          setCategory('');
+        } else {
+          setUseCustom(false);
+          setCategory(val);
+        }
+      }}
+      required={!useCustom}
+    >
+      <option value="">Select Brand Category</option>
+      {categories.map((cat, idx) => (
+        <option key={idx} value={cat}>{cat}</option>
+      ))}
+      <option value="__custom__">Add custom category...</option>
+    </select>
 
-          <button type="submit" disabled={loading}>
-            {loading ? 'Scanning...' : 'Scan'}
-          </button>
-        </form>
+    {/* Custom Category Input */}
+    {useCustom && (
+      <>
+        <label htmlFor="customCategory">Custom Brand Category</label>
+        <input
+          type="text"
+          id="customCategory"
+          value={customCategory}
+          onChange={(e) => setCustomCategory(e.target.value)}
+          placeholder="Enter custom brand category"
+          required
+        />
+      </>
+    )}
 
-        {result && (
-          <>
-            <pre className="result-json">{JSON.stringify(result, null, 2)}</pre>
-            <button onClick={handleSave} disabled={saved}>
-              {saved ? 'Saved' : 'Save'}
-            </button>
-          </>
-        )}
+    <button type="submit" disabled={loading}>
+      {loading ? 'Scanning...' : 'Scan'}
+    </button>
+  </form>
 
-        <ToastContainer />
-      </div>
+  {result && (
+    <>
+      <pre className="result-json">{JSON.stringify(result, null, 2)}</pre>
+      <button onClick={handleSave} disabled={saved}>
+        {saved ? 'Saved' : 'Save'}
+      </button>
+    </>
+  )}
+</div>
+
     </Layout>
   );
 }

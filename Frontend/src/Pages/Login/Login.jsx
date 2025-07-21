@@ -1,9 +1,8 @@
 
 import './Login.css'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
-import {ToastContainer} from 'react-toastify';
-import { handleError, handleSuccess } from "../../utils";
+import { handleError, handleSuccess } from "../../toastutils";
 
 
 const Login = () => {
@@ -59,7 +58,7 @@ const Login = () => {
             handleError(err);
         }
         }
-
+            
   return (
      <div className="login-container">
     <form className="login-form" onSubmit={handleLogin}>
@@ -74,7 +73,6 @@ const Login = () => {
       <button type="submit">Login</button>
 
     </form>
-    <ToastContainer/>
   </div>
   )
 }
