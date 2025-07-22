@@ -16,7 +16,7 @@ import ErrorAffiliatesAdmin from './Pages/Website-Info/ErrorAffiliate/ErrorAffil
 import DomainListUser from './Pages/Website-Info/DomainList/DomainListUser';
 import DomainListAdmin from './Pages/Website-Info/DomainList/DomainListAdmin';
 import ErrorDomainUser from './Pages/Website-Info/ErrorDomain/ErrorDomainUser';
-import ErrorDomainAdmin from './Pages/Website-Info/ErrorDomain/ErrordomainAdmin';
+import ErrorDomainAdmin from './Pages/Website-Info/ErrorDomain/ErrorDomainAdmin';
 import DomainExpireAdmin from './Pages/Website-Info/DomainExpire/DomainExpireAdmin';
 import DomainExpireUser from './Pages/Website-Info/DomainExpire/DomainExpireUser';
 
