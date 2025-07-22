@@ -1,5 +1,6 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
+const pLimit = require('p-limit').default;
 const ScrapedSite = require('../Models/ScrapedSite');
 
 
@@ -570,4 +571,3 @@ exports.renewDomain = async (req, res) => {
     res.status(500).json({ error: 'Renewal failed' });
   }
 };
-

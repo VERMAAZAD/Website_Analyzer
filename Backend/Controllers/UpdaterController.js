@@ -126,13 +126,12 @@ exports.updateChangedDomains = async (req, res) => {
         }
 
       } catch (err) {
-        console.warn(`⚠️ Skipped ${site.domain}:`, err.message);
+       
       }
     }
 
     res.json({ message: 'Update check complete', updated });
   } catch (err) {
-    console.error('❌ Update Error:', err.message);
     res.status(500).json({ error: 'Update failed' });
   }
 };
