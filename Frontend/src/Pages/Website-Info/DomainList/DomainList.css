@@ -254,7 +254,7 @@
   }
 
   .search-input {
-    width: 100%;
+    width: 89%;
   }
 
   .domain-header {
@@ -278,4 +278,25 @@
   .image-item {
     width: 100px;
   }
+}
+
+.red-text {
+  color: red;
+}
+
+
+.note-btn {
+  background: none;
+  border: none;
+  color: #3b82f6;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.note-btn:hover {
+  background-color: #dbeafe;
+  transform: scale(1.1);
 }

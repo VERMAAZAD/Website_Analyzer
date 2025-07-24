@@ -72,4 +72,62 @@ const login = async (req, res) => {
     }
 };
 
-module.exports = { signup, login };
+// Controllers/AuthController.js
+const sendEmail = require('../Utils/sendEmail');
+const { generateResetEmailHTML } = require('../Utils/emailTemplates');
+
+const requestPasswordReset = async (req, res) => {
+    try {
+        const { email: rawEmail } = req.body;
+        const email = rawEmail.toLowerCase();
+
+        const user = await UserModel.findOne({ email });
+        if (!user) return res.status(404).json({ success: false, message: "Email not found" });
+
+        const resetCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
+        const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+        user.resetCode = resetCode;
+        user.resetCodeExpiry = expiry;
+        await user.save();
+
+		await sendEmail(
+		email,
+		'Your Password Reset Code',
+		`Your reset code is: ${resetCode}`, // Fallback plain text
+		generateResetEmailHTML(resetCode)   // Styled HTML
+		);
+
+        // await sendEmail(email, 'Your Password Reset Code', `Your reset code is: ${resetCode}`);
+
+        res.json({ success: true, message: "Reset code sent to email" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+
+const resetPassword = async (req, res) => {
+    try {
+        const { email: rawEmail, code, newPassword } = req.body;
+        const email = rawEmail.toLowerCase();
+
+        const user = await UserModel.findOne({ email });
+        if (!user || user.resetCode !== code || user.resetCodeExpiry < Date.now()) {
+            return res.status(400).json({ success: false, message: "Invalid or expired reset code" });
+        }
+
+        user.password = await bcrypt.hash(newPassword, 10);
+        user.resetCode = undefined;
+        user.resetCodeExpiry = undefined;
+
+        await user.save();
+
+        res.json({ success: true, message: "Password reset successful" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+
+module.exports = { signup, login, requestPasswordReset, resetPassword};

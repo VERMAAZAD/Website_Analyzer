@@ -1,6 +1,6 @@
 
 import './Login.css'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { handleError, handleSuccess } from "../../toastutils";
 
@@ -10,6 +10,7 @@ const Login = () => {
             email: '',
             password: ''
         })
+         const [showPassword, setShowPassword] = useState(false);
 
         const handleChange = (e) => {
                 const {name, value} = e.target;
@@ -68,10 +69,22 @@ const Login = () => {
       <input type="email" id="email" name="email" onChange={handleChange} placeholder="email@example.com" required />
 
       <label htmlFor="password">Password</label>
-      <input type="password" id="password" name="password" onChange={handleChange} placeholder="Enter password" required />
-
+      <input type={showPassword ? "text" : "password"} id="password" name="password" onChange={handleChange} placeholder="Enter password" required />
+      <div className="show-password">
+            <input
+              type="checkbox"
+              id="showPassword"
+              checked={showPassword}
+              onChange={() => setShowPassword(prev => !prev)}
+            />
+            <label htmlFor="showPassword">Show Password</label>
+      </div>
       <button type="submit">Login</button>
-
+      <div className="forgot-password-link-wrapper">
+          <Link to="/forgot-password" className="forgot-password-link">
+            Forgot Password?
+          </Link>
+        </div>
     </form>
   </div>
   )

@@ -1,5 +1,5 @@
 const cron = require('node-cron');
-const ScrapedSite = require('../Models/ScrapedSite');
+// const ScrapedSite = require('../Models/ScrapedSite');
 const { updateChangedDomains } = require('../Controllers/UpdaterController');
 
 // Simulate admin request

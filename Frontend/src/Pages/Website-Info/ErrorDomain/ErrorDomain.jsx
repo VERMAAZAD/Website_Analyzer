@@ -3,7 +3,10 @@ import axios from 'axios';
 import './ErrorDomain.css';
 
 function ErrorDomains() {
-  const [errorDomains, setErrorDomains] = useState([]);
+  const [errorDomains, setErrorDomains] = useState(() => {
+    const cached = localStorage.getItem("cachedErrorDomains");
+    return cached ? JSON.parse(cached) : [];
+  });
   const [loading, setLoading] = useState(true);
 
   const fetchRefreshedErrorDomains = async () => {
@@ -17,17 +20,21 @@ function ErrorDomains() {
           },
         }
       );
-      console.log("Refreshed Error Domains →", res.data);
       setErrorDomains(res.data);
+      localStorage.setItem("cachedErrorDomains", JSON.stringify(res.data)); // ✅ cache new results
     } catch (err) {
-      console.error("❌ Failed to fetch error domains", err);
+      console.error("Fetch failed:", err.message);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchRefreshedErrorDomains();
+    if (!localStorage.getItem("cachedErrorDomains")) {
+      fetchRefreshedErrorDomains();
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   return (
@@ -45,9 +52,17 @@ function ErrorDomains() {
         <p>All domains are healthy ✅</p>
       ) : (
         <ul className="errordomain-list">
-          {errorDomains.map((domain, index) => (
+          {errorDomains.map((site, index) => (
             <li key={index} className="errordomain-card">
-              <strong>{domain}</strong>
+              <p><strong>Domain:</strong> {site.domain}</p>
+              <p><strong>Status Code:</strong> {site.statusCode}</p>
+              <p>
+                <strong>Failing URL:</strong>{" "}
+                <a href={site.failingUrl} target="_blank" rel="noreferrer">
+                  {site.failingUrl}
+                </a>
+              </p>
+              
             </li>
           ))}
         </ul>

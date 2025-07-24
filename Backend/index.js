@@ -11,9 +11,6 @@ const ScraperRouter = require("./Routers/ScraperRouter");
 const AdminRouter = require('./Routers/AdminRouter');
 
 
-
-
-
 const PORT = process.env.PORT || 5000;
 
 app.use(bodyParser.json());

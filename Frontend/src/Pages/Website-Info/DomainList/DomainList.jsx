@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './DomainList.css';
+import NoteEditor from '../../../components/NoteEditor/NoteEditor';
 
 const extractBaseDomain = (url) => {
   try {
@@ -22,7 +23,7 @@ function DomainList() {
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [lastReloadTime, setLastReloadTime] = useState(null);
-  const [notes, setNotes] = useState({});
+  const [showNoteEditorMap, setShowNoteEditorMap] = useState({});
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -69,7 +70,6 @@ function DomainList() {
 
     if (scrapedDataMap[baseDomain]) {
       setSelectedDomain(baseDomain);
-      await fetchNoteForDomain(baseDomain); // Fetch note
       return;
     }
 
@@ -81,7 +81,6 @@ function DomainList() {
       });
       setScrapedDataMap(prev => ({ ...prev, [baseDomain]: res.data }));
       setSelectedDomain(baseDomain);
-      await fetchNoteForDomain(baseDomain); // Fetch note
     } catch (err) {
       console.error('Error fetching domain data:', err);
     }
@@ -163,7 +162,20 @@ function DomainList() {
                     <span className="domain-text" onClick={() => handleDomainClick(site.domain)}>
                       {site.domain}
                     </span>
-                    
+
+<div>
+
+                    <button
+                        className="note-btn"
+                        onClick={() => setShowNoteEditorMap(prev => ({
+                          ...prev,
+                          [baseDomain]: !prev[baseDomain],
+                        }))}
+                        title="Add/Edit Note"
+                      >
+                        📝
+                    </button>
+
                     <button
                       className="domain-delete"
                       onClick={() => handleDeleteDomain(baseDomain)}
@@ -171,13 +183,47 @@ function DomainList() {
                     >
                       ❌
                     </button>
-                    
+               </div>
                   </div>
+                  {site.note && (
+  <div className="domain-note">
+    <strong>Note:</strong> {site.note}
+  </div>
+)}
+
+                        
+                    {showNoteEditorMap[baseDomain] && (
+                      <div className="">
+                        <h4>Note:</h4>
+                        <NoteEditor
+                            domain={baseDomain}
+                            currentNote={site.note}
+                            onSave={(newNote) => {
+                              setDomains(prev =>
+                                prev.map(d =>
+                                  extractBaseDomain(d.domain) === baseDomain ? { ...d, note: newNote } : d
+                                )
+                              );
+                               setShowNoteEditorMap(prev => ({
+                                  ...prev,
+                                  [baseDomain]: false, 
+                                }));
+                            }}
+                          />
+                      </div>
+                    )}
+
+
 
                   {selectedDomain === baseDomain && scraped && (
                     <div className="scraped-inline">
-                      {scraped.title && (<><h4>Title:</h4><p>{scraped.title}</p></>)}
-                      {scraped.description && (<><h4>Description:</h4><p>{scraped.description}</p></>)}
+                      {scraped.title && (<><h4>Title:</h4><p style={{ color: scraped.title.length > 60 ? 'red' : 'inherit' }}>
+                        {scraped.title} ({scraped.title.length} Char)
+                      </p>
+                  </>)}
+                    {scraped.description && (<><h4>Description:</h4><p style={{ color: scraped.description.length > 160 ? 'red' : 'inherit' }}>
+                        {scraped.description} ({scraped.description.length} Char)
+                         </p></>)}
                       {scraped.h1?.length > 0 && (
                         <>
                           <h4>H1 Tags:</h4>
@@ -209,7 +255,12 @@ function DomainList() {
                           <h4>Images:</h4>
                           <ul className="image-grid">
                             {scraped.images.map((src, idx) => {
-                              let imgSrc = src.startsWith('http') ? src : `https://${scraped.domain}${src}`;
+
+                              let imgSrcRaw = src.startsWith('http') ? src : `https://${scraped.domain}${src}`;
+
+                              let imgSrc = imgSrcRaw
+                                      .replace(/(\.[a-z]{2,})(?=assets\/)/, '$1/')
+                                        .replace(/(\.[a-z]{2,})\.\//, '$1/');
                               const alt = scraped.altTags?.[idx] || 'No alt text';
                               return (
                                 <li key={idx} className="image-item">

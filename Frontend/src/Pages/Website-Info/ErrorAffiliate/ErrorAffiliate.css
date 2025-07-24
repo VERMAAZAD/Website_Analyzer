@@ -114,3 +114,8 @@
     align-items: flex-start;
   }
 }
+.affiliate-last-updated {
+  font-size: 0.85rem;
+  color: #888;
+  margin-top: 5px;
+}

@@ -13,6 +13,8 @@ const {
   testAffiliateLinks,
   getExpiringDomains,
   renewDomain,
+  updateNote,
+  deleteNote,
 } = require('../Controllers/ScraperController');
 const ensureAuthenticated = require('../Middlewares/Auth');
 const auth = require("../Middlewares/Auth");
@@ -31,6 +33,8 @@ router.get('/check-affiliate-errors', auth, ensureAuthenticated, testAffiliateLi
 router.get('/expiring', auth, ensureAuthenticated, getExpiringDomains);
 router.post('/renew', auth, ensureAuthenticated, renewDomain);
 router.get('/update-changed', auth, ensureAuthenticated, updateChangedDomains);
+router.put('/note/:domain', auth, ensureAuthenticated, updateNote);
+router.delete('/note/:domain', auth, ensureAuthenticated, deleteNote);
 
 
 

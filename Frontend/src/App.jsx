@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import axios from 'axios';
 
 import './App.css'
 import Login from './Pages/Login/Login';
@@ -19,15 +21,57 @@ import ErrorDomainUser from './Pages/Website-Info/ErrorDomain/ErrorDomainUser';
 import ErrorDomainAdmin from './Pages/Website-Info/ErrorDomain/ErrorDomainAdmin';
 import DomainExpireAdmin from './Pages/Website-Info/DomainExpire/DomainExpireAdmin';
 import DomainExpireUser from './Pages/Website-Info/DomainExpire/DomainExpireUser';
+import ForgotPassword from './Pages/ForgetPassword/ForgotPassword';
 
 
 
 function App() {
+     const preloadAffiliateErrors = async () => {
+      try {
+        const cached = localStorage.getItem("cachedErrorAffiliate");
+        if (!cached) {
+          const res = await axios.get(`${import.meta.env.VITE_API_URI}/api/scraper/check-affiliate-errors`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`
+            }
+          });
+          const data = res.data.errors || [];
+          localStorage.setItem("cachedErrorAffiliate", JSON.stringify(data));
+        }
+      } catch (err) {
+        handleError("❌ Failed to preload affiliate errors");
+      }
+    };
+
+    
+
+const preloadErrorDomains = async () => {
+      try {
+        const res = await axios.get(
+          `${import.meta.env.VITE_API_URI}/api/scraper/refresh-and-errors`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+        localStorage.setItem("cachedErrorDomains", JSON.stringify(res.data));
+      } catch (err) {
+        console.error("❌ Error preloading domains", err);
+      }
+    };
+
+ useEffect(() => {
+    preloadErrorDomains();
+    preloadAffiliateErrors();
+  }, []);
+
   return (
   <>
       <Routes>
       <Route path='/' element={<Navigate to="/login"/>}/>
       <Route path='/login' element={<Login/>}/>
+      <Route path='/forgot-password' element={<ForgotPassword/>}/>
 
 
         {/* Protected User & Admin Routes */}
@@ -37,6 +81,7 @@ function App() {
         <Route path='/domain-errors' element={<ProtectedRoute allowedRoles={['user']}><ErrorDomainUser /></ProtectedRoute>}/>
         <Route path='/affiliate-errors' element={<ProtectedRoute allowedRoles={['user']}><ErrorAffiliatesUser /></ProtectedRoute>}/>
         <Route path='/domain-expire' element={<ProtectedRoute allowedRoles={['user']}><DomainExpireUser /></ProtectedRoute>}/>
+        {/* <Route path='/forgot-password' element={<ProtectedRoute allowedRoles={['user']}><ForgotPassword /></ProtectedRoute>}/> */}
        
 
       {/* Admin Routes */}

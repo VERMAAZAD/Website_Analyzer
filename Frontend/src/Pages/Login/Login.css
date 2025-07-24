@@ -74,3 +74,36 @@
 .form-link a:hover {
   text-decoration: underline;
 }
+.forgot-password-link-wrapper {
+  margin-top: 1rem;
+  text-align: right;
+}
+
+.forgot-password-link {
+  font-size: 0.9rem;
+  color: #007bff;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.forgot-password-link:hover {
+  color: #0056b3;
+  text-decoration: underline;
+}
+
+.login-form .show-password {
+   display: flex;
+  align-items: start;
+  font-size: 0.9rem;
+  color: #333;
+  margin: -1rem 0 1.5rem;
+  gap: 8px;
+}
+.show-password input{
+  text-align: start;
+      width: 4%;
+}
+.login-form .show-password input[type="checkbox"] {
+  accent-color: #007bff; 
+  cursor: pointer;
+}

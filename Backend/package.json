@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
   "keywords": [],
   "author": "",
@@ -24,10 +25,12 @@
     "node-cron": "^4.2.1",
     "node-fetch": "^3.3.2",
     "nodemailer": "^7.0.5",
-    "nodemon": "^3.1.10",
     "p-limit": "^6.2.0",
     "whois": "^2.15.0",
     "whois-json": "^2.0.4",
     "whois-parser": "^1.0.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
   }
 }

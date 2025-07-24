@@ -12,6 +12,7 @@ const Signup = () => {
             email: '',
             password: ''
         })
+        const [showPassword, setShowPassword] = useState(false);
 
         const handleChange = (e) => {
                 const {name, value} = e.target;
@@ -74,7 +75,17 @@ const Signup = () => {
       <input type="email" id="email" name="email" onChange={handleChange} value={signupInfo.email} placeholder="email@example.com"  />
 
       <label htmlFor="password">Password</label>
-      <input type="password" id="password" name="password" onChange={handleChange} value={signupInfo.password} placeholder="Enter password"  />
+      <input  type={showPassword ? "text" : "password"} id="password" name="password" onChange={handleChange} value={signupInfo.password} placeholder="Enter password"  />
+       <div className="show-password">
+            <input
+              type="checkbox"
+              id="showPassword"
+              checked={showPassword}
+              onChange={() => setShowPassword(prev => !prev)}
+            />
+            <label htmlFor="showPassword">Show Password</label>
+      </div>
+
       <button type="submit">Sign Up</button>
     
     </form>

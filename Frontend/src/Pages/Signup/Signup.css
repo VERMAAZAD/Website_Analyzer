@@ -74,3 +74,20 @@
 .form-link a:hover {
   text-decoration: underline;
 }
+/* Add this block to style the show-password checkbox line */
+.signup-form .show-password {
+   display: flex;
+  align-items: start;
+  font-size: 0.9rem;
+  color: #333;
+  margin: -1rem 0 1.5rem;
+  gap: 8px;
+}
+.show-password input{
+  text-align: start;
+      width: 4%;
+}
+.signup-form .show-password input[type="checkbox"] {
+  accent-color: #007bff; 
+  cursor: pointer;
+}

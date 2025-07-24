@@ -71,6 +71,8 @@ exports.scrapeWebsite = async (req, res) => {
     canonicals = $('link[rel="canonical"]').map((_, el) => $(el).attr('href')).get();
     title = $('title').text().trim();
     description = $('meta[name="description"]').attr('content') || '';
+    const titleCharCount = title.length;
+    const descriptionCharCount = description.length;
     wordCount = $('body').text().split(/\s+/).filter(Boolean).length;
     schemaPresent = $('script[type="application/ld+json"]').length > 0;
     statusCode = mainRes.value.status;
@@ -120,7 +122,9 @@ exports.scrapeWebsite = async (req, res) => {
       altTags,
       canonicals,
       title,
+      titleCharCount,
       description,
+      descriptionCharCount,
       wordCount,
       schemaPresent,
       robotsTxt,
@@ -410,13 +414,17 @@ exports.refreshStatusesAndGetErrors = async (req, res) => {
       })
     );
 
-    const errorDomains = updates
-      .filter(site => site && site.statusCode !== 200)
-      .map(site => site.domain);
+   const errorDomains = updates
+  .filter(site => site && site.statusCode !== 200)
+  .map(site => ({
+    domain: site.domain,
+    statusCode: site.statusCode,
+    failingUrl: site.failingUrl || `N/A`,
+    lastChecked: site.lastChecked,
+  }));
 
     res.json(errorDomains);
   } catch (err) {
-    console.error("🔁 Status refresh error:", err.message);
     res.status(500).json({ error: "Failed to refresh and fetch error domains" });
   }
 };
@@ -569,5 +577,73 @@ exports.renewDomain = async (req, res) => {
     res.json({ message: 'Renewed successfully' });
   } catch (err) {
     res.status(500).json({ error: 'Renewal failed' });
+  }
+};
+
+
+
+
+
+// update note
+
+// PUT /api/scraper/note/:domain
+exports.updateNote = async (req, res) => {
+  try {
+    const { domain } = req.params;
+    const { note } = req.body;
+const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/^www\./, '').trim();
+
+
+ const filter = req.user.role === 'admin'
+      ? { domain: cleanDomain } 
+      : { domain: cleanDomain, user: req.user._id }; 
+
+
+    const updated = await ScrapedSite.findOneAndUpdate(
+      filter,
+      { note },
+      { new: true }
+    );
+    if (!updated) {
+      return res.status(404).json({ error: 'Domain not found' });
+    }
+
+    res.json({ message: 'Note saved successfully', note: updated.note });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error while saving note' });
+  }
+};
+
+
+
+// DELETE /api/scraper/note/:domain
+exports.deleteNote = async (req, res) => {
+  try {
+    const { domain } = req.params;
+
+    const cleanDomain = domain
+      .replace(/^https?:\/\//, '')
+      .replace(/^www\./, '')
+      .trim();
+
+    // Admins can delete notes on any domain
+    const filter = req.user.role === 'admin'
+      ? { domain: cleanDomain }
+      : { domain: cleanDomain, user: req.user._id };
+
+    const updated = await ScrapedSite.findOneAndUpdate(
+      filter,
+      { note: '' },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ error: 'Domain not found or access denied' });
+    }
+
+    res.json({ message: 'Note deleted successfully' });
+  } catch (err) {
+    console.error('❌ Error deleting note:', err);
+    res.status(500).json({ error: 'Server error while deleting note' });
   }
 };
