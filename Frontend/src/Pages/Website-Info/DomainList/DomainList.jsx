@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import {jwtDecode} from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 import axios from 'axios';
 import './DomainList.css';
 import NoteEditor from '../../../components/NoteEditor/NoteEditor';
@@ -16,6 +16,14 @@ const extractBaseDomain = (url) => {
   }
 };
 
+const getDomainExtension = (domain) => {
+  const parts = domain.split('.');
+  if (parts.length < 2) return '';
+  const last = parts.pop();
+  const secondLast = parts.pop();
+  return parts.length >= 1 && last.length <= 3 ? `.${secondLast}.${last}` : `.${last}`;
+};
+
 function DomainList() {
   const [domains, setDomains] = useState([]);
   const [selectedDomain, setSelectedDomain] = useState(null);
@@ -25,13 +33,13 @@ function DomainList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [lastReloadTime, setLastReloadTime] = useState(null);
   const [showNoteEditorMap, setShowNoteEditorMap] = useState({});
+  const [activeExtension, setActiveExtension] = useState("all");
 
   const location = useLocation();
   const navigate = useNavigate();
   const queryParams = new URLSearchParams(location.search);
   const category = queryParams.get("category");
 
-  // ✅ Fetch domains
   const fetchDomains = async () => {
     setLoading(true);
     setError("");
@@ -59,10 +67,10 @@ function DomainList() {
     }
   };
 
-
-  // ✅ Handle domain expand/collapse and fetch details
   const handleDomainClick = async (domain) => {
     const baseDomain = extractBaseDomain(domain);
+    const extension = getDomainExtension(domain);
+    setActiveExtension(extension);
 
     if (baseDomain === selectedDomain) {
       setSelectedDomain(null);
@@ -88,9 +96,7 @@ function DomainList() {
   };
 
   const handleDeleteDomain = async (domainToDelete) => {
-    const confirm = window.confirm(`Are you sure you want to delete ${domainToDelete}?`);
-    if (!confirm) return;
-
+    if (!window.confirm(`Are you sure you want to delete ${domainToDelete}?`)) return;
     try {
       const token = localStorage.getItem("token");
       await axios.delete(`${import.meta.env.VITE_API_URI}/api/scraper/domain/${domainToDelete}`, {
@@ -118,48 +124,49 @@ function DomainList() {
     fetchDomains();
   }, [category]);
 
-  const filteredDomains = domains.filter(site =>
-    site.domain.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const domainExtensions = Array.from(new Set(domains.map(d => getDomainExtension(d.domain)))).sort();
+  const domainExtensionCounts = domains.reduce((acc, d) => {
+    const ext = getDomainExtension(d.domain);
+    acc[ext] = (acc[ext] || 0) + 1;
+    return acc;
+  }, {});
+  const filteredDomains = domains.filter(site => {
+    const matchesSearch = site.domain.toLowerCase().includes(searchTerm.toLowerCase());
+    const extension = getDomainExtension(site.domain);
+    const matchesExtension = activeExtension === "all" || extension === activeExtension;
+    return matchesSearch && matchesExtension;
+  });
 
-  const rollRoken = localStorage.getItem("token");
-let role = "";
-if (rollRoken) {
-  try {
-    const decoded = jwtDecode(rollRoken);
-    role = decoded.role; // adjust if your token structure is different
-  } catch (err) {
-    console.error("Invalid token", err);
+  const roleToken = localStorage.getItem("token");
+  let role = "";
+  if (roleToken) {
+    try {
+      const decoded = jwtDecode(roleToken);
+      role = decoded.role;
+    } catch (err) {
+      console.error("Invalid token", err);
+    }
   }
-}
 
   return (
-      <div className="domain-container">
-        <div className="top-bar">
-          <h2>{category ? `Domains in "${category}"` : 'Saved Scraped Domains'}</h2>
-            <div className="button-group">
-           <button
-                className="add-url-btn"
-                onClick={() => {
-                  if (role === "admin") {
-                    navigate('/admin/urlscan');
-                  } else {
-                    navigate('/urlscan');
-                  }
-                }}
-              >
-                + Add URL
-              </button>
-          </div>
-
+    <div className="domain-container">
+      <div className="top-bar">
+        <h2>{category ? `Domains in "${category}"` : 'Saved Scraped Domains'}</h2>
+        <div className="button-group">
+          <button
+            className="add-url-btn"
+            onClick={() => navigate(role === "admin" ? '/admin/urlscan' : '/urlscan')}
+          >
+            + Add URL
+          </button>
         </div>
+      </div>
 
-        {lastReloadTime && (
-          <p className="reload-info">
-            Last Reload: {lastReloadTime.toLocaleTimeString()}
-          </p>
-        )}
+      {lastReloadTime && (
+        <p className="reload-info">Last Reload: {lastReloadTime.toLocaleTimeString()}</p>
+      )}
 
+      <div className="filter-bar">
         <input
           type="text"
           placeholder="Search domains..."
@@ -167,39 +174,58 @@ if (rollRoken) {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="search-input"
         />
+        
+      </div>
 
-        {loading ? (
-          <p>Loading domains...</p>
-        ) : error ? (
-          <p className="error">{error}</p>
-        ) : filteredDomains.length === 0 ? (
-          <p>No domains found.</p>
-        ) : (
-          <ul className="domain-list">
-            {filteredDomains.map((site) => {
-              const baseDomain = extractBaseDomain(site.domain);
-              const scraped = scrapedDataMap[baseDomain];
+      <div className="tld-filter-bar">
+  {Object.entries(domainExtensionCounts)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([ext, count]) => (
+      <button
+        key={ext}
+        className={`tld-btn ${activeExtension === ext ? 'active' : ''}`}
+        onClick={() => setActiveExtension(ext)}
+      >
+        {ext} ({count})
+      </button>
+    ))}
+  {activeExtension !== "all" && (
+    <button className="tld-btn clear" onClick={() => setActiveExtension("all")}>
+      Show All TLDs
+    </button>
+  )}
+</div>
 
-              return (
-                <li key={site.domain} className="domain-card">
-                  <div className="domain-header">
-                    <span className="domain-text" onClick={() => handleDomainClick(site.domain)}>
-                      {site.domain}
-                    </span>
 
-<div>
+      {loading ? (
+        <p>Loading domains...</p>
+      ) : error ? (
+        <p className="error">{error}</p>
+      ) : filteredDomains.length === 0 ? (
+        <p>No domains found.</p>
+      ) : (
+        <ul className="domain-list">
+          {filteredDomains.map((site) => {
+            const baseDomain = extractBaseDomain(site.domain);
+            const scraped = scrapedDataMap[baseDomain];
 
+            return (
+              <li key={site.domain} className={`domain-card ${selectedDomain === baseDomain ? 'selected' : ''}`}>
+                <div className="domain-header">
+                  <span className="domain-text" onClick={() => handleDomainClick(site.domain)}>
+                    {site.domain}
+                  </span>
+                  <div>
                     <button
-                        className="note-btn"
-                        onClick={() => setShowNoteEditorMap(prev => ({
-                          ...prev,
-                          [baseDomain]: !prev[baseDomain],
-                        }))}
-                        title="Add/Edit Note"
-                      >
-                        📝
+                      className="note-btn"
+                      onClick={() => setShowNoteEditorMap(prev => ({
+                        ...prev,
+                        [baseDomain]: !prev[baseDomain],
+                      }))}
+                      title="Add/Edit Note"
+                    >
+                      📝
                     </button>
-
                     <button
                       className="domain-delete"
                       onClick={() => handleDeleteDomain(baseDomain)}
@@ -207,108 +233,62 @@ if (rollRoken) {
                     >
                       ❌
                     </button>
-               </div>
                   </div>
-                  {site.note && (
-                    <div className="domain-note">
-                      <strong>Note:</strong> {site.note}
-                    </div>
-                  )}
+                </div>
 
-                        
-                    {showNoteEditorMap[baseDomain] && (
-                      <div className="">
-                        <h4>Note:</h4>
-                        <NoteEditor
-                            domain={baseDomain}
-                            currentNote={site.note}
-                            onSave={(newNote) => {
-                              setDomains(prev =>
-                                prev.map(d =>
-                                  extractBaseDomain(d.domain) === baseDomain ? { ...d, note: newNote } : d
-                                )
-                              );
-                               setShowNoteEditorMap(prev => ({
-                                  ...prev,
-                                  [baseDomain]: false, 
-                                }));
-                            }}
-                          />
-                      </div>
-                    )}
+                {site.note && (
+                  <div className="domain-note"><strong>Note:</strong> {site.note}</div>
+                )}
 
+                {showNoteEditorMap[baseDomain] && (
+                  <div>
+                    <h4>Note:</h4>
+                    <NoteEditor
+                      domain={baseDomain}
+                      currentNote={site.note}
+                      onSave={(newNote) => {
+                        setDomains(prev =>
+                          prev.map(d =>
+                            extractBaseDomain(d.domain) === baseDomain ? { ...d, note: newNote } : d
+                          )
+                        );
+                        setShowNoteEditorMap(prev => ({
+                          ...prev,
+                          [baseDomain]: false,
+                        }));
+                      }}
+                    />
+                  </div>
+                )}
 
-
-                  {selectedDomain === baseDomain && scraped && (
-                    <div className="scraped-inline">
-                      {scraped.title && (<><h4>Title:</h4><p style={{ color: scraped.title.length > 60 ? 'red' : 'inherit' }}>
-                        {scraped.title} ({scraped.title.length} Char)
-                      </p>
-                  </>)}
-                    {scraped.description && (<><h4>Description:</h4><p style={{ color: scraped.description.length > 160 ? 'red' : 'inherit' }}>
-                        {scraped.description} ({scraped.description.length} Char)
-                         </p></>)}
-                      {scraped.h1?.length > 0 && (
-                        <>
-                          <h4>H1 Tags:</h4>
-                          <ul>{scraped.h1.map((tag, idx) => <li key={idx}>{tag}</li>)}</ul>
-                        </>
-                      )}
-                      {scraped.h2?.length > 0 && (
-                        <>
-                          <h4>H2 Tags:</h4>
-                          <ul>{scraped.h2.map((tag, idx) => <li key={idx}>{tag}</li>)}</ul>
-                        </>
-                      )}
-                      {scraped.canonicals?.length > 0 && (
-                        <>
-                          <h4>Canonical Links:</h4>
-                          <ul>
-                            {scraped.canonicals.map((link, idx) => (
-                              <li key={idx}>
-                                <a href={link} target="_blank" rel="noopener noreferrer">{link}</a>
-                              </li>
-                            ))}
-                          </ul>
-                        </>
-                      )}
-                      {scraped.affiliateLink && (<><h4>Affiliate Link:</h4><p>{scraped.affiliateLink}</p></>)}
-                      {scraped.issueDate && (<><h4>Domain Issue Date:</h4><p>{new Date(scraped.issueDate).toLocaleString()}</p></>)}
-                      {scraped.images?.length > 0 && (
-                        <>
-                          <h4>Images:</h4>
-                          <ul className="image-grid">
-                            {scraped.images.map((src, idx) => {
-
-                              let imgSrcRaw = src.startsWith('http') ? src : `https://${scraped.domain}${src}`;
-
-                              let imgSrc = imgSrcRaw
-                                      .replace(/(\.[a-z]{2,})(?=assets\/)/, '$1/')
-                                        .replace(/(\.[a-z]{2,})\.\//, '$1/');
-                              const alt = scraped.altTags?.[idx] || 'No alt text';
-                              return (
-                                <li key={idx} className="image-item">
-                                  <p><strong>URL:</strong> <a href={imgSrc} target="_blank" rel="noopener noreferrer">{imgSrc}</a></p>
-                                  <p><strong>Alt:</strong> {alt}</p>
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        </>
-                      )}
-                      {scraped.robotsTxt && (<><h4>Robots:</h4><p>{scraped.robotsTxt}</p></>)}
-                      {scraped.wordCount && (<><h4>Word Count:</h4><p>{scraped.wordCount}</p></>)}
-                      <h4>Schema.org Present:</h4>
-                      <p>{scraped.schemaPresent ? '✅ Yes' : '❌ No'}</p>
-                      {scraped.lastChecked && (<><h4>Last Checked:</h4><p>{new Date(scraped.lastChecked).toLocaleString()}</p></>)}
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
+                {selectedDomain === baseDomain && scraped && (
+                  <div className="scraped-inline">
+                    {scraped.title && (<><h4>Title:</h4><p style={{ color: scraped.title.length > 60 ? 'red' : 'inherit' }}>{scraped.title} ({scraped.title.length} Char)</p></>)}
+                    {scraped.description && (<><h4>Description:</h4><p style={{ color: scraped.description.length > 160 ? 'red' : 'inherit' }}>{scraped.description} ({scraped.description.length} Char)</p></>)}
+                    {scraped.h1?.length > 0 && (<><h4>H1 Tags:</h4><ul>{scraped.h1.map((tag, idx) => <li key={idx}>{tag}</li>)}</ul></>)}
+                    {scraped.h2?.length > 0 && (<><h4>H2 Tags:</h4><ul>{scraped.h2.map((tag, idx) => <li key={idx}>{tag}</li>)}</ul></>)}
+                    {scraped.canonicals?.length > 0 && (<><h4>Canonical Links:</h4><ul>{scraped.canonicals.map((link, idx) => <li key={idx}><a href={link} target="_blank" rel="noopener noreferrer">{link}</a></li>)}</ul></>)}
+                    {scraped.affiliateLink && (<><h4>Affiliate Link:</h4><p>{scraped.affiliateLink}</p></>)}
+                    {scraped.issueDate && (<><h4>Domain Issue Date:</h4><p>{new Date(scraped.issueDate).toLocaleString()}</p></>)}
+                    {scraped.images?.length > 0 && (<><h4>Images:</h4><ul className="image-grid">{scraped.images.map((src, idx) => {
+                      const imgSrcRaw = src.startsWith('http') ? src : `https://${scraped.domain}${src}`;
+                      const imgSrc = imgSrcRaw.replace(/(\.[a-z]{2,})(?=assets\/)/, '$1/').replace(/(\.[a-z]{2,})\.\//, '$1/');
+                      const alt = scraped.altTags?.[idx] || 'No alt text';
+                      return (<li key={idx} className="image-item"><p><strong>URL:</strong> <a href={imgSrc} target="_blank" rel="noopener noreferrer">{imgSrc}</a></p><p><strong>Alt:</strong> {alt}</p></li>);
+                    })}</ul></>)}
+                    {scraped.robotsTxt && (<><h4>Robots:</h4><p>{scraped.robotsTxt}</p></>)}
+                    {scraped.wordCount && (<><h4>Word Count:</h4><p>{scraped.wordCount}</p></>)}
+                    <h4>Schema.org Present:</h4>
+                    <p>{scraped.schemaPresent ? '✅ Yes' : '❌ No'}</p>
+                    {scraped.lastChecked && (<><h4>Last Checked:</h4><p>{new Date(scraped.lastChecked).toLocaleString()}</p></>)}
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }
 
