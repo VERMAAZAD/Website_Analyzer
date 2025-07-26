@@ -4,6 +4,8 @@ import { jwtDecode } from "jwt-decode";
 import axios from 'axios';
 import './DomainList.css';
 import NoteEditor from '../../../components/NoteEditor/NoteEditor';
+import HostingInfoEditor from "../../../components/HostingInfoEditor/HostingInfoEditor";
+
 
 const extractBaseDomain = (url) => {
   try {
@@ -34,6 +36,8 @@ function DomainList() {
   const [lastReloadTime, setLastReloadTime] = useState(null);
   const [showNoteEditorMap, setShowNoteEditorMap] = useState({});
   const [activeExtension, setActiveExtension] = useState("all");
+  const [showHostingEditorMap, setShowHostingEditorMap] = useState({});
+  const [hostingDetailsMap, setHostingDetailsMap] = useState({});
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -218,6 +222,17 @@ function DomainList() {
                   <div>
                     <button
                       className="note-btn"
+                      onClick={() =>
+                        setShowHostingEditorMap((prev) => ({
+                          ...prev,
+                          [baseDomain]: !prev[baseDomain],
+                        }))
+                      }
+                    >
+                      🖥️
+                    </button>
+                    <button
+                      className="note-btn"
                       onClick={() => setShowNoteEditorMap(prev => ({
                         ...prev,
                         [baseDomain]: !prev[baseDomain],
@@ -239,7 +254,23 @@ function DomainList() {
                 {site.note && (
                   <div className="domain-note"><strong>Note:</strong> {site.note}</div>
                 )}
-
+                {showHostingEditorMap[baseDomain] && (
+              <HostingInfoEditor
+                domain={baseDomain}
+                initialData={hostingDetailsMap[baseDomain] || {}}
+                onSave={(domain, data) => {
+                  setHostingDetailsMap((prev) => ({
+                    ...prev,
+                    [domain]: data,
+                  }));
+                  alert(`Saved hosting info for ${domain}`);
+                  setShowHostingEditorMap((prev) => ({
+                    ...prev,
+                    [domain]: false,
+                  }));
+                }}
+              />
+            )}
                 {showNoteEditorMap[baseDomain] && (
                   <div>
                     <h4>Note:</h4>

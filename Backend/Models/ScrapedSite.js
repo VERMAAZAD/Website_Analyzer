@@ -38,6 +38,11 @@ const ScrapedSiteSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+   hostingInfo: {
+    platform: { type: String, default: "" },
+    email: { type: String, default: "" },
+    cloudflare: { type: String, default: "" },
+  },
 });
 
 module.exports = mongoose.model('ScrapedSite', ScrapedSiteSchema);

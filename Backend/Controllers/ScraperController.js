@@ -768,3 +768,54 @@ exports.getUnindexedDomains = async (req, res) => {
 
   res.json({ unindexed });
 };
+
+
+
+
+
+exports.saveHostingInfo = async (req, res) => {
+  const { domain } = req.params;
+  const { platform, email, cloudflare } = req.body;
+
+  try {
+    const site = await ScrapedSite.findOne({ domain });
+
+    if (!site) return res.status(404).json({ message: "Domain not found" });
+
+    // Access req.user injected by your auth middleware
+    const userId = req.user._id;
+    const isAdmin = req.user.role === 'admin';
+
+    // Check if user is the owner or admin
+    if (!isAdmin && site.user.toString() !== userId.toString()) {
+      return res.status(403).json({ message: "Unauthorized to modify this domain" });
+    }
+
+    site.hostingInfo = { platform, email, cloudflare };
+    await site.save();
+
+    res.json({ message: "Hosting info saved", hostingInfo: site.hostingInfo });
+  } catch (err) {
+    console.error("Error saving hosting info:", err.message);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+
+exports.getHostingInfo = async (req, res) => {
+  const { domain } = req.params;
+
+  try {
+    const filter = req.user.role === 'admin' ? { domain } : { domain, user: req.user._id };
+    const site = await ScrapedSite.findOne(filter);
+
+    if (!site) {
+      return res.status(404).json({ error: "Domain not found" });
+    }
+
+    res.json({ hostingInfo: site.hostingInfo || {} });
+  } catch (err) {
+    console.error("Error fetching hosting info:", err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+};

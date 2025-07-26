@@ -17,6 +17,8 @@ const {
   deleteNote,
   checkBingIndex,
   getUnindexedDomains,
+  saveHostingInfo,
+  getHostingInfo,
 } = require('../Controllers/ScraperController');
 const ensureAuthenticated = require('../Middlewares/Auth');
 const auth = require("../Middlewares/Auth");
@@ -39,8 +41,8 @@ router.put('/note/:domain', auth, ensureAuthenticated, updateNote);
 router.delete('/note/:domain', auth, ensureAuthenticated, deleteNote);
 router.get('/index-check', auth, ensureAuthenticated, checkBingIndex);
 router.get('/unindexed-domains', auth, ensureAuthenticated, getUnindexedDomains);
-
-
+router.put('/hosting-info/:domain', auth, ensureAuthenticated, saveHostingInfo);
+router.get('/hosting-info/:domain', auth, ensureAuthenticated, getHostingInfo);
 
 
 

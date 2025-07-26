@@ -1,0 +1,58 @@
+.hosting-editor {
+  margin: 1rem 0;
+  padding: 1rem;
+  background-color: #f9f9f9;
+  border-left: 4px solid #007bff;
+  border-radius: 8px;
+
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+/* Group label + input together */
+.hosting-field {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 30%;
+  min-width: 200px;
+}
+
+/* Labels */
+.hosting-editor label {
+  font-weight: bold;
+  margin-bottom: 0.4rem;
+}
+
+/* Inputs */
+.hosting-editor input {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+/* Button aligned at bottom */
+.save-hosting-btn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  cursor: pointer;
+  align-self: flex-end;
+  height: fit-content;
+}
+.saved-hosting-info {
+  margin-top: 1rem;
+  background: #f9f9f9;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #333;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.saved-hosting-info p {
+  margin: 4px 0;
+}
