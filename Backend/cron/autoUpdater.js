@@ -1,21 +1,49 @@
 const cron = require('node-cron');
-// const ScrapedSite = require('../Models/ScrapedSite');
 const { updateChangedDomains } = require('../Controllers/UpdaterController');
+const { checkBingIndex } = require('../Controllers/ScraperController');
 
-// Simulate admin request
+
 const fakeReq = {
   user: {
     role: 'admin',
-    _id: null
-  }
+     _id: 'admin-cron-job',
+  },
 };
 
 const fakeRes = {
-  json: () => {}, // Silent success
-  status: () => ({ json: () => {} }) // Silent error
+  json: (data) => console.log('[Cron Response]', data),
+  status: (code) => ({
+    json: (data) => console.error(`[Cron Error ${code}]`, data),
+  }),
 };
 
-// Run every 2 minutes
+let isUpdating = false;
+let isCheckingIndex = false;
+
+// Update website data every 2 minutes
 cron.schedule('*/2 * * * *', async () => {
-  await updateChangedDomains(fakeReq, fakeRes);
+  if (isUpdating) {
+    return;
+  }
+
+  isUpdating = true;
+
+  try {
+    await updateChangedDomains(fakeReq, fakeRes);
+  } catch (err) {
+  } finally {
+    isUpdating = false;
+  }
+});
+// check at 1:01 AM daily
+cron.schedule('1 1 * * *', async () => {
+  if (isCheckingIndex) return;
+  isCheckingIndex = true;
+
+  try {
+    await checkBingIndex(fakeReq, fakeRes);
+  } catch (err) {
+  } finally {
+    isCheckingIndex = false;
+  }
 });

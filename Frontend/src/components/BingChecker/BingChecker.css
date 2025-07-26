@@ -1,0 +1,136 @@
+/* BingChecker.css */
+
+.bing-checker-container {
+  max-width: 700px;
+  margin: 3rem auto;
+  padding: 2rem;
+  background: #fefefe;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  font-family: 'Segoe UI', sans-serif;
+  transition: transform 0.3s ease-in-out;
+  animation: fadeIn 0.6s ease-in;
+}
+
+.bing-checker-title {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 1.5rem;
+  animation: popIn 0.5s ease;
+}
+
+.bing-checker-status,
+.bing-checker-success,
+.bing-checker-error {
+  text-align: center;
+  font-size: 1.1rem;
+  margin-top: 1rem;
+  animation: fadeIn 0.4s ease-in;
+}
+
+.bing-checker-success {
+  color: #2e7d32;
+  background: #e8f5e9;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.bing-checker-error {
+  color: #c62828;
+  background: #ffebee;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.bing-retry-btn {
+  margin-top: 0.75rem;
+  padding: 0.6rem 1.2rem;
+  background-color: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.bing-retry-btn:hover {
+  background-color: #1565c0;
+}
+
+.bing-checker-results {
+  margin-top: 2rem;
+  animation: slideUp 0.5s ease;
+}
+
+.bing-checker-subtitle {
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: #d32f2f;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.bing-checker-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.bing-checker-item {
+  background: #fff3f3;
+  border-left: 5px solid #e53935;
+  padding: 0.8rem 1rem;
+  margin-bottom: 0.6rem;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  transition: transform 0.3s;
+  animation: fadeInUp 0.3s ease-in;
+}
+
+.bing-checker-item:hover {
+  transform: scale(1.02);
+  background-color: #ffebee;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes popIn {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes slideUp {
+  0% { transform: translateY(40px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Responsive */
+@media screen and (max-width: 600px) {
+  .bing-checker-container {
+    padding: 1.5rem 1rem;
+  }
+
+  .bing-checker-title {
+    font-size: 1.6rem;
+  }
+
+  .bing-checker-subtitle {
+    font-size: 1rem;
+  }
+
+  .bing-checker-item {
+    font-size: 0.9rem;
+    padding: 0.7rem 0.9rem;
+  }
+}

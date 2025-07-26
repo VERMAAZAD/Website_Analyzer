@@ -100,7 +100,6 @@ function UrlScan() {
   };
 
   return (
-    <Layout>
    <div className="urlscan-container">
   <h2>Scan Website</h2>
   <form onSubmit={handleScan}>
@@ -179,7 +178,6 @@ function UrlScan() {
   )}
 </div>
 
-    </Layout>
   );
 }
 

@@ -15,6 +15,8 @@ const {
   renewDomain,
   updateNote,
   deleteNote,
+  checkBingIndex,
+  getUnindexedDomains,
 } = require('../Controllers/ScraperController');
 const ensureAuthenticated = require('../Middlewares/Auth');
 const auth = require("../Middlewares/Auth");
@@ -35,6 +37,9 @@ router.post('/renew', auth, ensureAuthenticated, renewDomain);
 router.get('/update-changed', auth, ensureAuthenticated, updateChangedDomains);
 router.put('/note/:domain', auth, ensureAuthenticated, updateNote);
 router.delete('/note/:domain', auth, ensureAuthenticated, deleteNote);
+router.get('/index-check', auth, ensureAuthenticated, checkBingIndex);
+router.get('/unindexed-domains', auth, ensureAuthenticated, getUnindexedDomains);
+
 
 
 

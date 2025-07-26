@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import {jwtDecode} from "jwt-decode";
 import axios from 'axios';
 import './DomainList.css';
 import NoteEditor from '../../../components/NoteEditor/NoteEditor';
@@ -121,13 +122,36 @@ function DomainList() {
     site.domain.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const rollRoken = localStorage.getItem("token");
+let role = "";
+if (rollRoken) {
+  try {
+    const decoded = jwtDecode(rollRoken);
+    role = decoded.role; // adjust if your token structure is different
+  } catch (err) {
+    console.error("Invalid token", err);
+  }
+}
+
   return (
       <div className="domain-container">
         <div className="top-bar">
           <h2>{category ? `Domains in "${category}"` : 'Saved Scraped Domains'}</h2>
-          <div className="button-group">
-            <button className="add-url-btn" onClick={() => navigate('/urlscan')}>+ Add URL</button>
+            <div className="button-group">
+           <button
+                className="add-url-btn"
+                onClick={() => {
+                  if (role === "admin") {
+                    navigate('/admin/urlscan');
+                  } else {
+                    navigate('/urlscan');
+                  }
+                }}
+              >
+                + Add URL
+              </button>
           </div>
+
         </div>
 
         {lastReloadTime && (
@@ -186,10 +210,10 @@ function DomainList() {
                </div>
                   </div>
                   {site.note && (
-  <div className="domain-note">
-    <strong>Note:</strong> {site.note}
-  </div>
-)}
+                    <div className="domain-note">
+                      <strong>Note:</strong> {site.note}
+                    </div>
+                  )}
 
                         
                     {showNoteEditorMap[baseDomain] && (

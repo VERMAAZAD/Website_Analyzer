@@ -29,7 +29,15 @@ const ScrapedSiteSchema = new mongoose.Schema({
   },
   affiliateLink: { type: String, default: null },
   issueDate: { type: Date, default: null },
-  note: { type: String, default: '' }
+  note: { type: String, default: '' },
+  isIndexedOnBing: {
+    type: Boolean,
+    default: true,
+  },
+  lastBingCheck: {
+    type: Date,
+    default: null,
+  },
 });
 
 module.exports = mongoose.model('ScrapedSite', ScrapedSiteSchema);

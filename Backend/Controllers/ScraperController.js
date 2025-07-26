@@ -346,85 +346,94 @@ exports.deleteScrapedSite = async (req, res) => {
 // [9] Refresh all domain status codes and return error domains
 const https = require('https');
 
+
 exports.refreshStatusesAndGetErrors = async (req, res) => {
   try {
+    // Check for user authentication
     if (!req.user || !req.user._id) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
     const httpsAgent = new https.Agent({ rejectUnauthorized: false });
-    const filter = req.user.role === "admin" ? {} : { user: req.user._id };
-    const domains = await ScrapedSite.find(filter);
 
+    // Determine query based on user role
+    const query = req.user.role !== 'admin' ? { user: req.user._id } : {};
+
+    // Fetch domains based on the query
+    const domains = await ScrapedSite.find(query);
+
+    // Process each domain to check its status
     const updates = await Promise.all(
       domains.map(async (site) => {
+        // Skip if user reference is missing for non-admins
+        if (req.user.role !== 'admin' && !site.user) {
+          console.warn(`⚠️ Skipping ${site.domain} — missing 'user' reference.`);
+          return null;
+        }
+
         const urls = [
           `https://${site.domain}`,
           `http://${site.domain}`,
           `https://www.${site.domain}`,
-          `http://www.${site.domain}`
+          `http://www.${site.domain}`,
         ];
 
         let statusCode = 0;
         let checkedUrl = "";
 
+        // Check each URL for the domain
         for (const url of urls) {
           try {
-            const res = await axios.get(url, {
+            const response = await axios.get(url, {
               timeout: 10000,
               validateStatus: () => true,
               httpsAgent
             });
 
-            statusCode = res.status;
+            statusCode = response.status;
             checkedUrl = url;
 
-            // Cloudflare error page detection
-            const html = typeof res.data === "string" ? res.data : "";
+            const html = typeof response.data === "string" ? response.data : "";
             const match = html.match(/Error code (52[0-6])/);
             if (match) {
               statusCode = parseInt(match[1]);
             }
 
-            break; // stop after first successful attempt
+            break; // Exit loop on successful response
           } catch (err) {
             statusCode = err.response?.status || 0;
             checkedUrl = url;
           }
         }
 
+        // Default status code if none found
         if (!statusCode) statusCode = 526;
 
-        // Skip if no user and not admin
-        if (!site.user) {
-          if (req.user.role === "admin") {
-            site.user = req.user._id;
-          } else {
-            console.warn(`⚠️ Skipping ${site.domain} — missing 'user' reference.`);
-            return null;
-          }
-        }
-
+        // Update site status
         site.statusCode = statusCode;
         site.failingUrl = statusCode !== 200 ? checkedUrl : null;
         site.lastChecked = new Date();
 
-        await site.save();
+        await site.save(); // Save the updated site
         return site;
       })
     );
 
-   const errorDomains = updates
-  .filter(site => site && site.statusCode !== 200)
-  .map(site => ({
-    domain: site.domain,
-    statusCode: site.statusCode,
-    failingUrl: site.failingUrl || `N/A`,
-    lastChecked: site.lastChecked,
-  }));
+    // Collect only domains with errors
+    const errorDomains = updates
+      .filter(site => site && site.statusCode !== 200)
+      .map(site => ({
+        domain: site.domain,
+        statusCode: site.statusCode,
+        failingUrl: site.failingUrl || 'N/A',
+        lastChecked: site.lastChecked,
+        user: site.user,
+      }));
 
+    // Respond with the error domains
     res.json(errorDomains);
   } catch (err) {
+    console.error("Error in refreshStatusesAndGetErrors:", err);
     res.status(500).json({ error: "Failed to refresh and fetch error domains" });
   }
 };
@@ -436,7 +445,6 @@ exports.refreshStatusesAndGetErrors = async (req, res) => {
 
 
 
-//Test Affiliate Link
 exports.testAffiliateLinks = async (req, res) => {
   try {
     if (!req.user || !req.user._id) {
@@ -646,4 +654,117 @@ exports.deleteNote = async (req, res) => {
     console.error('❌ Error deleting note:', err);
     res.status(500).json({ error: 'Server error while deleting note' });
   }
+};
+
+
+
+
+
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+const UserAgent = require('user-agents');
+
+puppeteer.use(StealthPlugin());
+
+exports.checkBingIndex = async (req, res) => {
+  // 1. Ensure user is logged in
+  if (!req.user || !req.user._id) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  // 2. Filter domains by role
+  const filter = req.user.role === 'admin' ? {} : { user: req.user._id };
+  const domains = await ScrapedSite.find(filter, 'domain');
+
+  const domainList = domains.map(site => site.domain);
+  const unindexed = [];
+  let browser;
+
+  try {
+    browser = await puppeteer.launch({
+      headless: 'new',
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+
+    for (const fullUrl of domainList) {
+      let domain;
+      try {
+         domain = fullUrl.startsWith('http') ? new URL(fullUrl).hostname : fullUrl;
+      } catch {
+        continue;
+      }
+
+      const page = await browser.newPage();
+      const userAgent = new UserAgent().toString();
+      const bingQueryUrl = `https://www.bing.com/search?q=site:${domain}`;
+
+      await page.setUserAgent(userAgent);
+      await page.setViewport({ width: 1280, height: 800 });
+
+      try {
+        await page.goto(bingQueryUrl, {
+          waitUntil: 'domcontentloaded',
+          timeout: 30000,
+        });
+   // Simulate human behavior
+        await page.mouse.move(200, 200);
+        await page.evaluate(() => window.scrollBy(0, window.innerHeight / 2));
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // CAPTCHA Detection
+        const isCaptcha = await page.evaluate(() => !!document.querySelector('#b_captcha'));
+        if (isCaptcha) {
+          console.warn(`🚫 CAPTCHA for ${domain}`);
+          continue;
+        }
+
+        const isIndexed = await page.evaluate(() => {
+          const results = Array.from(document.querySelectorAll('li.b_algo'));
+          const noResultsText = document.querySelector('.b_no')?.innerText?.toLowerCase() || '';
+          const visibleResults = results.filter(r => r.offsetParent !== null);
+          return visibleResults.length > 0 && !noResultsText.includes('did not match any documents');
+        });
+
+        const site = await ScrapedSite.findOne({ domain: fullUrl });
+        if (site) {
+          site.isIndexedOnBing = isIndexed;
+          site.lastBingCheck = new Date();
+          await site.save();
+        }
+        if (!isIndexed) {
+          unindexed.push(fullUrl);
+        }
+
+      } catch (err) {
+        console.warn(`❌ Error checking ${domain}:`, err.message);
+        continue;
+      } finally {
+        await page.close();
+      }
+    }
+
+    return res.json({ unindexed });
+
+  } catch (err) {
+    console.error('❌ Error launching Puppeteer:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  } finally {
+    if (browser) await browser.close();
+  }
+};
+
+
+
+
+exports.getUnindexedDomains = async (req, res) => {
+  if (!req.user || !req.user._id) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const filter = req.user.role === "admin" ? {} : { user: req.user._id };
+  const sites = await ScrapedSite.find({ ...filter, isIndexedOnBing: false });
+
+  const unindexed = sites.map(site => site.domain);
+
+  res.json({ unindexed });
 };

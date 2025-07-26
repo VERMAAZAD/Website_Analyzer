@@ -135,3 +135,5 @@ exports.updateChangedDomains = async (req, res) => {
     res.status(500).json({ error: 'Update failed' });
   }
 };
+
+
