@@ -39,8 +39,11 @@ function BingChecker() {
       <h2 className="bing-checker-title">🔍 Bing Indexing Checker</h2>
 
       {loading ? (
-        <p className="bing-checker-status">⏳ Loading cached result...</p>
-      ) : error ? (
+          <div className="bing-checker-loading">
+            <div className="spinner"></div>
+            <p className="loading-text">Loading cached results...</p>
+          </div>
+        ) : error ? (
         <div className="bing-checker-error">
           ❌ {error}
           <br />

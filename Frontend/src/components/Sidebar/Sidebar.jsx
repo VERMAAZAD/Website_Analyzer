@@ -30,7 +30,7 @@ const Sidebar = ({ isOpen, onClose }) => {
        <li><Link to="/domain-errors">Error Domains</Link></li>
        <li><Link to="/affiliate-errors">Error Affiliate</Link></li>
        <li><Link to="/domain-expire">Expire Domain</Link></li>
-       <li><Link to="/not-index">Not Indexing</Link></li>
+       <li><Link to="/not-index">Not Bing Indexing</Link></li>
         <li className="logout" onClick={handleLogout}>
         <Link>Logout</Link>
         </li>

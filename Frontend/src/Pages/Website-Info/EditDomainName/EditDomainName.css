@@ -1,0 +1,19 @@
+.edit-domain-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.edit-domain-input {
+  padding: 4px;
+  width: 200px;
+}
+
+.edit-save-btn,
+.edit-cancel-btn,
+.edit-btn {
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-size: 16px;
+}

@@ -19,6 +19,7 @@ const fakeRes = {
 
 let isUpdating = false;
 let isCheckingIndex = false;
+let isCheckingGoogleIndex = false;
 
 // Update website data every 2 minutes
 cron.schedule('*/2 * * * *', async () => {
@@ -35,8 +36,8 @@ cron.schedule('*/2 * * * *', async () => {
     isUpdating = false;
   }
 });
-// check at 1:01 AM daily
-cron.schedule('1 1 * * *', async () => {
+
+cron.schedule('1 10 * * *', async () => {
   if (isCheckingIndex) return;
   isCheckingIndex = true;
 
@@ -47,3 +48,4 @@ cron.schedule('1 1 * * *', async () => {
     isCheckingIndex = false;
   }
 });
+

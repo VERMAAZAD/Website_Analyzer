@@ -5,7 +5,7 @@
   width: 210px;
   background-color: #1f2937;
   color: #ffffff;
-  height: 100vh;
+  height: 98vh;
   padding: 20px;
   position: fixed;
   left: -260px;
@@ -23,7 +23,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 10px;
 }
 
 .logo {
@@ -68,13 +68,13 @@
 }
 
 .nav-links li {
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .nav-links a {
   text-decoration: none;
   color: #cbd5e1; /* Light gray text */
-  font-size: 16px;
+  font-size: 14px;
   display: block;
   padding: 8px 12px;
   border-radius: 6px;

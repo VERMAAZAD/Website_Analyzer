@@ -23,7 +23,6 @@ import DomainExpireUser from './Pages/Website-Info/DomainExpire/DomainExpireUser
 import ForgotPassword from './Pages/ForgetPassword/ForgotPassword';
 import UrlScanUser from './Pages/Website-Info/UrlScan/UrlScanUser';
 import UrlScanAdmin from './Pages/Website-Info/UrlScan/UrlScanAdmin';
-import BingChecker from './components/BingChecker/BingChecker';
 import BingCheckerUser from './components/BingChecker/BingCheckerUser';
 import BingCheckerAdmin from './components/BingChecker/BingCheckerAdmin';
 import { handleError } from './toastutils';
@@ -88,7 +87,7 @@ const preloadErrorDomains = async () => {
         <Route path='/affiliate-errors' element={<ProtectedRoute allowedRoles={['user']}><ErrorAffiliatesUser /></ProtectedRoute>}/>
         <Route path='/domain-expire' element={<ProtectedRoute allowedRoles={['user']}><DomainExpireUser /></ProtectedRoute>}/>
         <Route path='/not-index' element={<ProtectedRoute allowedRoles={['user']}><BingCheckerUser /></ProtectedRoute>}/>
-       
+        
 
       {/* Admin Routes */}
       <Route path='/admin/signup' element={<ProtectedRoute allowedRoles={['admin']}><Signup /></ProtectedRoute>}/>
@@ -101,7 +100,7 @@ const preloadErrorDomains = async () => {
       <Route path='/admin/domain-errors' element={<ProtectedRoute allowedRoles={['admin']}><ErrorDomainAdmin /></ProtectedRoute>}/>
       <Route path='/admin/domain-expire' element={<ProtectedRoute allowedRoles={['admin']}><DomainExpireAdmin /></ProtectedRoute>}/>
       <Route path='/admin/not-index' element={<ProtectedRoute allowedRoles={['admin']}><BingCheckerAdmin /></ProtectedRoute>}/>
-      
+    
       </Routes>
       <ToastContainer/>
   </>

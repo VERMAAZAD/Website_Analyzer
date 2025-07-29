@@ -1,6 +1,5 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
-const pLimit = require('p-limit').default;
 const ScrapedSite = require('../Models/ScrapedSite');
 
 
@@ -663,6 +662,7 @@ exports.deleteNote = async (req, res) => {
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const UserAgent = require('user-agents');
+const path = require('path');
 
 puppeteer.use(StealthPlugin());
 
@@ -754,8 +754,6 @@ exports.checkBingIndex = async (req, res) => {
 };
 
 
-
-
 exports.getUnindexedDomains = async (req, res) => {
   if (!req.user || !req.user._id) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -773,25 +771,39 @@ exports.getUnindexedDomains = async (req, res) => {
 
 
 
+
 exports.saveHostingInfo = async (req, res) => {
   const { domain } = req.params;
-  const { platform, email, cloudflare } = req.body;
+  const {
+    platform,
+    email,
+    server,
+    domainPlatform,
+    domainEmail,
+    cloudflare,
+  } = req.body;
 
   try {
     const site = await ScrapedSite.findOne({ domain });
 
     if (!site) return res.status(404).json({ message: "Domain not found" });
 
-    // Access req.user injected by your auth middleware
     const userId = req.user._id;
     const isAdmin = req.user.role === 'admin';
 
-    // Check if user is the owner or admin
     if (!isAdmin && site.user.toString() !== userId.toString()) {
       return res.status(403).json({ message: "Unauthorized to modify this domain" });
     }
 
-    site.hostingInfo = { platform, email, cloudflare };
+    site.hostingInfo = {
+      platform,
+      email,
+      server,
+      domainPlatform,
+      domainEmail,
+      cloudflare,
+    };
+
     await site.save();
 
     res.json({ message: "Hosting info saved", hostingInfo: site.hostingInfo });
@@ -800,6 +812,7 @@ exports.saveHostingInfo = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
 
 
 exports.getHostingInfo = async (req, res) => {
@@ -817,5 +830,44 @@ exports.getHostingInfo = async (req, res) => {
   } catch (err) {
     console.error("Error fetching hosting info:", err.message);
     res.status(500).json({ error: "Server error" });
+  }
+};
+
+
+
+
+exports.updateDomainName = async (req, res) => {
+  const { oldDomain, newDomain } = req.body;
+
+  if (!oldDomain || !newDomain) {
+    return res.status(400).json({ message: "Both old and new domain names are required." });
+  }
+
+  try {
+    const site = await ScrapedSite.findOne({ domain: oldDomain });
+
+    if (!site) {
+      return res.status(404).json({ message: "Old domain not found." });
+    }
+
+    // Authorization check: only owner or admin can update
+    const isAdmin = req.user.role === "admin";
+    if (!isAdmin && site.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Unauthorized to update this domain." });
+    }
+
+    // Optional: Check if new domain already exists
+    const existing = await ScrapedSite.findOne({ domain: newDomain });
+    if (existing) {
+      return res.status(409).json({ message: "New domain already exists." });
+    }
+
+    site.domain = newDomain;
+    await site.save();
+
+    res.json({ message: "Domain name updated successfully", updatedDomain: newDomain });
+  } catch (err) {
+    console.error("Domain update failed:", err.message);
+    res.status(500).json({ message: "Server error while updating domain name." });
   }
 };

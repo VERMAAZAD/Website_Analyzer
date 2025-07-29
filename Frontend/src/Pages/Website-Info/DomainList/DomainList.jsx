@@ -5,9 +5,13 @@ import axios from 'axios';
 import './DomainList.css';
 import NoteEditor from '../../../components/NoteEditor/NoteEditor';
 import HostingInfoEditor from "../../../components/HostingInfoEditor/HostingInfoEditor";
+import EditDomainName from '../EditDomainName/EditDomainName';
+import { handleError } from '../../../toastutils';
 
 
 const extractBaseDomain = (url) => {
+  if (!url || typeof url !== "string") return "";
+
   try {
     const parsed = new URL(url);
     return parsed.hostname.replace(/^www\./, '');
@@ -17,6 +21,7 @@ const extractBaseDomain = (url) => {
       .replace(/\/$/, '');
   }
 };
+
 
 const getDomainExtension = (domain) => {
   const parts = domain.split('.');
@@ -98,6 +103,75 @@ function DomainList() {
       console.error('Error fetching domain data:', err);
     }
   };
+
+
+  const handleDomainUpdate = (oldDomain, newDomain) => {
+    if (!oldDomain || !newDomain) {
+    handleError("Invalid domain values", oldDomain, newDomain);
+    return;
+  }
+  setDomains((prev) =>
+    prev.map((d) =>
+      extractBaseDomain(d.domain) === extractBaseDomain(oldDomain)
+        ? { ...d, domain: newDomain }
+        : d
+    )
+  );
+
+  setScrapedDataMap((prev) => {
+    const oldKey = extractBaseDomain(oldDomain);
+    const newKey = extractBaseDomain(newDomain);
+
+    const updated = { ...prev };
+    if (updated[oldKey]) {
+      updated[newKey] = updated[oldKey];
+      delete updated[oldKey];
+    }
+    return updated;
+  });
+
+  setShowNoteEditorMap((prev) => {
+    const updated = { ...prev };
+    const oldKey = extractBaseDomain(oldDomain);
+    const newKey = extractBaseDomain(newDomain);
+    if (updated[oldKey]) {
+      updated[newKey] = updated[oldKey];
+      delete updated[oldKey];
+    }
+    return updated;
+  });
+
+  setShowHostingEditorMap((prev) => {
+    const updated = { ...prev };
+    const oldKey = extractBaseDomain(oldDomain);
+    const newKey = extractBaseDomain(newDomain);
+    if (updated[oldKey]) {
+      updated[newKey] = updated[oldKey];
+      delete updated[oldKey];
+    }
+    return updated;
+  });
+
+  setHostingDetailsMap((prev) => {
+    const updated = { ...prev };
+    const oldKey = extractBaseDomain(oldDomain);
+    const newKey = extractBaseDomain(newDomain);
+    if (updated[oldKey]) {
+      updated[newKey] = updated[oldKey];
+      delete updated[oldKey];
+    }
+    return updated;
+  });
+
+  setSelectedDomain((prev) =>
+    extractBaseDomain(prev) === extractBaseDomain(oldDomain)
+      ? extractBaseDomain(newDomain)
+      : prev
+  );
+};
+
+
+
 
   const handleDeleteDomain = async (domainToDelete) => {
     if (!window.confirm(`Are you sure you want to delete ${domainToDelete}?`)) return;
@@ -216,9 +290,12 @@ function DomainList() {
             return (
               <li key={site.domain} className={`domain-card ${selectedDomain === baseDomain ? 'selected' : ''}`}>
                 <div className="domain-header">
-                  <span className="domain-text" onClick={() => handleDomainClick(site.domain)}>
-                    {site.domain}
-                  </span>
+                  <EditDomainName
+                  domain={site.domain}
+                  onClick={handleDomainClick}
+                  onUpdate={handleDomainUpdate}
+                />
+
                   <div>
                     <button
                       className="note-btn"
@@ -254,6 +331,7 @@ function DomainList() {
                 {site.note && (
                   <div className="domain-note"><strong>Note:</strong> {site.note}</div>
                 )}
+                
                 {showHostingEditorMap[baseDomain] && (
               <HostingInfoEditor
                 domain={baseDomain}
