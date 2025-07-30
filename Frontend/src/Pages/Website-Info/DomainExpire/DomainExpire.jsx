@@ -8,6 +8,14 @@ function DomainExpire() {
   const [selectedDomains, setSelectedDomains] = useState([]);
   const [loading, setLoading] = useState(true);
   const [savingDomain, setSavingDomain] = useState(null); // Track domain being saved
+  const superCategory = localStorage.getItem("superCategory") || "natural"; 
+  const apiBase = superCategory === "casino"
+    ? "casino/scraper"
+    : superCategory === "dating"
+    ? "dating/scraper"
+    : "api/scraper";;
+
+
 
   useEffect(() => {
     fetchExpiringDomains();
@@ -15,7 +23,7 @@ function DomainExpire() {
 
   const fetchExpiringDomains = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URI}/api/scraper/expiring`, {
+      const res = await axios.get(`${import.meta.env.VITE_API_URI}/${apiBase}/expiring`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
@@ -40,7 +48,7 @@ function DomainExpire() {
     try {
       setSavingDomain(domainName); // Show loading for this domain
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URI}/api/scraper/renew`,
+        `${import.meta.env.VITE_API_URI}/${apiBase}/renew`,
         { domains: [domainName] },
         {
           headers: {
@@ -98,7 +106,10 @@ function DomainExpire() {
                           onChange={() => handleCheckboxChange(domain.domain)}
                         />
                       </td>
-                      <td>{domain.domain}</td>
+                      <td>
+                          {domain.domain}
+                          {domain.note && ` (${domain.note})`}
+                        </td>
                       <td>{issueDate.toLocaleDateString()}</td>
                       <td>{expiryDate.toLocaleDateString()}</td>
                       <td>

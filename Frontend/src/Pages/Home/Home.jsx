@@ -14,17 +14,27 @@ const Home = () => {
 
   const token = localStorage.getItem("token");
 
+ const superCategory = localStorage.getItem("superCategory") || "natural";
+
+const apiBase =
+  superCategory === "casino"
+    ? "casino/scraper"
+    : superCategory === "dating"
+    ? "dating/scraper"
+    : "api/scraper"; 
+
+
   const fetchCategoriesAndCounts = async () => {
     setLoading(true);
     try {
       const [categoriesRes, countsRes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_API_URI}/api/scraper/categories`, {
+        axios.get(`${import.meta.env.VITE_API_URI}/${apiBase}/categories`, {
           headers: { Authorization: `Bearer ${token}` },
 
           
         }),
         
-        axios.get(`${import.meta.env.VITE_API_URI}/api/scraper/category-counts`, {
+        axios.get(`${import.meta.env.VITE_API_URI}/${apiBase}/category-counts`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
@@ -41,7 +51,7 @@ const Home = () => {
 
   useEffect(() => {
     fetchCategoriesAndCounts();
-  }, []);
+  }, [superCategory]);
 
   const handleClick = (category) => {
     navigate(`/domains?category=${encodeURIComponent(category)}`);

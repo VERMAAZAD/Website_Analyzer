@@ -37,7 +37,7 @@ cron.schedule('*/2 * * * *', async () => {
   }
 });
 
-cron.schedule('1 10 * * *', async () => {
+cron.schedule('41 16 * * *', async () => {
   if (isCheckingIndex) return;
   isCheckingIndex = true;
 

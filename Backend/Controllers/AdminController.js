@@ -1,6 +1,7 @@
 const User = require('../Models/User');
 const ScrapedSite = require('../Models/ScrapedSite');
-
+const ScrapedGameSite = require('../Models/ScrapedGameSite');
+const ScrapedDatingSite = require('../Models/ScrapedDatingSite');
 
 // Get all users (only for master/admin)
 exports.getAllUsers = async (req, res) => {
@@ -47,4 +48,66 @@ exports.getDomainsByUserId = async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch domains for user' });
   }
 };
+
+
+
+// Get domain count based on superCategory
+exports.getDomainCountByCategory = async (req, res) => {
+  const { superCategory } = req.params;
+
+  try {
+    let Model;
+
+    switch (superCategory) {
+      case 'casino':
+        Model = ScrapedGameSite;
+        break;
+      case 'dating':
+        Model = ScrapedDatingSite;
+        break;
+      default:
+        Model = ScrapedSite; // natural or fallback
+    }
+
+    const count = await Model.countDocuments();
+    res.json({ count });
+  } catch (err) {
+    console.error('Error getting domain count:', err);
+    res.status(500).json({ message: 'Failed to fetch domain count' });
+  }
+};
+
+
+
+exports.getDomainsByCategory = async (req, res) => {
+  const { superCategory } = req.params;
+  const userId = req.user?._id;
+  const isAdmin = req.user?.role === 'admin';
+
+  try {
+    let Model;
+
+    switch (superCategory) {
+      case 'casino':
+        Model = ScrapedGameSite;
+        break;
+      case 'dating':
+        Model = ScrapedDatingSite;
+        break;
+      default:
+        Model = ScrapedSite; // natural or other
+    }
+
+    const filter = isAdmin ? {} : { user: userId };
+    const domains = await Model.find(filter).populate('user', 'email');
+
+    res.json(domains);
+  } catch (err) {
+    console.error('Error getting domains by category:', err);
+    res.status(500).json({ message: 'Failed to fetch domains by category' });
+  }
+};
+
+
+
 

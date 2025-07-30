@@ -6,6 +6,13 @@ function BingChecker() {
   const [domains, setDomains] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const superCategory = localStorage.getItem("superCategory") || "natural"; 
+  const apiBase = superCategory === "casino"
+    ? "casino/scraper"
+    : superCategory === "dating"
+    ? "dating/scraper"
+    : "api/scraper";
+
 
   const fetchCached = async () => {
     const token = localStorage.getItem("token");
@@ -14,7 +21,7 @@ function BingChecker() {
       setLoading(true);
       setError("");
       const res = await axios.get(
-        `${import.meta.env.VITE_API_URI}/api/scraper/unindexed-domains`,
+        `${import.meta.env.VITE_API_URI}/${apiBase}/unindexed-domains`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

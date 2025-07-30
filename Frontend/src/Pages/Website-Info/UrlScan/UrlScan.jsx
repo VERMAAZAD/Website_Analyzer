@@ -16,11 +16,19 @@ function UrlScan() {
     const [affiliateLink, setAffiliateLink] = useState(null);
  const [issueDate, setIssueDate] = useState('');
 
+ const superCategory = localStorage.getItem("superCategory") || "natural";
+  const apiBase = superCategory === "casino"
+    ? "casino/scraper"
+    : superCategory === "dating"
+    ? "dating/scraper"
+    : "api/scraper";
+
+
   // ✅ Fetch brand categories from backend
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_API_URI}/api/scraper/categories`, {
+        const res = await axios.get(`${import.meta.env.VITE_API_URI}/${apiBase}/categories`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`
           }
@@ -48,7 +56,7 @@ function UrlScan() {
     setAffiliateLink(null);
 
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URI}/api/scraper/scan`, {
+      const response = await axios.post(`${import.meta.env.VITE_API_URI}/${apiBase}/scan`, {
         domain: domain.trim(),
       });
       setResult(response.data);
@@ -77,7 +85,7 @@ function UrlScan() {
     }
 
     try {
-      await axios.post(`${import.meta.env.VITE_API_URI}/api/scraper/save`, {
+      await axios.post(`${import.meta.env.VITE_API_URI}/${apiBase}/save`, {
         domain: domain.trim(),
         data: result,
         brandCategory,

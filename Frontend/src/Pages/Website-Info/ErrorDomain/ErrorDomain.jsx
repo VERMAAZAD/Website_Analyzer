@@ -3,7 +3,16 @@ import axios from 'axios';
 import './ErrorDomain.css';
 
 function ErrorDomains() {
+  const superCategory = localStorage.getItem("superCategory") || "natural"; 
+  const apiBase = superCategory === "casino"
+    ? "casino/scraper"
+    : superCategory === "dating"
+    ? "dating/scraper"
+    : "api/scraper";
+
+
   const [errorDomains, setErrorDomains] = useState(() => {
+
     const cached = localStorage.getItem("cachedErrorDomains");
     return cached ? JSON.parse(cached) : [];
   });
@@ -15,7 +24,7 @@ function ErrorDomains() {
     setError(null); // Reset error state
     try {
       const res = await axios.get(
-        `${import.meta.env.VITE_API_URI}/api/scraper/refresh-and-errors`,
+        `${import.meta.env.VITE_API_URI}/${apiBase}/refresh-and-errors`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,

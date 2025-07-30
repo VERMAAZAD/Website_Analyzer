@@ -12,10 +12,18 @@ function SharedAffiliateErrors() {
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
 
+  const superCategory = localStorage.getItem("superCategory") || "natural"; 
+  const apiBase = superCategory === "casino"
+    ? "casino/scraper"
+    : superCategory === "dating"
+    ? "dating/scraper"
+    : "api/scraper";
+
+
   const fetchAffiliateErrors = async (isManual = false) => {
     setLoading(true);
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URI}/api/scraper/check-affiliate-errors`, {
+      const res = await axios.get(`${import.meta.env.VITE_API_URI}/${apiBase}/check-affiliate-errors`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`
         }

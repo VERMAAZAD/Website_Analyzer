@@ -15,11 +15,21 @@ const HostingInfoEditor = ({ domain }) => {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const superCategory = localStorage.getItem("superCategory") || "natural";
+
+const apiBase =
+  superCategory === "casino"
+    ? "casino/scraper"
+    : superCategory === "dating"
+    ? "dating/scraper"
+    : "api/scraper"; //
+
+
   useEffect(() => {
     const fetchHostingInfo = async () => {
       try {
         const res = await axios.get(
-          `${import.meta.env.VITE_API_URI}/api/scraper/hosting-info/${domain}`,
+          `${import.meta.env.VITE_API_URI}/${apiBase}/hosting-info/${domain}`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -58,7 +68,7 @@ const HostingInfoEditor = ({ domain }) => {
     try {
       setSaving(true);
       await axios.put(
-        `${import.meta.env.VITE_API_URI}/api/scraper/hosting-info/${domain}`,
+        `${import.meta.env.VITE_API_URI}/${apiBase}/hosting-info/${domain}`,
         data,
         {
           headers: {

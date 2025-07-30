@@ -42,11 +42,13 @@ const Login = () => {
                 handleSuccess(message);
                 localStorage.setItem('token', jwtToken);
                localStorage.setItem('loggedInUser', JSON.stringify(user?.name));
+               
+               localStorage.setItem('superCategory', 'natural');
                 setTimeout(() => {
                    if (user.role === 'admin') {
-            navigate('/admin/dashboard'); 
+            navigate('/admin/products/natural'); 
           } else {
-            navigate('/home'); 
+            navigate(`/products/natural`);
           }
                 }, 1000)
             } else if (error) {

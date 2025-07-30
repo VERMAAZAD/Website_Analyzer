@@ -5,8 +5,9 @@ import { ToastContainer } from 'react-toastify';
 import { handleSuccess } from '../../toastutils';
 
 const Sidebar = ({ isOpen, onClose }) => {
-  
   const navigate = useNavigate();
+  const superCategory = localStorage.getItem("superCategory") || "natural";
+
    const handleLogout = (e) => {
         localStorage.removeItem('token');
         localStorage.removeItem('loggedInUser');
@@ -24,13 +25,13 @@ const Sidebar = ({ isOpen, onClose }) => {
         <button className="close-btn" onClick={onClose}>×</button>
       </div>
       <ul className="nav-links">
-        <li><Link to="/home"> User Dashboard</Link></li>
-        <li><Link to="/urlscan">UrlScan</Link></li>
-        <li><Link to="/domains">Domain List</Link></li>
-       <li><Link to="/domain-errors">Error Domains</Link></li>
-       <li><Link to="/affiliate-errors">Error Affiliate</Link></li>
-       <li><Link to="/domain-expire">Expire Domain</Link></li>
-       <li><Link to="/not-index">Not Bing Indexing</Link></li>
+        <li><Link to={`/products/${superCategory}`}> User Dashboard</Link></li>
+        <li><Link to={`/urlscan/${superCategory}`}>UrlScan</Link></li>
+        <li><Link to={`/domains/`}>Domain List</Link></li>
+       <li><Link to={`/domain-errors/${superCategory}`}>Error Domains</Link></li>
+       <li><Link to={`/affiliate-errors/${superCategory}`}>Error Affiliate</Link></li>
+       <li><Link to={`/domain-expire/${superCategory}`}>Expire Domain</Link></li>
+       <li><Link to={`/not-index/${superCategory}`}>Not Bing Indexing</Link></li>
         <li className="logout" onClick={handleLogout}>
         <Link>Logout</Link>
         </li>

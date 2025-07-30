@@ -5,6 +5,8 @@ const {
   deleteUser,
   getAllScrapedSites,
   getDomainsByUserId,
+  getDomainCountByCategory,
+  getDomainsByCategory,
 } = require('../Controllers/AdminController');
 
 const ensureAuthenticated = require('../Middlewares/Auth');
@@ -26,6 +28,8 @@ router.get('/users', getAllUsers);
 router.delete('/user/:id', deleteUser);
 router.get('/scraped-data', getAllScrapedSites);
 router.get('/user/:id/domains', getDomainsByUserId);
+router.get('/domain-count/:superCategory', getDomainCountByCategory);
+router.get('/domains/:superCategory', getDomainsByCategory);
 
 
 module.exports = router;

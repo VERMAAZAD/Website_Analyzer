@@ -7,13 +7,21 @@ const NoteEditor = ({ domain, currentNote, onSave }) => {
   const [note, setNote] = useState(currentNote || '');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const superCategory = localStorage.getItem("superCategory") || "natural";
+
+const apiBase =
+  superCategory === "casino"
+    ? "casino/scraper"
+    : superCategory === "dating"
+    ? "dating/scraper"
+    : "api/scraper"; //
   
 
   const handleSave = async () => {
     try {
       setSaving(true);
       const res = await axios.put(
-        `${import.meta.env.VITE_API_URI}/api/scraper/note/${domain}`,
+        `${import.meta.env.VITE_API_URI}/${apiBase}/note/${domain}`,
         { note },
         {
           headers: {
@@ -37,7 +45,7 @@ const NoteEditor = ({ domain, currentNote, onSave }) => {
     try {
       setDeleting(true);
     const res = await axios.delete(
-        `${import.meta.env.VITE_API_URI}/api/scraper/note/${domain}`,
+        `${import.meta.env.VITE_API_URI}/${apiBase}/note/${domain}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,

@@ -4,6 +4,7 @@
 }
 .dashboard-cards {
   display: flex;
+  flex-wrap: wrap;
   gap: 2rem;
 }
 .card {

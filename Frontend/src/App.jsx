@@ -80,27 +80,26 @@ const preloadErrorDomains = async () => {
 
 
         {/* Protected User & Admin Routes */}
-        <Route path='/home' element={<ProtectedRoute allowedRoles={['user', 'admin']}><Home /></ProtectedRoute>}/>
-        <Route path='/urlscan' element={<ProtectedRoute allowedRoles={['user']}><UrlScanUser /></ProtectedRoute>}/>
-        <Route path='/domains' element={<ProtectedRoute allowedRoles={['user']}><DomainListUser /></ProtectedRoute>}/>
-        <Route path='/domain-errors' element={<ProtectedRoute allowedRoles={['user']}><ErrorDomainUser /></ProtectedRoute>}/>
-        <Route path='/affiliate-errors' element={<ProtectedRoute allowedRoles={['user']}><ErrorAffiliatesUser /></ProtectedRoute>}/>
-        <Route path='/domain-expire' element={<ProtectedRoute allowedRoles={['user']}><DomainExpireUser /></ProtectedRoute>}/>
-        <Route path='/not-index' element={<ProtectedRoute allowedRoles={['user']}><BingCheckerUser /></ProtectedRoute>}/>
+        <Route path='/products/:type' element={<ProtectedRoute allowedRoles={['user', 'admin']}><Home /></ProtectedRoute>}/>
+        <Route path='/urlscan/:type' element={<ProtectedRoute allowedRoles={['user']}><UrlScanUser /></ProtectedRoute>}/>
+        <Route path='/domains/' element={<ProtectedRoute allowedRoles={['user']}><DomainListUser /></ProtectedRoute>}/>
+        <Route path='/domain-errors/:type' element={<ProtectedRoute allowedRoles={['user']}><ErrorDomainUser /></ProtectedRoute>}/>
+        <Route path='/affiliate-errors/:type' element={<ProtectedRoute allowedRoles={['user']}><ErrorAffiliatesUser /></ProtectedRoute>}/>
+        <Route path='/domain-expire/:type' element={<ProtectedRoute allowedRoles={['user']}><DomainExpireUser /></ProtectedRoute>}/>
+        <Route path='/not-index/:type' element={<ProtectedRoute allowedRoles={['user']}><BingCheckerUser /></ProtectedRoute>}/>
         
 
       {/* Admin Routes */}
       <Route path='/admin/signup' element={<ProtectedRoute allowedRoles={['admin']}><Signup /></ProtectedRoute>}/>
-      <Route path='/admin/urlscan' element={<ProtectedRoute allowedRoles={['admin']}><UrlScanAdmin /></ProtectedRoute>}/>
-      <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><Dashboard /></ProtectedRoute>} />
+      <Route path='/admin/urlscan/:type' element={<ProtectedRoute allowedRoles={['admin']}><UrlScanAdmin /></ProtectedRoute>}/>
+      <Route path="/admin/products/:type" element={<ProtectedRoute allowedRoles={['admin']}><Dashboard /></ProtectedRoute>} />
       <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><Users /></ProtectedRoute>} />
       <Route path="/admin/user/:id/domains/:name" element={<ProtectedRoute allowedRoles={['admin']}><UserDomains /></ProtectedRoute>} />
-      <Route path='/admin/affiliate-errors' element={<ProtectedRoute allowedRoles={['admin']}><ErrorAffiliatesAdmin /></ProtectedRoute>}/>
-      <Route path='/admin/domains' element={<ProtectedRoute allowedRoles={['admin']}><DomainListAdmin /></ProtectedRoute>}/>
-      <Route path='/admin/domain-errors' element={<ProtectedRoute allowedRoles={['admin']}><ErrorDomainAdmin /></ProtectedRoute>}/>
-      <Route path='/admin/domain-expire' element={<ProtectedRoute allowedRoles={['admin']}><DomainExpireAdmin /></ProtectedRoute>}/>
-      <Route path='/admin/not-index' element={<ProtectedRoute allowedRoles={['admin']}><BingCheckerAdmin /></ProtectedRoute>}/>
-    
+      <Route path='/admin/affiliate-errors/:type' element={<ProtectedRoute allowedRoles={['admin']}><ErrorAffiliatesAdmin /></ProtectedRoute>}/>
+      <Route path='/admin/domains/:type' element={<ProtectedRoute allowedRoles={['admin']}><DomainListAdmin /></ProtectedRoute>}/>
+      <Route path='/admin/domain-errors/:type' element={<ProtectedRoute allowedRoles={['admin']}><ErrorDomainAdmin /></ProtectedRoute>}/>
+      <Route path='/admin/domain-expire/:type' element={<ProtectedRoute allowedRoles={['admin']}><DomainExpireAdmin /></ProtectedRoute>}/>
+      <Route path='/admin/not-index/:type' element={<ProtectedRoute allowedRoles={['admin']}><BingCheckerAdmin /></ProtectedRoute>}/>
       </Routes>
       <ToastContainer/>
   </>
