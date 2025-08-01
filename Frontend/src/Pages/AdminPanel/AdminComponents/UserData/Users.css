@@ -1,14 +1,79 @@
+/* Users.css */
+
 .users-page {
   padding: 2rem;
+  max-width: 1000px;
+  margin: auto;
+  animation: fadeInUp 0.5s ease-in-out;
 }
-.users-page ul {
+
+.users-page h2 {
+  font-size: 2rem;
+  margin-bottom: 20px;
+  text-align: center;
+  color: #2c3e50;
+  font-weight: 600;
+  border-bottom: 1px solid #2e70b7;
+  padding-bottom: 10px;
+}
+
+.user-list {
   list-style: none;
   padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
-.users-page li {
-  margin: 0.5rem 0;
-  padding: 0.5rem;
-  background: #f1f1f1;
-  border-left: 4px solid #2980b9;
-  border-radius: 4px;
+
+.user-item {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-left: 5px solid #007bff;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.user-item strong {
+  color: #007bff;
+}
+
+.user-item:hover {
+  transform: scale(1.02);
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(0, 123, 255, 0.3);
+}
+
+.user-item:hover strong {
+  color: #fff;
+}
+
+/* Animation: fadeInUp */
+@keyframes fadeInUp {
+  0% {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0px);
+    opacity: 1;
+  }
+}
+
+/* Responsive tweaks */
+@media (max-width: 600px) {
+  .users-page {
+    padding: 1rem;
+  }
+
+  .user-item {
+    font-size: 1rem;
+    padding: 1rem;
+  }
 }

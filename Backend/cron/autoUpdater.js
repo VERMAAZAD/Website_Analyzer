@@ -22,7 +22,7 @@ let isCheckingIndex = false;
 let isCheckingGoogleIndex = false;
 
 // Update website data every 2 minutes
-cron.schedule('*/2 * * * *', async () => {
+cron.schedule('*/5 * * * *', async () => {
   if (isUpdating) {
     return;
   }

@@ -23,6 +23,7 @@ const Header = ({ onMenuClick, user }) => {
   };
 
   const handleSelect = (type) => {
+    
     localStorage.setItem("superCategory", type);
     navigate(`/admin/products/${type}`);
     setDropdownOpen(false);
@@ -40,11 +41,26 @@ const Header = ({ onMenuClick, user }) => {
   }, []);
 
   // Auto-close dropdown on route change & update currentCategory
-  useEffect(() => {
-    setDropdownOpen(false);
-    const type = location.pathname.split('/products/')[1];
-    setCurrentCategory(getDisplayName(type));
-  }, [location.pathname]);
+useEffect(() => {
+  setDropdownOpen(false);
+
+  const pathParts = location.pathname.split('/');
+  const lastSegment = pathParts[pathParts.length - 1];
+
+  if (['natural', 'casino', 'dating'].includes(lastSegment)) {
+    setCurrentCategory(getDisplayName(lastSegment));
+    localStorage.setItem('superCategory', lastSegment); 
+  } else {
+    setCurrentCategory('Category'); 
+  }
+
+  const savedType = localStorage.getItem('superCategory');
+  if (savedType && ['natural', 'casino', 'dating'].includes(savedType)) {
+    setCurrentCategory(getDisplayName(savedType));
+  }
+  
+}, [location.pathname]);
+
 
   const isActive = (type) => location.pathname.includes(`/products/${type}`);
 

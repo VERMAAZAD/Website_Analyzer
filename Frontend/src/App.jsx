@@ -30,13 +30,15 @@ import { handleError } from './toastutils';
 
 
 function App() {
-     const preloadAffiliateErrors = async () => {
-      try {
-        const cached = localStorage.getItem("cachedErrorAffiliate");
-        if (!cached) {
-          const res = await axios.get(`${import.meta.env.VITE_API_URI}/api/scraper/check-affiliate-errors`, {
+    const preloadAffiliateErrors = async () => {
+     const token = localStorage.getItem("token");
+      if (!token) return;
+       try {
+         const cached = localStorage.getItem("cachedErrorAffiliate");
+         if (!cached) {
+            const res = await axios.get(`${import.meta.env.VITE_API_URI}/api/scraper/check-affiliate-errors`, {
             headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`
+              Authorization: `Bearer ${token}`
             }
           });
           const data = res.data.errors || [];
@@ -50,12 +52,14 @@ function App() {
     
 
 const preloadErrorDomains = async () => {
+   const token = localStorage.getItem("token");
+  if (!token) return;
       try {
         const res = await axios.get(
           `${import.meta.env.VITE_API_URI}/api/scraper/refresh-and-errors`,
           {
             headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
+              Authorization: `Bearer ${token}`,
             },
           }
         );
@@ -65,10 +69,21 @@ const preloadErrorDomains = async () => {
       }
     };
 
- useEffect(() => {
-    preloadErrorDomains();
-    preloadAffiliateErrors();
-  }, []);
+
+
+useEffect(() => {
+  const interval = setInterval(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      preloadErrorDomains();
+      preloadAffiliateErrors();
+      clearInterval(interval); // ✅ Stop polling after login
+    }
+  }, 1000); // check every 1s
+
+  return () => clearInterval(interval);
+}, []);
+
 
   return (
   <>
@@ -94,7 +109,7 @@ const preloadErrorDomains = async () => {
       <Route path='/admin/urlscan/:type' element={<ProtectedRoute allowedRoles={['admin']}><UrlScanAdmin /></ProtectedRoute>}/>
       <Route path="/admin/products/:type" element={<ProtectedRoute allowedRoles={['admin']}><Dashboard /></ProtectedRoute>} />
       <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><Users /></ProtectedRoute>} />
-      <Route path="/admin/user/:id/domains/:name" element={<ProtectedRoute allowedRoles={['admin']}><UserDomains /></ProtectedRoute>} />
+      <Route path="/admin/user/:userId/domains" element={<ProtectedRoute allowedRoles={['admin']}><UserDomains /></ProtectedRoute>} />
       <Route path='/admin/affiliate-errors/:type' element={<ProtectedRoute allowedRoles={['admin']}><ErrorAffiliatesAdmin /></ProtectedRoute>}/>
       <Route path='/admin/domains/:type' element={<ProtectedRoute allowedRoles={['admin']}><DomainListAdmin /></ProtectedRoute>}/>
       <Route path='/admin/domain-errors/:type' element={<ProtectedRoute allowedRoles={['admin']}><ErrorDomainAdmin /></ProtectedRoute>}/>

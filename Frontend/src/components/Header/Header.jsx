@@ -24,27 +24,36 @@ const Header = ({ onMenuClick, user }) => {
   };
 
   const handleSelect = (type) => {
+    if (type === 'dating') {
+      const password = prompt('Enter password to access Dating category:');
+      if (password !== 'Dating@Web') {
+        alert('Incorrect password.');
+        return;
+      }
+    }
+
     localStorage.setItem("superCategory", type);
     navigate(`/products/${type}`);
     setDropdownOpen(false);
   };
 
-  // Close dropdown on outside click
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Update category display based on pathname
-  useEffect(() => {
-    const typeFromPath = location.pathname.split('/products/')[1];
-    setCurrentCategory(getDisplayName(typeFromPath));
     setDropdownOpen(false);
+
+    const pathParts = location.pathname.split('/');
+    const lastSegment = pathParts[pathParts.length - 1];
+
+    if (['natural', 'casino', 'dating'].includes(lastSegment)) {
+      setCurrentCategory(getDisplayName(lastSegment));
+      localStorage.setItem('superCategory', lastSegment); 
+    } else {
+      setCurrentCategory('Category'); 
+    }
+
+    const savedType = localStorage.getItem('superCategory');
+    if (savedType && ['natural', 'casino', 'dating'].includes(savedType)) {
+      setCurrentCategory(getDisplayName(savedType));
+    }
   }, [location.pathname]);
 
   const isActive = (type) => location.pathname.includes(`/products/${type}`);

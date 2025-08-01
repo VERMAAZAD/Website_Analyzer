@@ -44,6 +44,13 @@ function DomainList() {
   const [showHostingEditorMap, setShowHostingEditorMap] = useState({});
   const [hostingDetailsMap, setHostingDetailsMap] = useState({});
 
+  const superCategory = localStorage.getItem("superCategory") || "natural"; 
+  const apiBase = superCategory === "casino"
+    ? "casino/scraper"
+    : superCategory === "dating"
+    ? "dating/scraper"
+    : "api/scraper";
+
   const location = useLocation();
   const navigate = useNavigate();
   const queryParams = new URLSearchParams(location.search);
@@ -55,8 +62,8 @@ function DomainList() {
     try {
       const token = localStorage.getItem("token");
       const url = category
-        ? `${import.meta.env.VITE_API_URI}/api/scraper/by-category/${encodeURIComponent(category)}`
-        : `${import.meta.env.VITE_API_URI}/api/scraper/all`;
+        ? `${import.meta.env.VITE_API_URI}/${apiBase}/by-category/${encodeURIComponent(category)}`
+        : `${import.meta.env.VITE_API_URI}/${apiBase}/all`;
 
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` }
@@ -92,7 +99,7 @@ function DomainList() {
     }
 
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URI}/api/scraper/domain/${baseDomain}`, {
+      const res = await axios.get(`${import.meta.env.VITE_API_URI}/${apiBase}/domain/${baseDomain}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`
         }
@@ -177,7 +184,7 @@ function DomainList() {
     if (!window.confirm(`Are you sure you want to delete ${domainToDelete}?`)) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`${import.meta.env.VITE_API_URI}/api/scraper/domain/${domainToDelete}`, {
+      await axios.delete(`${import.meta.env.VITE_API_URI}/${apiBase}/domain/${domainToDelete}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -233,7 +240,7 @@ function DomainList() {
         <div className="button-group">
           <button
             className="add-url-btn"
-            onClick={() => navigate(role === "admin" ? '/admin/urlscan' : '/urlscan')}
+            onClick={() => navigate(role === "admin" ? `/admin/urlscan/${superCategory}` : `/urlscan/${superCategory}`)}
           >
             + Add URL
           </button>

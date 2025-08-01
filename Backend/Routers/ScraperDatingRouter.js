@@ -27,7 +27,7 @@ const { updateChangedDomains } = require('../Controllers/UpdaterController');
 
 router.post('/scan', scrapeWebsite);
 router.post('/save', auth, ensureAuthenticated, saveScrapedData);
-router.get('/all', auth, ensureAuthenticated, getAllScrapedSites); 
+router.get('/all', auth, ensureAuthenticated, getAllScrapedSites);
 router.get('/domain/:domain', auth, ensureAuthenticated, getScrapedSiteByDomain);
 router.get('/categories', auth, ensureAuthenticated, getAllCategories);
 router.get('/category-counts', auth, ensureAuthenticated, getCategoryCounts); 

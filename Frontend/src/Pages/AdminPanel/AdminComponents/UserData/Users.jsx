@@ -20,9 +20,10 @@ const Users = () => {
     });
   }, []);
 
-  const handleUserClick = (user) => {
-    navigate(`/admin/user/${user._id}/domains/${encodeURIComponent(user.name)}`);
-  };
+const handleUserClick = (user) => {
+  const encodedName = encodeURIComponent(user.name);
+  navigate(`/admin/user/${user._id}/domains?name=${encodedName}`);
+};
 
   return (
     <Layout>

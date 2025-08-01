@@ -13,7 +13,7 @@ function DomainExpire() {
     ? "casino/scraper"
     : superCategory === "dating"
     ? "dating/scraper"
-    : "api/scraper";;
+    : "api/scraper";
 
 
 

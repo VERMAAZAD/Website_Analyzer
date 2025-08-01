@@ -1,7 +1,61 @@
 .user-domains-page {
   padding: 20px;
+  max-width: 900px;
+  margin: auto;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+.user-domains-page h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 28px;
+  color: #333;
+}
+
+.filter-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.filter-btn {
+  padding: 10px 20px;
+  border: 2px solid transparent;
+  border-radius: 30px;
+  background: #f0f0f0;
+  color: #333;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.filter-btn:hover {
+  background-color: #007bff;
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.filter-btn.active {
+  background-color: #007bff;
+  color: #fff;
+  border-color: #007bff;
+}
+
+
+@media (max-width: 600px) {
+  .filter-btn {
+     font-size: 13px;
+     padding: 6px 13px;
+  }
+
+  .user-domains-page h2 {
+    font-size: 22px;
+  }
+
+}
 .domain-list {
   list-style: none;
   padding: 0;
@@ -34,4 +88,59 @@
 .status {
   font-size: 14px;
   color: #666;
+}
+.category-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.category-button {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 20px;
+  background-color: #ddd;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.category-button.active {
+  background-color: #007bff;
+  color: white;
+}
+
+.domain-list li {
+  margin: 0px 0;
+  font-size: 16px;
+}
+.filter-container {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.filter-dropdown {
+  padding: 6px 12px;
+  font-size: 15px;
+}
+.loading-spinner {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #007bff;
+  margin-top: 2rem;
+  animation: pulse 1.2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.3;
+  }
 }
