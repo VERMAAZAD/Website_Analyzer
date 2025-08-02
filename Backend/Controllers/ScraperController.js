@@ -443,7 +443,6 @@ exports.refreshStatusesAndGetErrors = async (req, res) => {
 
 
 
-
 exports.testAffiliateLinks = async (req, res) => {
   try {
     if (!req.user || !req.user._id) {

@@ -19,7 +19,6 @@ const fakeRes = {
 
 let isUpdating = false;
 let isCheckingIndex = false;
-let isCheckingGoogleIndex = false;
 
 // Update website data every 2 minutes
 cron.schedule('*/5 * * * *', async () => {

@@ -30,15 +30,13 @@ import { handleError } from './toastutils';
 
 
 function App() {
-    const preloadAffiliateErrors = async () => {
-     const token = localStorage.getItem("token");
-      if (!token) return;
-       try {
-         const cached = localStorage.getItem("cachedErrorAffiliate");
-         if (!cached) {
-            const res = await axios.get(`${import.meta.env.VITE_API_URI}/api/scraper/check-affiliate-errors`, {
+     const preloadAffiliateErrors = async () => {
+      try {
+        const cached = localStorage.getItem("cachedErrorAffiliate");
+        if (!cached) {
+          const res = await axios.get(`${import.meta.env.VITE_API_URI}/api/scraper/check-affiliate-errors`, {
             headers: {
-              Authorization: `Bearer ${token}`
+              Authorization: `Bearer ${localStorage.getItem('token')}`
             }
           });
           const data = res.data.errors || [];
@@ -52,14 +50,12 @@ function App() {
     
 
 const preloadErrorDomains = async () => {
-   const token = localStorage.getItem("token");
-  if (!token) return;
       try {
         const res = await axios.get(
           `${import.meta.env.VITE_API_URI}/api/scraper/refresh-and-errors`,
           {
             headers: {
-              Authorization: `Bearer ${token}`,
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
             },
           }
         );
@@ -68,22 +64,12 @@ const preloadErrorDomains = async () => {
         console.error("❌ Error preloading domains", err);
       }
     };
+    
 
-
-
-useEffect(() => {
-  const interval = setInterval(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      preloadErrorDomains();
-      preloadAffiliateErrors();
-      clearInterval(interval); // ✅ Stop polling after login
-    }
-  }, 1000); // check every 1s
-
-  return () => clearInterval(interval);
-}, []);
-
+ useEffect(() => {
+    preloadErrorDomains();
+    preloadAffiliateErrors();
+  }, []);
 
   return (
   <>
