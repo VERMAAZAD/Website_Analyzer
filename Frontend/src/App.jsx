@@ -30,11 +30,17 @@ import { handleError } from './toastutils';
 
 
 function App() {
+   const superCategory = localStorage.getItem("superCategory") || "natural"; 
+  const apiBase = superCategory === "casino"
+    ? "casino/scraper"
+    : superCategory === "dating"
+    ? "dating/scraper"
+    : "api/scrape";
      const preloadAffiliateErrors = async () => {
       try {
         const cached = localStorage.getItem("cachedErrorAffiliate");
         if (!cached) {
-          const res = await axios.get(`${import.meta.env.VITE_API_URI}/api/scraper/check-affiliate-errors`, {
+          const res = await axios.get(`${import.meta.env.VITE_API_URI}/${apiBase}/check-affiliate-errors`, {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`
             }
@@ -52,7 +58,7 @@ function App() {
 const preloadErrorDomains = async () => {
       try {
         const res = await axios.get(
-          `${import.meta.env.VITE_API_URI}/api/scraper/refresh-and-errors`,
+          `${import.meta.env.VITE_API_URI}/${apiBase}/refresh-and-errors`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,

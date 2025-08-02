@@ -6,13 +6,15 @@ function BingChecker() {
   const [domains, setDomains] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const superCategory = localStorage.getItem("superCategory") || "natural"; 
-  const apiBase = superCategory === "casino"
-    ? "casino/scraper"
-    : superCategory === "dating"
-    ? "dating/scraper"
-    : "api/scraper";
+  const [copiedIndex, setCopiedIndex] = useState(null);
 
+  const superCategory = localStorage.getItem("superCategory") || "natural";
+  const apiBase =
+    superCategory === "casino"
+      ? "casino/scraper"
+      : superCategory === "dating"
+      ? "dating/scraper"
+      : "api/scraper";
 
   const fetchCached = async () => {
     const token = localStorage.getItem("token");
@@ -37,6 +39,13 @@ function BingChecker() {
     }
   };
 
+  const handleCopy = (text, index) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 1500); // Reset after 1.5 sec
+    });
+  };
+
   useEffect(() => {
     fetchCached();
   }, []);
@@ -46,11 +55,11 @@ function BingChecker() {
       <h2 className="bing-checker-title">🔍 Bing Indexing Checker</h2>
 
       {loading ? (
-          <div className="bing-checker-loading">
-            <div className="spinner"></div>
-            <p className="loading-text">Loading cached results...</p>
-          </div>
-        ) : error ? (
+        <div className="bing-checker-loading">
+          <div className="spinner"></div>
+          <p className="loading-text">Loading cached results...</p>
+        </div>
+      ) : error ? (
         <div className="bing-checker-error">
           ❌ {error}
           <br />
@@ -66,9 +75,31 @@ function BingChecker() {
             ❌ {domains.length} domain{domains.length > 1 ? "s" : ""} not indexed:
           </p>
           <ul className="bing-checker-list">
-            {domains.map((domain, idx) => (
-              <li key={idx} className="bing-checker-item">{domain}</li>
-            ))}
+           {domains.map((site, idx) => {
+            const { domain, lastBingCheck } = site;
+            return (
+              <li key={idx} className="bing-checker-item">
+                <a
+                  href={`https://www.bing.com/search?q=site:${domain}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bing-checker-link"
+                >
+                  🔗 {domain}
+                </a>
+                <span className="bing-checker-time">
+                  ⏱️ {lastBingCheck ? new Date(lastBingCheck).toLocaleString() : "Never"}
+                </span>
+                <button
+                  className="bing-copy-btn"
+                  onClick={() => handleCopy(domain, idx)}
+                >
+                  {copiedIndex === idx ? "✅ Copied" : "📋 Copy"}
+                </button>
+              </li>
+            );
+          })}
+
           </ul>
         </div>
       )}

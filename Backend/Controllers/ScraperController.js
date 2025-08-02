@@ -343,101 +343,98 @@ exports.deleteScrapedSite = async (req, res) => {
 
 
 // [9] Refresh all domain status codes and return error domains
-const https = require('https');
-
+const https = require("https");
+const pLimit = require("p-limit").default;;
 
 exports.refreshStatusesAndGetErrors = async (req, res) => {
+  const limit = pLimit(5); 
   try {
-    // Check for user authentication
     if (!req.user || !req.user._id) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
     const httpsAgent = new https.Agent({ rejectUnauthorized: false });
+    const query = req.user.role !== "admin" ? { user: req.user._id } : {};
 
-    // Determine query based on user role
-    const query = req.user.role !== 'admin' ? { user: req.user._id } : {};
-
-    // Fetch domains based on the query
     const domains = await ScrapedSite.find(query);
 
-    // Process each domain to check its status
-    const updates = await Promise.all(
-      domains.map(async (site) => {
-        // Skip if user reference is missing for non-admins
-        if (req.user.role !== 'admin' && !site.user) {
-          console.warn(`⚠️ Skipping ${site.domain} — missing 'user' reference.`);
-          return null;
-        }
+    const checkAndUpdateSite = async (site) => {
+      if (req.user.role !== "admin" && !site.user) {
+        console.warn(`⚠️ Skipping ${site.domain} — missing 'user' reference.`);
+        return null;
+      }
 
-        const urls = [
-          `https://${site.domain}`,
-          `http://${site.domain}`,
-          `https://www.${site.domain}`,
-          `http://www.${site.domain}`,
-        ];
+      const urls = [
+        `https://${site.domain}`,
+        `http://${site.domain}`,
+        `https://www.${site.domain}`,
+        `http://www.${site.domain}`,
+      ];
 
-        let statusCode = 0;
-        let checkedUrl = "";
+      let statusCode = 0;
+      let checkedUrl = "";
 
-        // Check each URL for the domain
-        for (const url of urls) {
-          try {
-            const response = await axios.get(url, {
-              timeout: 10000,
-              validateStatus: () => true,
-              httpsAgent
-            });
+      for (const url of urls) {
+        try {
+          const response = await axios.get(url, {
+            timeout: 10000,
+            validateStatus: () => true,
+            httpsAgent,
+            headers: {
+                "User-Agent":
+                  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+                Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.9",
+              },
+          });
 
-            statusCode = response.status;
-            checkedUrl = url;
+          statusCode = response.status;
+          checkedUrl = url;
 
-            const html = typeof response.data === "string" ? response.data : "";
-            const match = html.match(/Error code (52[0-6])/);
-            if (match) {
-              statusCode = parseInt(match[1]);
-            }
-
-            break; // Exit loop on successful response
-          } catch (err) {
-            statusCode = err.response?.status || 0;
-            checkedUrl = url;
+          const html = typeof response.data === "string" ? response.data : "";
+          const match = html.match(/Error code (52[0-6])/);
+          if (match) {
+            console.log(`⚠️ Detected HTML error code ${match[1]} for ${site.domain}`);
+            statusCode = parseInt(match[1]);
           }
+
+          break;
+        } catch (err) {
+          console.warn(`❌ Request failed for ${url}: ${err.message}`);
+          statusCode = err.response?.status || 0;
+          checkedUrl = url;
         }
+      }
 
-        // Default status code if none found
-        if (!statusCode) statusCode = 526;
+      if (!statusCode) statusCode = 526;
 
-        // Update site status
-        site.statusCode = statusCode;
-        site.failingUrl = statusCode !== 200 ? checkedUrl : null;
-        site.lastChecked = new Date();
+      site.statusCode = statusCode;
+      site.failingUrl = statusCode !== 200 ? checkedUrl : null;
+      site.lastChecked = new Date();
 
-        await site.save(); // Save the updated site
-        return site;
-      })
+      await site.save();
+      return site;
+    };
+
+    const updates = await Promise.all(
+      domains.map((site) => limit(() => checkAndUpdateSite(site)))
     );
 
-    // Collect only domains with errors
     const errorDomains = updates
-      .filter(site => site && site.statusCode !== 200)
-      .map(site => ({
+      .filter((site) => site && site.statusCode !== 200)
+      .map((site) => ({
         domain: site.domain,
         statusCode: site.statusCode,
-        failingUrl: site.failingUrl || 'N/A',
+        failingUrl: site.failingUrl || "N/A",
         lastChecked: site.lastChecked,
         user: site.user,
       }));
 
-    // Respond with the error domains
     res.json(errorDomains);
   } catch (err) {
-    console.error("Error in refreshStatusesAndGetErrors:", err);
     res.status(500).json({ error: "Failed to refresh and fetch error domains" });
   }
 };
-
-
 
 
 
@@ -661,7 +658,6 @@ exports.deleteNote = async (req, res) => {
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const UserAgent = require('user-agents');
-const path = require('path');
 
 puppeteer.use(StealthPlugin());
 
@@ -761,7 +757,10 @@ exports.getUnindexedDomains = async (req, res) => {
   const filter = req.user.role === "admin" ? {} : { user: req.user._id };
   const sites = await ScrapedSite.find({ ...filter, isIndexedOnBing: false });
 
-  const unindexed = sites.map(site => site.domain);
+  const unindexed = sites.map(site =>  ({
+      domain: site.domain,
+      lastBingCheck: site.lastBingCheck,
+    }));
 
   res.json({ unindexed });
 };

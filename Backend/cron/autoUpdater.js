@@ -21,7 +21,7 @@ let isUpdating = false;
 let isCheckingIndex = false;
 
 // Update website data every 2 minutes
-cron.schedule('*/5 * * * *', async () => {
+cron.schedule('*/10 * * * *', async () => {
   if (isUpdating) {
     return;
   }
@@ -36,7 +36,7 @@ cron.schedule('*/5 * * * *', async () => {
   }
 });
 
-cron.schedule('41 16 * * *', async () => {
+cron.schedule('1 10 * * *', async () => {
   if (isCheckingIndex) return;
   isCheckingIndex = true;
 
