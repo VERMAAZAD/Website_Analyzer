@@ -35,9 +35,7 @@ const ScrapedGameSchema = new mongoose.Schema({
   issueDate: { type: Date, default: null },
   note: { type: String, default: '' },
   isIndexedOnBing: { type: Boolean, default: false },
-  isIndexedOnGoogle: { type: Boolean, default: false },
   lastBingCheck: { type: Date },
-  lastGoogleCheck: { type: Date },
   hostingInfo: {
   platform: { type: String, default: "" },
   email: { type: String, default: "" },

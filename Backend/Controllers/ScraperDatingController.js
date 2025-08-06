@@ -343,97 +343,128 @@ exports.deleteScrapedSite = async (req, res) => {
 
 
 // [9] Refresh all domain status codes and return error domains
-const https = require('https');
-
+const https = require("https");
+const pLimit = require("p-limit").default;
 
 exports.refreshStatusesAndGetErrors = async (req, res) => {
+  const limit = pLimit(5);
+  const httpsAgent = new https.Agent({ rejectUnauthorized: false });
+
+  if (!req.user || !req.user._id) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const query = req.user.role === "admin" ? {} : { user: req.user._id };
+
   try {
-    // Check for user authentication
-    if (!req.user || !req.user._id) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    const httpsAgent = new https.Agent({ rejectUnauthorized: false });
-
-    // Determine query based on user role
-    const query = req.user.role !== 'admin' ? { user: req.user._id } : {};
-
-    // Fetch domains based on the query
     const domains = await ScrapedDatingSite.find(query);
 
-    // Process each domain to check its status
-    const updates = await Promise.all(
-      domains.map(async (site) => {
-        // Skip if user reference is missing for non-admins
-        if (req.user.role !== 'admin' && !site.user) {
-          console.warn(`⚠️ Skipping ${site.domain} — missing 'user' reference.`);
-          return null;
-        }
+    const checkAndUpdateSite = async (site) => {
+      const urlsToCheck = [
+        `https://${site.domain}`,
+        `http://${site.domain}`,
+        `https://www.${site.domain}`,
+        `http://www.${site.domain}`,
+      ];
 
-        const urls = [
-          `https://${site.domain}`,
-          `http://${site.domain}`,
-          `https://www.${site.domain}`,
-          `http://www.${site.domain}`,
-        ];
+      let statusCode = 0;
+      let failingUrl = "";
 
-        let statusCode = 0;
-        let checkedUrl = "";
+      for (const url of urlsToCheck) {
+        try {
+          const response = await axios.get(url, {
+            timeout: 10000,
+            validateStatus: () => true,
+            httpsAgent,
+            headers: {
+              "User-Agent":
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+              Accept:
+                "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+              "Accept-Language": "en-US,en;q=0.9",
+            },
+          });
 
-        // Check each URL for the domain
-        for (const url of urls) {
-          try {
-            const response = await axios.get(url, {
-              timeout: 10000,
-              validateStatus: () => true,
-              httpsAgent
-            });
+          statusCode = response.status;
+          failingUrl = url;
 
-            statusCode = response.status;
-            checkedUrl = url;
+          // Check for Cloudflare error in HTML
+          const html = typeof response.data === "string" ? response.data : "";
+          const match = html.match(/Error code (52[0-6])/);
+          if (match) {
+            statusCode = parseInt(match[1]);
+          }
 
-            const html = typeof response.data === "string" ? response.data : "";
-            const match = html.match(/Error code (52[0-6])/);
-            if (match) {
-              statusCode = parseInt(match[1]);
-            }
-
-            break; // Exit loop on successful response
-          } catch (err) {
-            statusCode = err.response?.status || 0;
-            checkedUrl = url;
+          break; // stop on first response
+        } catch (err) {
+          failingUrl = url;
+          if (err.code === "ECONNABORTED") {
+            statusCode = 408;
+          } else if (err.response?.status) {
+            statusCode = err.response.status;
+          } else {
+            statusCode = 526; // Unknown error
           }
         }
+      }
 
-        // Default status code if none found
-        if (!statusCode) statusCode = 526;
+      if (!statusCode) statusCode = 526;
 
-        // Update site status
-        site.statusCode = statusCode;
-        site.failingUrl = statusCode !== 200 ? checkedUrl : null;
-        site.lastChecked = new Date();
+      site.statusCode = statusCode;
+      site.failingUrl = statusCode !== 200 ? failingUrl : null;
+      site.lastChecked = new Date();
+      await site.save();
 
-        await site.save(); // Save the updated site
-        return site;
-      })
+      return site;
+    };
+
+    const results = await Promise.all(
+      domains.map((site) => limit(() => checkAndUpdateSite(site)))
     );
 
-    // Collect only domains with errors
-    const errorDomains = updates
-      .filter(site => site && site.statusCode !== 200)
-      .map(site => ({
+    const errorDomains = results
+      .filter((site) => site && site.statusCode !== 200)
+      .map((site) => ({
         domain: site.domain,
         statusCode: site.statusCode,
-        failingUrl: site.failingUrl || 'N/A',
+        failingUrl: site.failingUrl || "N/A",
         lastChecked: site.lastChecked,
         user: site.user,
       }));
 
-    // Respond with the error domains
-    res.json(errorDomains);
+    console.log(`✅ Checked ${results.length} domains.`);
+    console.log(`❌ Found ${errorDomains.length} with errors.`);
+    
+    res.json({
+  message: `✅ Checked ${results.length} domains. ❌ Found ${errorDomains.length} with errors.`,
+  errorDomains,
+});
+
   } catch (err) {
-    console.error("Error in refreshStatusesAndGetErrors:", err);
-    res.status(500).json({ error: "Failed to refresh and fetch error domains" });
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+exports.getErrorDomains = async (req, res) => {
+  if (!req.user || !req.user._id) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const query = req.user.role === "admin"
+    ? { statusCode: { $ne: 200 } }
+    : { user: req.user._id, statusCode: { $ne: 200 } };
+
+  try {
+       const errorDomains = await ScrapedDatingSite.find(query)
+      .select("domain statusCode failingUrl lastChecked user")
+      .lean();
+
+    if (!errorDomains || errorDomains.length === 0) {
+      console.warn("No error domains found.");
+    }
+    res.json({ errorDomains });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch error domains" });
   }
 };
 
@@ -672,12 +703,25 @@ exports.checkBingIndex = async (req, res) => {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  // 2. Filter domains by role
-  const filter = req.user.role === 'admin' ? {} : { user: req.user._id };
+  const startOfToday = new Date();
+  startOfToday.setUTCHours(0, 0, 0, 0);
+
+  const baseFilter = req.user.role === 'admin' ? {} : { user: req.user._id };
+
+  // 4. Add logic to only check domains not checked today
+  const filter = {
+    ...baseFilter,
+    $or: [
+      { lastBingCheck: { $exists: false } },
+      { lastBingCheck: { $lt: startOfToday } }
+    ]
+  };
+
   const domains = await ScrapedDatingSite.find(filter, 'domain');
 
   const domainList = domains.map(site => site.domain);
   const unindexed = [];
+  const checkedToday = [];
   let browser;
 
   try {
@@ -733,6 +777,7 @@ exports.checkBingIndex = async (req, res) => {
         }
         if (!isIndexed) {
           unindexed.push(fullUrl);
+          checkedToday.push(fullUrl);
         }
 
       } catch (err) {
@@ -743,7 +788,7 @@ exports.checkBingIndex = async (req, res) => {
       }
     }
 
-    return res.json({ unindexed });
+    return res.json({ unindexed, checkedToday });
 
   } catch (err) {
     console.error('❌ Error launching Puppeteer:', err.message);
@@ -762,7 +807,10 @@ exports.getUnindexedDomains = async (req, res) => {
   const filter = req.user.role === "admin" ? {} : { user: req.user._id };
   const sites = await ScrapedDatingSite.find({ ...filter, isIndexedOnBing: false });
 
-  const unindexed = sites.map(site => site.domain);
+  const unindexed = sites.map(site =>  ({
+      domain: site.domain,
+      lastBingCheck: site.lastBingCheck,
+    }));
 
   res.json({ unindexed });
 };
@@ -832,9 +880,6 @@ exports.getHostingInfo = async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 };
-
-
-
 
 exports.updateDomainName = async (req, res) => {
   const { oldDomain, newDomain } = req.body;

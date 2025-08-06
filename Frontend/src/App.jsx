@@ -35,7 +35,7 @@ function App() {
     ? "casino/scraper"
     : superCategory === "dating"
     ? "dating/scraper"
-    : "api/scrape";
+    : "api/scraper";
      const preloadAffiliateErrors = async () => {
       try {
         const cached = localStorage.getItem("cachedErrorAffiliate");
@@ -55,27 +55,15 @@ function App() {
 
     
 
-const preloadErrorDomains = async () => {
-      try {
-        const res = await axios.get(
-          `${import.meta.env.VITE_API_URI}/${apiBase}/refresh-and-errors`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
-        localStorage.setItem("cachedErrorDomains", JSON.stringify(res.data));
-      } catch (err) {
-        console.error("❌ Error preloading domains", err);
-      }
-    };
-    
 
  useEffect(() => {
-    preloadErrorDomains();
+  if (superCategory) {
     preloadAffiliateErrors();
-  }, []);
+  } else {
+    console.warn("superCategory missing at initial load; skipping preload.");
+  }
+}, []);
+
 
   return (
   <>

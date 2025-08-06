@@ -92,3 +92,34 @@
     width: 100%;
   }
 }
+.timestamp {
+  font-size: 0.9rem;
+  color: #555;
+  margin-top: -10px;
+  margin-bottom: 10px;
+}
+.message-box {
+  background-color: #f0f8ff;
+  border-left: 4px solid #007bff;
+  padding: 10px;
+  margin: 10px 0;
+  font-weight: bold;
+  border-radius: 4px;
+}
+.errordomain-card p strong {
+  color: #333;
+}
+
+.errordomain-card p {
+  margin: 4px 0;
+}
+.loading-spinner {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+

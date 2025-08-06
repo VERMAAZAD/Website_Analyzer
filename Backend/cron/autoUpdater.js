@@ -1,7 +1,5 @@
 const cron = require('node-cron');
 const { updateChangedDomains } = require('../Controllers/UpdaterController');
-const { checkBingIndex } = require('../Controllers/ScraperController');
-
 
 const fakeReq = {
   user: {
@@ -18,11 +16,11 @@ const fakeRes = {
 };
 
 let isUpdating = false;
-let isCheckingIndex = false;
 
 // Update website data every 2 minutes
-cron.schedule('*/10 * * * *', async () => {
+cron.schedule('*/2 * * * *', async () => {
   if (isUpdating) {
+    console.log('[CRON] Starting updateChangedDomains at', new Date().toString());
     return;
   }
 
@@ -36,15 +34,4 @@ cron.schedule('*/10 * * * *', async () => {
   }
 });
 
-cron.schedule('1 10 * * *', async () => {
-  if (isCheckingIndex) return;
-  isCheckingIndex = true;
-
-  try {
-    await checkBingIndex(fakeReq, fakeRes);
-  } catch (err) {
-  } finally {
-    isCheckingIndex = false;
-  }
-});
 

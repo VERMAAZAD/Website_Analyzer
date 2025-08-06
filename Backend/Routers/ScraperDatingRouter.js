@@ -20,6 +20,7 @@ const {
   saveHostingInfo,
   getHostingInfo,
   updateDomainName,
+  getErrorDomains,
 } = require('../Controllers/ScraperDatingController');
 const ensureAuthenticated = require('../Middlewares/Auth');
 const auth = require("../Middlewares/Auth");
@@ -45,7 +46,7 @@ router.get('/unindexed-domains', auth, ensureAuthenticated, getUnindexedDomains)
 router.put('/hosting-info/:domain', auth, ensureAuthenticated, saveHostingInfo);
 router.get('/hosting-info/:domain', auth, ensureAuthenticated, getHostingInfo);
 router.put("/update-domain-name", auth, ensureAuthenticated, updateDomainName);
-
+router.get("/error-domain", auth, ensureAuthenticated, getErrorDomains);
 
 
 module.exports = router;

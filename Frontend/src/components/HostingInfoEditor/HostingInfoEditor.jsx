@@ -15,15 +15,23 @@ const HostingInfoEditor = ({ domain }) => {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // ✅ History states
+  const [history, setHistory] = useState({
+    platform: [],
+    email: [],
+    server: [],
+    domainPlatform: [],
+    domainEmail: [],
+    cloudflare: [],
+  });
+
   const superCategory = localStorage.getItem("superCategory") || "natural";
-
-const apiBase =
-  superCategory === "casino"
-    ? "casino/scraper"
-    : superCategory === "dating"
-    ? "dating/scraper"
-    : "api/scraper"; //
-
+  const apiBase =
+    superCategory === "casino"
+      ? "casino/scraper"
+      : superCategory === "dating"
+      ? "dating/scraper"
+      : "api/scraper";
 
   useEffect(() => {
     const fetchHostingInfo = async () => {
@@ -45,6 +53,12 @@ const apiBase =
         setDomainEmail(data.domainEmail || "");
         setCloudflare(data.cloudflare || "");
         setSavedData(data);
+
+        // ✅ Load history if available
+        const historyJSON = localStorage.getItem("hostingHistory");
+        if (historyJSON) {
+          setHistory(JSON.parse(historyJSON));
+        }
       } catch (err) {
         handleError(err.response?.data?.error || "Failed to load hosting info");
       } finally {
@@ -54,6 +68,16 @@ const apiBase =
 
     fetchHostingInfo();
   }, [domain]);
+
+  // ✅ Helper to update field history
+  const updateHistory = (field, value) => {
+    setHistory((prev) => {
+      const values = new Set([value, ...(prev[field] || [])]);
+      const updated = { ...prev, [field]: Array.from(values).slice(0, 10) }; // max 10
+      localStorage.setItem("hostingHistory", JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   const handleSave = async () => {
     const data = {
@@ -79,6 +103,9 @@ const apiBase =
 
       handleSuccess("Hosting info saved successfully");
       setSavedData(data);
+
+      // ✅ Save to history
+      Object.keys(data).forEach((key) => updateHistory(key, data[key]));
     } catch (err) {
       handleError(err.response?.data?.error || "Failed to save hosting info");
     } finally {
@@ -97,27 +124,47 @@ const apiBase =
           <input
             type="text"
             value={platform}
+            list="platform-options"
             onChange={(e) => setPlatform(e.target.value)}
             placeholder="e.g. Hostinger, GoDaddy"
           />
+          <datalist id="platform-options">
+            {history.platform.map((val, i) => (
+              <option key={i} value={val} />
+            ))}
+          </datalist>
         </div>
+
         <div className="hosting-field">
           <label>Hosting Mail:</label>
           <input
             type="text"
             value={email}
+            list="email-options"
             onChange={(e) => setEmail(e.target.value)}
             placeholder="admin@host.com"
           />
+          <datalist id="email-options">
+            {history.email.map((val, i) => (
+              <option key={i} value={val} />
+            ))}
+          </datalist>
         </div>
+
         <div className="hosting-field">
           <label>Hosting Server:</label>
           <input
             type="text"
             value={server}
+            list="server-options"
             onChange={(e) => setServer(e.target.value)}
             placeholder="e.g. Apache, NGINX"
           />
+          <datalist id="server-options">
+            {history.server.map((val, i) => (
+              <option key={i} value={val} />
+            ))}
+          </datalist>
         </div>
 
         {/* Domain Info */}
@@ -126,18 +173,31 @@ const apiBase =
           <input
             type="text"
             value={domainPlatform}
+            list="domain-platform-options"
             onChange={(e) => setDomainPlatform(e.target.value)}
             placeholder="e.g. Namecheap"
           />
+          <datalist id="domain-platform-options">
+            {history.domainPlatform.map((val, i) => (
+              <option key={i} value={val} />
+            ))}
+          </datalist>
         </div>
+
         <div className="hosting-field">
           <label>Domain Mail:</label>
           <input
             type="text"
             value={domainEmail}
+            list="domain-email-options"
             onChange={(e) => setDomainEmail(e.target.value)}
             placeholder="support@domain.com"
           />
+          <datalist id="domain-email-options">
+            {history.domainEmail.map((val, i) => (
+              <option key={i} value={val} />
+            ))}
+          </datalist>
         </div>
 
         {/* Cloudflare Info */}
@@ -146,9 +206,15 @@ const apiBase =
           <input
             type="text"
             value={cloudflare}
+            list="cloudflare-options"
             onChange={(e) => setCloudflare(e.target.value)}
             placeholder="Cloudflare status or config"
           />
+          <datalist id="cloudflare-options">
+            {history.cloudflare.map((val, i) => (
+              <option key={i} value={val} />
+            ))}
+          </datalist>
         </div>
 
         <button className="save-hosting-btn" onClick={handleSave} disabled={saving}>

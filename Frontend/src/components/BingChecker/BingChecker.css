@@ -117,8 +117,15 @@
 
 /* Responsive */
 @media screen and (max-width: 600px) {
+  .bing-checker-button-index p {
+    font-size: 11px;
+}
+.bing-checker-button {
+    font-size: 11px;
+}
   .bing-checker-container {
     padding: 1.5rem 1rem;
+    margin: 0rem auto;
   }
 
   .bing-checker-title {
@@ -228,4 +235,50 @@
   font-size: 0.85rem;
   margin-left: 12px;
   color: #666;
+}
+.bing-checker-search {
+  padding: 8px 12px;
+  margin: 12px 0 5px;
+  width: 91%;
+  max-width: 400px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+.bing-download-btn {
+  margin: 10px 5px;
+  padding: 8px 16px;
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.bing-download-btn:hover {
+  background-color: #125ea2;
+}
+.bing-checker-button {
+  padding: 10px 20px;
+  background-color: #0078d4;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.bing-checker-button:disabled {
+  background-color: #888;
+  cursor: not-allowed;
+}
+.bing-checker-button-index{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.bing-checker-button-index p{
+  margin-top: -10px;
 }
