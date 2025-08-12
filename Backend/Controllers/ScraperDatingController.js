@@ -574,15 +574,26 @@ exports.getExpiringDomains = async (req, res) => {
 
     const domains = await ScrapedDatingSite.find(query);
 
-    const expiring = domains.filter((domain) => {
-      if (!domain.issueDate) return false;
+     const expiring = [];
+    const expiredDomains = [];
+
+    domains.forEach(domain => {
+      if (!domain.issueDate) return;
 
       const issueDate = new Date(domain.issueDate);
       const expiryDate = new Date(issueDate);
       expiryDate.setFullYear(issueDate.getFullYear() + 1);
 
-      return expiryDate >= now && expiryDate <= tenDaysFromNow;
+       if (expiryDate >= now && expiryDate <= tenDaysFromNow) {
+        expiring.push(domain);
+      } else if (expiryDate < now) {
+        expiredDomains.push(domain._id);
+      }
     });
+
+    if (expiredDomains.length > 0) {
+      await ScrapedDatingSite.deleteMany({ _id: { $in: expiredDomains } });
+    }
 
     res.json(expiring);
   } catch (err) {
@@ -725,10 +736,17 @@ exports.checkBingIndex = async (req, res) => {
   let browser;
 
   try {
-    browser = await puppeteer.launch({
-      headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
+   browser = await puppeteer.launch({
+         headless: true,
+         executablePath: puppeteer.executablePath(), 
+           args: [
+           '--no-sandbox',
+           '--disable-setuid-sandbox',
+           '--disable-dev-shm-usage',
+           '--disable-gpu',
+           '--single-process'
+           ],
+       });
 
     for (const fullUrl of domainList) {
       let domain;

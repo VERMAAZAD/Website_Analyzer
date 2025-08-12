@@ -431,9 +431,6 @@ exports.refreshStatusesAndGetErrors = async (req, res) => {
         lastChecked: site.lastChecked,
         user: site.user,
       }));
-
-    console.log(`✅ Checked ${results.length} domains.`);
-    console.log(`❌ Found ${errorDomains.length} with errors.`);
     
     res.json({
   message: `✅ Checked ${results.length} domains. ❌ Found ${errorDomains.length} with errors.`,
@@ -467,9 +464,6 @@ exports.getErrorDomains = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch error domains" });
   }
 };
-
-
-
 
 
 
@@ -559,7 +553,6 @@ exports.testAffiliateLinks = async (req, res) => {
 };
 
 
-
 // controller/alerts.js
 exports.getExpiringDomains = async (req, res) => {
   try {
@@ -572,15 +565,26 @@ exports.getExpiringDomains = async (req, res) => {
 
     const domains = await ScrapedSite.find(query);
 
-    const expiring = domains.filter((domain) => {
-      if (!domain.issueDate) return false;
+     const expiring = [];
+    const expiredDomains = [];
+
+    domains.forEach(domain => {
+      if (!domain.issueDate) return;
 
       const issueDate = new Date(domain.issueDate);
       const expiryDate = new Date(issueDate);
       expiryDate.setFullYear(issueDate.getFullYear() + 1);
 
-      return expiryDate >= now && expiryDate <= tenDaysFromNow;
+       if (expiryDate >= now && expiryDate <= tenDaysFromNow) {
+        expiring.push(domain);
+      } else if (expiryDate < now) {
+        expiredDomains.push(domain._id);
+      }
     });
+
+    if (expiredDomains.length > 0) {
+      await ScrapedSite.deleteMany({ _id: { $in: expiredDomains } });
+    }
 
     res.json(expiring);
   } catch (err) {
@@ -723,8 +727,15 @@ exports.checkBingIndex = async (req, res) => {
 
   try {
     browser = await puppeteer.launch({
-      headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      headless: true,
+      executablePath: puppeteer.executablePath(), 
+        args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--single-process'
+        ],
     });
 
     for (const fullUrl of domainList) {
