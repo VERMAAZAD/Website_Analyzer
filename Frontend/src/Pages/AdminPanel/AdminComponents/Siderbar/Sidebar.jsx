@@ -39,6 +39,7 @@ const apiBase =
         <li><Link to={`/admin/affiliate-errors/${superCategory}`}>Affiliate Error</Link></li>
         <li><Link to={`/admin/domain-errors/${superCategory}`}>Domain Error</Link></li>
         <li><Link to={`/admin/domain-expire/${superCategory}`}>Domain Expire</Link></li>
+        <li><Link to={`/admin/hosting-expire/${superCategory}`}>Hosting Expire</Link></li>
         <li><Link to={`/admin/not-index/${superCategory}`}>Not Bing Indexing</Link></li>
         <li onClick={handleLogout}><Link to="/login">Logout</Link></li>
       </ul>

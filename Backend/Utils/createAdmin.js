@@ -12,11 +12,9 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 const createAdmin = async () => {
   try {
     await mongoose.connect(MongoDB_URL);
-    console.log('✅ Connected to MongoDB');
 
     const existing = await User.findOne({ email: 'admin@example.com' });
     if (existing) {
-      console.log('⚠️ Admin already exists');
       return;
     }
 
@@ -30,10 +28,8 @@ const createAdmin = async () => {
     });
 
     await adminUser.save();
-    console.log('✅ Admin created successfully!');
     mongoose.disconnect();
   } catch (error) {
-    console.error('❌ Error creating admin:', error.message);
     mongoose.disconnect();
   }
 };

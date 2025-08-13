@@ -4,23 +4,21 @@ const { updateChangedDomains } = require('../Controllers/UpdaterController');
 const fakeReq = {
   user: {
     role: 'admin',
-     _id: 'admin-cron-job',
+    _id: 'admin-cron-job',
   },
 };
 
 const fakeRes = {
-  json: (data) => console.log('[Cron Response]', data),
-  status: (code) => ({
-    json: (data) => console.error(`[Cron Error ${code}]`, data),
+  json: () => {},
+  status: () => ({
+    json: () => {},
   }),
 };
 
 let isUpdating = false;
 
-// Update website data every 2 minutes
-cron.schedule('*/2 * * * *', async () => {
+cron.schedule('*/20 * * * *', async () => {
   if (isUpdating) {
-    console.log('[CRON] Starting updateChangedDomains at', new Date().toString());
     return;
   }
 
@@ -29,9 +27,8 @@ cron.schedule('*/2 * * * *', async () => {
   try {
     await updateChangedDomains(fakeReq, fakeRes);
   } catch (err) {
+    // Optional: handle error silently
   } finally {
     isUpdating = false;
   }
 });
-
-

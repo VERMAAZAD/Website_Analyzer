@@ -16,7 +16,6 @@ function DomainExpire() {
     : "api/scraper";
 
 
-
   useEffect(() => {
     fetchExpiringDomains();
   }, []);

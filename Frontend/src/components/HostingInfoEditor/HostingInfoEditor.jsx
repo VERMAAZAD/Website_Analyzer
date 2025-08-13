@@ -10,6 +10,7 @@ const HostingInfoEditor = ({ domain }) => {
   const [domainPlatform, setDomainPlatform] = useState("");
   const [domainEmail, setDomainEmail] = useState("");
   const [cloudflare, setCloudflare] = useState("");
+  const [hostingIssueDate, sethostingIssueDate] = useState("");
 
   const [savedData, setSavedData] = useState({});
   const [saving, setSaving] = useState(false);
@@ -23,6 +24,7 @@ const HostingInfoEditor = ({ domain }) => {
     domainPlatform: [],
     domainEmail: [],
     cloudflare: [],
+    hostingIssueDate: [],
   });
 
   const superCategory = localStorage.getItem("superCategory") || "natural";
@@ -52,6 +54,7 @@ const HostingInfoEditor = ({ domain }) => {
         setDomainPlatform(data.domainPlatform || "");
         setDomainEmail(data.domainEmail || "");
         setCloudflare(data.cloudflare || "");
+        sethostingIssueDate(data.date || "");
         setSavedData(data);
 
         // ✅ Load history if available
@@ -65,7 +68,6 @@ const HostingInfoEditor = ({ domain }) => {
         setLoading(false);
       }
     };
-
     fetchHostingInfo();
   }, [domain]);
 
@@ -87,6 +89,7 @@ const HostingInfoEditor = ({ domain }) => {
       domainPlatform,
       domainEmail,
       cloudflare,
+      hostingIssueDate,
     };
 
     try {
@@ -127,6 +130,21 @@ const HostingInfoEditor = ({ domain }) => {
             list="platform-options"
             onChange={(e) => setPlatform(e.target.value)}
             placeholder="e.g. Hostinger, GoDaddy"
+          />
+          <datalist id="platform-options">
+            {history.platform.map((val, i) => (
+              <option key={i} value={val} />
+            ))}
+          </datalist>
+        </div>
+        <div className="hosting-field">
+          <label>Hosting Issue Date:</label>
+          <input
+            type="date"
+            value={hostingIssueDate}
+            list="platform-options"
+            onChange={(e) => sethostingIssueDate(e.target.value)}
+            placeholder=""
           />
           <datalist id="platform-options">
             {history.platform.map((val, i) => (
@@ -226,6 +244,7 @@ const HostingInfoEditor = ({ domain }) => {
       {(savedData.platform || savedData.email || savedData.cloudflare) && (
         <div className="saved-hosting-info">
           <p><strong>📦 Hosting Platform:</strong> {savedData.platform}</p>
+          <p><strong>☁️ Hosting Issue Date:</strong> {savedData.hostingIssueDate}</p>
           <p><strong>📧 Hosting Email:</strong> {savedData.email}</p>
           <p><strong>🖥️ Hosting Server:</strong> {savedData.server}</p>
           <p><strong>🌐 Domain Platform:</strong> {savedData.domainPlatform}</p>

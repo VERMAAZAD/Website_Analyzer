@@ -347,7 +347,7 @@ const https = require("https");
 const pLimit = require("p-limit").default;
 
 exports.refreshStatusesAndGetErrors = async (req, res) => {
-  const limit = pLimit(5);
+  const limit = pLimit(10);
   const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
   if (!req.user || !req.user._id) {
@@ -360,58 +360,65 @@ exports.refreshStatusesAndGetErrors = async (req, res) => {
     const domains = await ScrapedGameSite.find(query);
 
     const checkAndUpdateSite = async (site) => {
-      const urlsToCheck = [
-        `https://${site.domain}`,
-        `http://${site.domain}`,
-        `https://www.${site.domain}`,
-        `http://www.${site.domain}`,
-      ];
-
+      const url = `https://${site.domain}`;
       let statusCode = 0;
-      let failingUrl = "";
+      let failingUrl = url;
 
-      for (const url of urlsToCheck) {
-        try {
-          const response = await axios.get(url, {
-            timeout: 10000,
-            validateStatus: () => true,
-            httpsAgent,
-            headers: {
-              "User-Agent":
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
-              Accept:
-                "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-              "Accept-Language": "en-US,en;q=0.9",
-            },
-          });
+      try {
+        const response = await axios.get(url, {
+          timeout: 100000,
+          validateStatus: () => true,
+          httpsAgent,
+          headers: {
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+            Accept:
+              "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+          },
+        });
 
-          statusCode = response.status;
-          failingUrl = url;
+        statusCode = response.status;
+        const html = typeof response.data === "string" ? response.data : "";
 
-          // Check for Cloudflare error in HTML
-          const html = typeof response.data === "string" ? response.data : "";
-          const match = html.match(/Error code (52[0-6])/);
-          if (match) {
-            statusCode = parseInt(match[1]);
-          }
+        // Cloudflare SSL error codes (525–527)
+        const cfMatch = html.match(/Error code (52[5-7])/);
+        if (cfMatch) {
+          statusCode = parseInt(cfMatch[1], 10);
+        }
 
-          break; // stop on first response
-        } catch (err) {
-          failingUrl = url;
-          if (err.code === "ECONNABORTED") {
-            statusCode = 408;
-          } else if (err.response?.status) {
-            statusCode = err.response.status;
-          } else {
-            statusCode = 526; // Unknown error
-          }
+        // Suspended domain detection
+        const suspendedPatterns = [
+          /domain suspended/i,
+          /website suspended/i,
+          /account has been suspended/i,
+          /temporarily unavailable/i,
+          /service suspended/i,
+        ];
+        if (suspendedPatterns.some((regex) => regex.test(html))) {
+          statusCode = 498; // custom suspended code
+        }
+
+      } catch (err) {
+        if (err.code === "ECONNABORTED") {
+          statusCode = 408; // timeout
+        } else if (err.code === "DEPTH_ZERO_SELF_SIGNED_CERT") {
+          statusCode = 495; // self-signed SSL
+        } else if (err.code === "UNABLE_TO_VERIFY_LEAF_SIGNATURE") {
+          statusCode = 496; // SSL verification error
+        } else if (err.code === "CERT_HAS_EXPIRED") {
+          statusCode = 497; // expired SSL
+        } else if (err.code === "ENOTFOUND" || err.code === "EAI_AGAIN") {
+          statusCode = 499; // NXDOMAIN / expired domain
+        } else if (err.response?.status) {
+          statusCode = err.response.status;
+        } else {
+          statusCode = 526; // general SSL/connection failure
         }
       }
 
-      if (!statusCode) statusCode = 526;
-
-      site.statusCode = statusCode;
-      site.failingUrl = statusCode !== 200 ? failingUrl : null;
+      site.statusCode = statusCode || 526;
+      site.failingUrl = site.statusCode !== 200 ? failingUrl : null;
       site.lastChecked = new Date();
       await site.save();
 
@@ -432,15 +439,13 @@ exports.refreshStatusesAndGetErrors = async (req, res) => {
         user: site.user,
       }));
 
-    console.log(`✅ Checked ${results.length} domains.`);
-    console.log(`❌ Found ${errorDomains.length} with errors.`);
-    
     res.json({
-  message: `✅ Checked ${results.length} domains. ❌ Found ${errorDomains.length} with errors.`,
-  errorDomains,
-});
+      message: `✅ Checked ${results.length} domains. ❌ Found ${errorDomains.length} with errors.`,
+      errorDomains,
+    });
 
   } catch (err) {
+    console.error("Error checking domains:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -471,93 +476,142 @@ exports.getErrorDomains = async (req, res) => {
 
 
 
-
-
 exports.testAffiliateLinks = async (req, res) => {
+  const limit = pLimit(30); // ✅ Concurrency control
   try {
     if (!req.user || !req.user._id) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
     const filter = { affiliateLink: { $ne: null } };
-
-    // 👤 Admin sees all users, regular users see their own
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== "admin") {
       filter.user = req.user._id;
     }
 
     const domains = await ScrapedGameSite.find(filter);
     const failedLinks = [];
 
-    for (const site of domains) {
+    const checkLink = async (site) => {
       const link = site.affiliateLink;
+      let status = "ok";
+      let errorMessage = null;
 
       try {
-        const resp = await axios.get(link, {
-          timeout: 7000,
-          headers: {
-            'User-Agent': 'Mozilla/5.0',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
-          },
-          maxRedirects: 0, // We want to inspect redirect manually
-          validateStatus: () => true, // Allow all responses through
-        });
+        // Try HEAD request first
+        let resp;
+        try {
+          resp = await axios.head(link, {
+            timeout: 3000,
+            maxRedirects: 0,
+            validateStatus: () => true,
+            headers: {
+              "User-Agent": "Mozilla/5.0",
+              Accept: "text/html,application/xhtml+xml,application/xml;q=0.9",
+            },
+          });
+        } catch {
+          // Fall back to GET if HEAD fails
+          resp = await axios.get(link, {
+            timeout: 3000,
+            maxRedirects: 0,
+            validateStatus: () => true,
+            headers: {
+              "User-Agent": "Mozilla/5.0",
+              Accept: "text/html,application/xhtml+xml,application/xml;q=0.9",
+            },
+          });
+        }
 
-        const redirectLocation = resp.headers.location || '';
+        const redirectLocation = resp.headers.location || "";
 
-        // ❌ Case 1: Permanent redirects (301/308)
         if ([301, 308].includes(resp.status)) {
-          failedLinks.push({
-            domain: site.domain,
-            affiliateLink: link,
-            error: `Permanent redirect with status ${resp.status} to ${redirectLocation}`
-          });
-        }
-
-        // ❌ Case 2: Redirects to known invalid/error pages
-        else if (
+          status = "error";
+          errorMessage = `Permanent redirect ${resp.status} → ${redirectLocation}`;
+        } else if (
           [302, 303, 307].includes(resp.status) &&
-          (redirectLocation.includes('errCode=invalidvendor') || redirectLocation.includes('error'))
+          (redirectLocation.includes("errCode=invalidvendor") ||
+            redirectLocation.includes("error"))
         ) {
-          failedLinks.push({
-            domain: site.domain,
-            affiliateLink: link,
-            error: `Redirected with status ${resp.status} to error URL: ${redirectLocation}`
-          });
+          status = "error";
+          errorMessage = `Redirect error ${resp.status} → ${redirectLocation}`;
+        } else if (resp.status >= 400) {
+          status = "error";
+          errorMessage = `HTTP ${resp.status}`;
         }
-
-        // ❌ Case 3: HTTP 4xx or 5xx errors
-        else if (resp.status >= 400) {
-          failedLinks.push({
-            domain: site.domain,
-            affiliateLink: link,
-            error: `Returned error status ${resp.status}`
-          });
-        }
-
-        // ✅ Else: considered valid — do nothing
-
       } catch (err) {
+        status = "error";
+        errorMessage = err.message || "Unknown request error";
+      }
+
+      // Save status in DB
+      await ScrapedGameSite.updateOne(
+        { _id: site._id },
+        {
+          $set: {
+            affiliateCheckStatus: status,
+            lastAffiliateCheck: new Date(),
+            note: status === "error" ? errorMessage : "",
+          },
+        }
+      );
+
+      // Collect for API response
+      if (status === "error") {
         failedLinks.push({
           domain: site.domain,
           affiliateLink: link,
-          error: err.message || 'Unknown request error'
+          error: errorMessage,
         });
       }
-    }
+    };
+
+    // Run checks concurrently
+    await Promise.allSettled(domains.map((site) => limit(() => checkLink(site))));
 
     res.json({
       total: domains.length,
       failed: failedLinks.length,
-      errors: failedLinks
+      errors: failedLinks,
     });
-
   } catch (err) {
-    console.error('Affiliate test failed:', err.message);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Affiliate test failed:", err.message);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
+
+
+// GET /get-affiliate-errors
+exports.getAffiliateErrors = async (req, res) => {
+  try {
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    // Fetch anything not marked ok yet
+    const filter = { affiliateCheckStatus: { $ne: "ok" } };
+    if (req.user.role !== "admin") {
+      filter.user = req.user._id;
+    }
+
+    const errors = await ScrapedGameSite.find(filter, {
+      domain: 1,
+      affiliateLink: 1,
+      affiliateCheckStatus: 1,
+    }).lean();
+
+    res.json({
+      errors: errors.map(site => ({
+        domain: site.domain,
+        affiliateLink: site.affiliateLink,
+        status: site.affiliateCheckStatus || "pending",
+      }))
+    });
+  } catch (err) {
+    console.error("Get affiliate errors failed:", err.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
 
 
 // controller/alerts.js
@@ -605,29 +659,49 @@ exports.renewDomain = async (req, res) => {
   try {
     const { domains } = req.body;
 
-    if (!Array.isArray(domains)) {
-      return res.status(400).json({ error: 'Expected array of domains' });
+    if (!Array.isArray(domains) || domains.length === 0) {
+      return res.status(400).json({ error: 'Expected non-empty array of domains' });
     }
 
-    const now = new Date();
-
-    await Promise.all(
+    const results = await Promise.all(
       domains.map(async (domain) => {
         const query = req.user.role === "admin"
-          ? { domain } // admin can renew any domain
-          : { user: req.user._id, domain }; // normal user: only their own
+          ? { domain: domain.toLowerCase() }
+          : { user: req.user._id, domain: domain.toLowerCase() };
 
-        await ScrapedGameSite.findOneAndUpdate(query, { issueDate: now });
+        // Find the domain first
+        const existing = await ScrapedGameSite.findOne(query);
+
+        if (!existing) {
+          return { domain, status: 'not found' };
+        }
+
+        let newIssueDate;
+        if (existing.issueDate) {
+          // Add 1 year to current issueDate
+          newIssueDate = new Date(existing.issueDate);
+          newIssueDate.setFullYear(newIssueDate.getFullYear() + 1);
+        } else {
+          // Set to today if not present
+          newIssueDate = new Date();
+        }
+
+        existing.issueDate = newIssueDate;
+        await existing.save();
+
+        return { domain, status: 'renewed', newIssueDate };
       })
     );
 
-    res.json({ message: 'Renewed successfully' });
+    res.json({
+      message: 'Renew process completed',
+      results
+    });
   } catch (err) {
-    res.status(500).json({ error: 'Renewal failed' });
+    console.error("Renewal error:", err);
+    res.status(500).json({ error: 'Renewal failed', details: err.message });
   }
 };
-
-
 
 
 
@@ -717,14 +791,26 @@ exports.checkBingIndex = async (req, res) => {
 
   const baseFilter = req.user.role === 'admin' ? {} : { user: req.user._id };
 
-  // 4. Add logic to only check domains not checked today
-  const filter = {
+ // Check if ALL domains are already checked today
+const totalDomains = await ScrapedGameSite.countDocuments(baseFilter);
+const checkedTodayCount = await ScrapedGameSite.countDocuments({
+  ...baseFilter,
+  lastBingCheck: { $gte: startOfToday }
+});
+
+// If all are checked today, allow re-check
+let filter;
+if (totalDomains > 0 && checkedTodayCount === totalDomains) {
+  filter = baseFilter; // No date restriction
+} else {
+  filter = {
     ...baseFilter,
     $or: [
       { lastBingCheck: { $exists: false } },
       { lastBingCheck: { $lt: startOfToday } }
     ]
   };
+}
 
   const domains = await ScrapedGameSite.find(filter, 'domain');
 
@@ -734,17 +820,17 @@ exports.checkBingIndex = async (req, res) => {
   let browser;
 
   try {
-   browser = await puppeteer.launch({
-         headless: true,
-         executablePath: puppeteer.executablePath(), 
-           args: [
-           '--no-sandbox',
-           '--disable-setuid-sandbox',
-           '--disable-dev-shm-usage',
-           '--disable-gpu',
-           '--single-process'
-           ],
-       });
+    browser = await puppeteer.launch({
+      headless: true,
+      executablePath: puppeteer.executablePath(), 
+        args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--single-process'
+        ],
+    });
 
     for (const fullUrl of domainList) {
       let domain;
@@ -846,6 +932,7 @@ exports.saveHostingInfo = async (req, res) => {
     domainPlatform,
     domainEmail,
     cloudflare,
+    hostingIssueDate,
   } = req.body;
 
   try {
@@ -867,6 +954,7 @@ exports.saveHostingInfo = async (req, res) => {
       domainPlatform,
       domainEmail,
       cloudflare,
+      hostingIssueDate,
     };
 
     await site.save();
@@ -895,6 +983,96 @@ exports.getHostingInfo = async (req, res) => {
   } catch (err) {
     console.error("Error fetching hosting info:", err.message);
     res.status(500).json({ error: "Server error" });
+  }
+};
+
+exports.getExpireHosting = async (req, res) => {
+  try {
+    const now = new Date();
+    const tenDaysFromNow = new Date(now);
+    tenDaysFromNow.setDate(now.getDate() + 10);
+
+    const query = req.user.role === "admin" ? {} : { user: req.user._id };
+    const domains = await ScrapedGameSite.find(query);
+
+    const expiring = [];
+    const expiredDomains = [];
+
+    domains.forEach(domain => {
+      const issueDate = domain.hostingInfo?.hostingIssueDate;
+      if (!issueDate) return;
+
+      const expiryDate = new Date(issueDate);
+      expiryDate.setFullYear(expiryDate.getFullYear() + 1); // always 1 year
+
+      if (expiryDate >= now && expiryDate <= tenDaysFromNow) {
+        expiring.push({ ...domain.toObject(), expiryDate });
+      } else if (expiryDate < now) {
+        expiredDomains.push(domain._id);
+      }
+    });
+
+    // Mark expired instead of deleting
+    if (expiredDomains.length > 0) {
+      await ScrapedGameSite.updateMany(
+        { _id: { $in: expiredDomains } },
+        { $set: { "hostingInfo.status": "expired" } }
+      );
+    }
+
+    res.json(expiring);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch expiring domains" });
+  }
+};
+
+
+exports.renewHosting = async (req, res) => {
+  try {
+    const { domains } = req.body;
+    if (!Array.isArray(domains)) {
+      return res.status(400).json({ error: "Expected array of domains" });
+    }
+
+    const queryBase = req.user.role === "admin" ? {} : { user: req.user._id };
+    const now = new Date();
+
+    await Promise.all(domains.map(async (domainName) => {
+      const site = await ScrapedGameSite.findOne({ ...queryBase, domain: domainName });
+      if (!site) return;
+
+      const issueDate = site.hostingInfo?.hostingIssueDate
+        ? new Date(site.hostingInfo.hostingIssueDate)
+        : now;
+
+      // Calculate current expiry (1 year from issue date)
+      let expiryDate = new Date(issueDate);
+      expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+
+      // If expired, renew from today
+      if (expiryDate < now) {
+        expiryDate = new Date(now);
+      }
+
+      // Add 1 year for renewal
+      expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+
+      await ScrapedGameSite.updateOne(
+        { _id: site._id },
+        {
+          $set: {
+            "hostingInfo.hostingIssueDate": expiryDate,
+            "hostingInfo.status": "active"
+          }
+        }
+      );
+    }));
+
+    res.json({ message: "Hosting renewed successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Renewal failed" });
   }
 };
 

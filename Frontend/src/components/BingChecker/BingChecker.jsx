@@ -157,8 +157,6 @@ import { handleError, handleSuccess } from "../../toastutils";
             <ul className="bing-checker-list">
             {filteredDomains.map((site, idx) => {
               const { domain, lastBingCheck } = site;
-              console.log("domains:", domains);
-              console.log("filteredDomains:", filteredDomains);
 
               return (
                 <li key={idx} className="bing-checker-item">

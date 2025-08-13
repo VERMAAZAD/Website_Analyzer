@@ -32,6 +32,8 @@ const ScrapedGameSchema = new mongoose.Schema({
     required: true
   },
   affiliateLink: { type: String, default: null },
+  lastAffiliateCheck: { type: Date },
+  affiliateCheckStatus: { type: String },
   issueDate: { type: Date, default: null },
   note: { type: String, default: '' },
   isIndexedOnBing: { type: Boolean, default: false },
@@ -43,6 +45,8 @@ const ScrapedGameSchema = new mongoose.Schema({
   domainPlatform: { type: String, default: "" },
   domainEmail: { type: String, default: "" },
   cloudflare: { type: String, default: "" },
+  hostingIssueDate: { type: Date, default: null },
+  status: { type: String, default: "active" }
 },
 });
 

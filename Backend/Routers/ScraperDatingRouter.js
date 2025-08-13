@@ -21,6 +21,7 @@ const {
   getHostingInfo,
   updateDomainName,
   getErrorDomains,
+  getAffiliateErrors
 } = require('../Controllers/ScraperDatingController');
 const ensureAuthenticated = require('../Middlewares/Auth');
 const auth = require("../Middlewares/Auth");
@@ -36,6 +37,7 @@ router.get('/by-category/:category', auth, ensureAuthenticated, getDomainsByCate
 router.delete('/domain/:domain', auth, ensureAuthenticated, deleteScrapedSite);
 router.get('/refresh-and-errors', auth, ensureAuthenticated, refreshStatusesAndGetErrors);
 router.get('/check-affiliate-errors', auth, ensureAuthenticated, testAffiliateLinks);
+router.get('/get-affiliate-errors', auth, ensureAuthenticated, getAffiliateErrors);
 router.get('/expiring', auth, ensureAuthenticated, getExpiringDomains);
 router.post('/renew', auth, ensureAuthenticated, renewDomain);
 router.get('/update-changed', auth, ensureAuthenticated, updateChangedDomains);

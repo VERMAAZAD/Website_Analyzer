@@ -1,8 +1,6 @@
-import { useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import axios from 'axios';
 
 import './App.css'
 import Login from './Pages/Login/Login';
@@ -25,46 +23,11 @@ import UrlScanUser from './Pages/Website-Info/UrlScan/UrlScanUser';
 import UrlScanAdmin from './Pages/Website-Info/UrlScan/UrlScanAdmin';
 import BingCheckerUser from './components/BingChecker/BingCheckerUser';
 import BingCheckerAdmin from './components/BingChecker/BingCheckerAdmin';
-import { handleError } from './toastutils';
-
+import HostingExpireUser from './components/HostingExpire/HostingExpireUser';
+import HostingExpireAdmin from './components/HostingExpire/HostingExpireAdmin';
 
 
 function App() {
-   const superCategory = localStorage.getItem("superCategory") || "natural"; 
-  const apiBase = superCategory === "casino"
-    ? "casino/scraper"
-    : superCategory === "dating"
-    ? "dating/scraper"
-    : "api/scraper";
-     const preloadAffiliateErrors = async () => {
-      try {
-        const cached = localStorage.getItem("cachedErrorAffiliate");
-        if (!cached) {
-          const res = await axios.get(`${import.meta.env.VITE_API_URI}/${apiBase}/check-affiliate-errors`, {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`
-            }
-          });
-          const data = res.data.errors || [];
-          localStorage.setItem("cachedErrorAffiliate", JSON.stringify(data));
-        }
-      } catch (err) {
-        handleError("❌ Failed to preload affiliate errors");
-      }
-    };
-
-    
-
-
- useEffect(() => {
-  if (superCategory) {
-    preloadAffiliateErrors();
-  } else {
-    console.warn("superCategory missing at initial load; skipping preload.");
-  }
-}, []);
-
-
   return (
   <>
       <Routes>
@@ -81,6 +44,7 @@ function App() {
         <Route path='/domain-errors/:type' element={<ProtectedRoute allowedRoles={['user']}><ErrorDomainUser /></ProtectedRoute>}/>
         <Route path='/affiliate-errors/:type' element={<ProtectedRoute allowedRoles={['user']}><ErrorAffiliatesUser /></ProtectedRoute>}/>
         <Route path='/domain-expire/:type' element={<ProtectedRoute allowedRoles={['user']}><DomainExpireUser /></ProtectedRoute>}/>
+        <Route path='/hosting-expire/:type' element={<ProtectedRoute allowedRoles={['user']}><HostingExpireUser /></ProtectedRoute>}/>
         <Route path='/not-index/:type' element={<ProtectedRoute allowedRoles={['user']}><BingCheckerUser /></ProtectedRoute>}/>
         
 
@@ -94,6 +58,7 @@ function App() {
       <Route path='/admin/domains/:type' element={<ProtectedRoute allowedRoles={['admin']}><DomainListAdmin /></ProtectedRoute>}/>
       <Route path='/admin/domain-errors/:type' element={<ProtectedRoute allowedRoles={['admin']}><ErrorDomainAdmin /></ProtectedRoute>}/>
       <Route path='/admin/domain-expire/:type' element={<ProtectedRoute allowedRoles={['admin']}><DomainExpireAdmin /></ProtectedRoute>}/>
+      <Route path='/admin/hosting-expire/:type' element={<ProtectedRoute allowedRoles={['admin']}><HostingExpireAdmin /></ProtectedRoute>}/>
       <Route path='/admin/not-index/:type' element={<ProtectedRoute allowedRoles={['admin']}><BingCheckerAdmin /></ProtectedRoute>}/>
       </Routes>
       <ToastContainer/>
