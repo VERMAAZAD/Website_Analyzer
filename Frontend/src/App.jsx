@@ -25,6 +25,12 @@ import BingCheckerUser from './components/BingChecker/BingCheckerUser';
 import BingCheckerAdmin from './components/BingChecker/BingCheckerAdmin';
 import HostingExpireUser from './components/HostingExpire/HostingExpireUser';
 import HostingExpireAdmin from './components/HostingExpire/HostingExpireAdmin';
+import HostingInfoFormUser from './Pages/HostingInfo/HostingInfoForm/HostingInfoFormUser';
+import HostingInfoFormAdmin from './Pages/HostingInfo/HostingInfoForm/HostingInfoFormAdmin';
+import HostingInfoListUser from './Pages/HostingInfo/HostingInfoList/HostingInfoListUser';
+import HostingInfoListAdmin from './Pages/HostingInfo/HostingInfoList/HostingInfoListAdmin';
+import HostingDomainsUser from './Pages/HostingInfo/HostingDomains/HostingDomainsUser';
+import HostingDomainsAdmin from './Pages/HostingInfo/HostingDomains/HostingDomainsAdmin';
 
 
 function App() {
@@ -46,6 +52,9 @@ function App() {
         <Route path='/domain-expire/:type' element={<ProtectedRoute allowedRoles={['user']}><DomainExpireUser /></ProtectedRoute>}/>
         <Route path='/hosting-expire/:type' element={<ProtectedRoute allowedRoles={['user']}><HostingExpireUser /></ProtectedRoute>}/>
         <Route path='/not-index/:type' element={<ProtectedRoute allowedRoles={['user']}><BingCheckerUser /></ProtectedRoute>}/>
+        <Route path='/hosting-form' element={<ProtectedRoute allowedRoles={['user']}><HostingInfoFormUser /></ProtectedRoute>}/>
+        <Route path='/hosting-data' element={<ProtectedRoute allowedRoles={['user']}><HostingInfoListUser /></ProtectedRoute>}/>
+        <Route path='/hosting/domains/:email/:server' element={<ProtectedRoute allowedRoles={['user']}><HostingDomainsUser /></ProtectedRoute>}/>
         
 
       {/* Admin Routes */}
@@ -60,6 +69,10 @@ function App() {
       <Route path='/admin/domain-expire/:type' element={<ProtectedRoute allowedRoles={['admin']}><DomainExpireAdmin /></ProtectedRoute>}/>
       <Route path='/admin/hosting-expire/:type' element={<ProtectedRoute allowedRoles={['admin']}><HostingExpireAdmin /></ProtectedRoute>}/>
       <Route path='/admin/not-index/:type' element={<ProtectedRoute allowedRoles={['admin']}><BingCheckerAdmin /></ProtectedRoute>}/>
+      <Route path='/admin/hosting-form' element={<ProtectedRoute allowedRoles={['admin']}><HostingInfoFormAdmin /></ProtectedRoute>}/>
+      <Route path='/admin/hosting-data' element={<ProtectedRoute allowedRoles={['admin']}><HostingInfoListAdmin /></ProtectedRoute>}/>
+      <Route path='/hosting/domains/:email/:server' element={<ProtectedRoute allowedRoles={['admin']}><HostingDomainsAdmin /></ProtectedRoute>}/>
+
       </Routes>
       <ToastContainer/>
   </>

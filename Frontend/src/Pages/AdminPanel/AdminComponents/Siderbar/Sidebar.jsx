@@ -41,6 +41,8 @@ const apiBase =
         <li><Link to={`/admin/domain-expire/${superCategory}`}>Domain Expire</Link></li>
         <li><Link to={`/admin/hosting-expire/${superCategory}`}>Hosting Expire</Link></li>
         <li><Link to={`/admin/not-index/${superCategory}`}>Not Bing Indexing</Link></li>
+        <li><Link to={`/admin/hosting-form`}>Add Hosting</Link></li>
+        <li><Link to={`/admin/hosting-data`}>Hosting Data</Link></li>
         <li onClick={handleLogout}><Link to="/login">Logout</Link></li>
       </ul>
       <ToastContainer/>

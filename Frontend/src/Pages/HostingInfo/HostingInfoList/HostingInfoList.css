@@ -1,0 +1,227 @@
+/* ---------------------------
+   Hosting Info – modern theme
+   --------------------------- */
+
+/* Color system */
+:root {
+  --hi-bg: #0b1220;
+  --hi-bg-soft: #101a2e;
+  --hi-card: #111b31;
+  --hi-card-2: #0f1830;
+  --hi-text: #e9eefb;
+  --hi-text-dim: #b9c3d8;
+  --hi-accent: #7c9aff;     /* primary */
+  --hi-accent-2: #66ead7;   /* secondary */
+  --hi-danger: #ff6b6b;
+  --hi-border: rgba(255,255,255,0.08);
+  --hi-shadow: 0 10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.02);
+  --hi-radius: 18px;
+}
+
+/* Light mode (auto) */
+@media (prefers-color-scheme: light) {
+  :root {
+    --hi-bg: #f6f8ff;
+    --hi-bg-soft: #eef2ff;
+    --hi-card: #ffffff;
+    --hi-card-2: #ffffff;
+    --hi-text: #0d1b2a;
+    --hi-text-dim: #51607b;
+    --hi-border: rgba(13,27,42,0.08);
+    --hi-shadow: 0 12px 30px rgba(16, 24, 40, 0.08);
+  }
+}
+
+/* Page */
+.hi-page-list {
+  min-height: 100%;
+  /* min-width: 900px; */
+  /* padding: clamp(16px, 0vw, 32px); */
+  background: radial-gradient(1200px 800px at 10% -10%, rgba(124,154,255,0.15), transparent 55%),
+              radial-gradient(900px 700px at 100% 10%, rgba(102,234,215,0.12), transparent 60%),
+              var(--hi-bg);
+  overflow-x: auto;
+}
+
+/* Cards */
+.hi-card-list {
+  max-width: 100%;
+  overflow: hidden;
+  margin: 0 auto;
+  background: linear-gradient(180deg, var(--hi-card), var(--hi-card-2));
+  border: 1px solid var(--hi-border);
+  box-shadow: var(--hi-shadow);
+  border-radius: var(--hi-radius);
+  padding: clamp(16px, 2vw, 28px);
+  /* position: relative; */
+  /* overflow: visible; */
+  /* isolation: isolate; */
+}
+
+.hi-card-list::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  background: conic-gradient(from 120deg at 10% 10%, transparent 0 20%, rgba(124,154,255,0.2) 20% 30%, transparent 30% 55%, rgba(102,234,215,0.2) 55% 65%, transparent 65% 100%);
+  filter: blur(24px);
+  opacity: 0.25;
+  z-index: -1;
+}
+
+
+/* ---------- Table/List ---------- */
+.hi-table-wrap {
+  margin-top: 18px;
+  background: var(--hi-card);
+  border: 1px solid var(--hi-border);
+  border-radius: var(--hi-radius);
+  box-shadow: var(--hi-shadow);
+  overflow-x: auto; /* Scroll horizontally if needed */
+  -webkit-overflow-scrolling: touch;
+}
+
+.hi-table {
+  width: 100%;
+  min-width: 900px; /* Force wider layout for many columns */
+  border-collapse: collapse;
+  font-size: 13px; /* Slightly smaller font for more columns */
+  table-layout: auto; /* Allows dynamic column widths */
+}
+
+.hi-table thead th {
+  text-align: left;
+  padding: 12px 14px; /* Slightly reduced padding for compactness */
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.01));
+  color: var(--hi-text);
+  white-space: nowrap; /* Prevent column titles from wrapping */
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.hi-table tbody td {
+  padding: 10px 14px; /* Compact row height */
+  color: var(--hi-text-dim);
+  border-top: 1px solid var(--hi-border);
+  vertical-align: middle;
+  white-space: nowrap; /* Keep data in one line */
+  overflow: hidden;
+  text-overflow: ellipsis; /* Ellipsis if text is too long */
+}
+
+.hi-table tbody tr {
+  transition: background-color .2s ease, transform .08s ease;
+}
+
+.hi-table tbody tr:hover {
+  background: rgba(124,154,255,0.09);
+}
+
+/* Pills still look good */
+.hi-pill {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: .2px;
+  background: rgba(124,154,255,0.15);
+  color: var(--hi-text);
+  border: 1px solid var(--hi-border);
+}
+
+/* Small screens: make table horizontally scrollable */
+@media (max-width: 768px) {
+  .hi-table {
+    font-size: 12px;
+  }
+  .hi-table thead th,
+  .hi-table tbody td {
+    padding: 8px 10px;
+  }
+}
+.clickable {
+  color: blue;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.popup {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.popup-inner {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 400px;
+}
+.spinner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 250px;
+  text-align: center;
+}
+
+.spinner {
+  border: 3px solid #f3f3f3; /* Light grey */
+  border-top: 3px solid #4cafef; /* Blue */
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: spin 0.9s linear infinite;
+}
+
+.spinner-container p {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #555;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.hi-btn-list {
+  grid-column: span 12;
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 24px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, var(--hi-accent), var(--hi-accent-2));
+  background-size: 200% 200%;
+  color: white;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: transform .15s ease, filter .25s ease, background-position .4s ease;
+  box-shadow: 0 8px 18px rgba(124, 154, 255, 0.3);
+}
+
+.hi-btn-list:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.07);
+  background-position: 20% 0;
+}
+
+.hi-btn-list:active {
+  transform: translateY(0);
+}
+
+.hi-btn-list:disabled {
+  opacity: .65;
+  cursor: not-allowed;
+}

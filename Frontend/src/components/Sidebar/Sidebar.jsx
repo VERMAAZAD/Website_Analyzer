@@ -33,6 +33,8 @@ const Sidebar = ({ isOpen, onClose }) => {
        <li><Link to={`/domain-expire/${superCategory}`}>Expire Domain</Link></li>
        <li><Link to={`/hosting-expire/${superCategory}`}>Expire Hosting</Link></li>
        <li><Link to={`/not-index/${superCategory}`}>Not Bing Indexing</Link></li>
+       <li><Link to={`/hosting-form`}>Add Hosting</Link></li>
+       <li><Link to={`/hosting-data`}>Hosting Data</Link></li>
         <li className="logout" onClick={handleLogout}>
         <Link>Logout</Link>
         </li>

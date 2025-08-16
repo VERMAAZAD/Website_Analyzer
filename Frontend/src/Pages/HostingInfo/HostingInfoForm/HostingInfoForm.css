@@ -1,0 +1,219 @@
+/* ---------------------------
+   Hosting Info – modern theme
+   --------------------------- */
+
+/* Color system */
+:root {
+  --hi-bg: #0b1220;
+  --hi-bg-soft: #101a2e;
+  --hi-card: #111b31;
+  --hi-card-2: #0f1830;
+  --hi-text: #e9eefb;
+  --hi-text-dim: #b9c3d8;
+  --hi-accent: #7c9aff;     /* primary */
+  --hi-accent-2: #66ead7;   /* secondary */
+  --hi-danger: #ff6b6b;
+  --hi-border: rgba(255,255,255,0.08);
+  --hi-shadow: 0 10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.02);
+  --hi-radius: 18px;
+}
+
+/* Light mode (auto) */
+@media (prefers-color-scheme: light) {
+  :root {
+    --hi-bg: #f6f8ff;
+    --hi-bg-soft: #eef2ff;
+    --hi-card: #ffffff;
+    --hi-card-2: #ffffff;
+    --hi-text: #0d1b2a;
+    --hi-text-dim: #51607b;
+    --hi-border: rgba(13,27,42,0.08);
+    --hi-shadow: 0 12px 30px rgba(16, 24, 40, 0.08);
+  }
+}
+
+/* Page */
+.hi-page {
+  min-height: 100%;
+  padding: clamp(16px, 3vw, 32px);
+  background: radial-gradient(1200px 800px at 10% -10%, rgba(124,154,255,0.15), transparent 55%),
+              radial-gradient(900px 700px at 100% 10%, rgba(102,234,215,0.12), transparent 60%),
+              var(--hi-bg);
+}
+
+/* Cards */
+.hi-card {
+  max-width: 1100px;
+  margin: 0 auto;
+  background: linear-gradient(180deg, var(--hi-card), var(--hi-card-2));
+  border: 1px solid var(--hi-border);
+  box-shadow: var(--hi-shadow);
+  border-radius: var(--hi-radius);
+  padding: clamp(16px, 2.6vw, 28px);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.hi-card::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  background: conic-gradient(from 120deg at 10% 10%, transparent 0 20%, rgba(124,154,255,0.2) 20% 30%, transparent 30% 55%, rgba(102,234,215,0.2) 55% 65%, transparent 65% 100%);
+  filter: blur(24px);
+  opacity: 0.25;
+  z-index: -1;
+}
+
+/* Headings */
+.hi-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: var(--hi-text);
+  margin-bottom: 18px;
+  font-size: clamp(18px, 2.2vw, 28px);
+}
+
+.hi-title::before {
+  content: "";
+  width: 10px;
+  height: 28px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--hi-accent), var(--hi-accent-2));
+  box-shadow: 0 6px 18px rgba(124,154,255,0.45);
+  transform: translateY(1px);
+}
+/* ---------- Form ----------- */
+.hi-form {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 14px 16px;
+}
+
+.hi-input {
+  grid-column: span 12;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--hi-border);
+  color: var(--hi-text);
+  padding: 12px 14px;
+  border-radius: 14px;
+  outline: none;
+  transition: box-shadow .2s ease, border-color .2s ease, transform .08s ease;
+  font-size: 14.5px;
+}
+
+.hi-input::placeholder { color: var(--hi-text-dim); }
+
+.hi-input:focus {
+  border-color: color-mix(in oklab, var(--hi-accent) 55%, transparent);
+  box-shadow: 0 0 0 6px color-mix(in oklab, var(--hi-accent) 18%, transparent);
+  transform: translateY(-1px);
+}
+
+.hi-input[disabled] { opacity: .6; cursor: not-allowed; }
+
+@media (min-width: 720px) {
+  /* 2 per row on md+ */
+  .hi-input { grid-column: span 6; }
+}
+.hi-btn {
+  grid-column: span 12;
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 24px;
+  border-radius: 50px;
+  border: none;
+  background: linear-gradient(135deg, var(--hi-accent), var(--hi-accent-2));
+  background-size: 200% 200%;
+  color: white;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: transform .15s ease, filter .25s ease, background-position .4s ease;
+  box-shadow: 0 8px 18px rgba(124, 154, 255, 0.3);
+}
+
+.hi-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.07);
+  background-position: 100% 0;
+}
+
+.hi-btn:active {
+  transform: translateY(0);
+}
+
+.hi-btn:disabled {
+  opacity: .65;
+  cursor: not-allowed;
+}
+
+@keyframes hi-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Loading shimmer (optional: add class 'is-loading') */
+.hi-btn.is-loading {
+  position: relative;
+  color: transparent;
+}
+.hi-btn.is-loading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(110deg, rgba(255,255,255,0.15) 10%, rgba(255,255,255,0.35) 18%, rgba(255,255,255,0.15) 33%);
+  background-size: 200% 100%;
+  animation: hi-shimmer 1.2s linear infinite;
+}
+
+
+/* Date input container for spacing & centering */
+.hi-date-container {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+/* Hide default browser date picker icon */
+.hi-input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  cursor: pointer;
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Custom date input styling */
+.hi-input[type="date"] {
+   background: rgba(255,255,255,0.04);
+  border: 1px solid var(--hi-border);
+  color: var(--hi-text);
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.3s ease-in-out;
+  backdrop-filter: blur(6px);
+  position: relative;
+}
+
+/* Floating label style */
+.hi-date-label {
+  position: absolute;
+  left: 16px;
+  top: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+  transition: all 0.3s ease-in-out;
+  pointer-events: none;
+}
