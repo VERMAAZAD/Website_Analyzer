@@ -40,8 +40,6 @@ function App() {
       <Route path='/' element={<Navigate to="/login"/>}/>
       <Route path='/login' element={<Login/>}/>
       <Route path='/forgot-password' element={<ForgotPassword/>}/>
-      
-
 
         {/* Protected User & Admin Routes */}
         <Route path='/products/:type' element={<ProtectedRoute allowedRoles={['user', 'admin']}><Home /></ProtectedRoute>}/>
@@ -54,7 +52,7 @@ function App() {
         <Route path='/not-index/:type' element={<ProtectedRoute allowedRoles={['user']}><BingCheckerUser /></ProtectedRoute>}/>
         <Route path='/hosting-form' element={<ProtectedRoute allowedRoles={['user']}><HostingInfoFormUser /></ProtectedRoute>}/>
         <Route path='/hosting-data' element={<ProtectedRoute allowedRoles={['user']}><HostingInfoListUser /></ProtectedRoute>}/>
-        <Route path='/hosting/domains/:email/:server' element={<ProtectedRoute allowedRoles={['user']}><HostingDomainsUser /></ProtectedRoute>}/>
+        <Route path='/hosting/domains/:server' element={<ProtectedRoute allowedRoles={['user']}><HostingDomainsUser /></ProtectedRoute>}/>
         
 
       {/* Admin Routes */}
@@ -71,7 +69,7 @@ function App() {
       <Route path='/admin/not-index/:type' element={<ProtectedRoute allowedRoles={['admin']}><BingCheckerAdmin /></ProtectedRoute>}/>
       <Route path='/admin/hosting-form' element={<ProtectedRoute allowedRoles={['admin']}><HostingInfoFormAdmin /></ProtectedRoute>}/>
       <Route path='/admin/hosting-data' element={<ProtectedRoute allowedRoles={['admin']}><HostingInfoListAdmin /></ProtectedRoute>}/>
-      <Route path='/hosting/domains/:email/:server' element={<ProtectedRoute allowedRoles={['admin']}><HostingDomainsAdmin /></ProtectedRoute>}/>
+      <Route path='/admin/hosting/domains/:server' element={<ProtectedRoute allowedRoles={['admin']}><HostingDomainsAdmin /></ProtectedRoute>}/>
 
       </Routes>
       <ToastContainer/>

@@ -42,7 +42,7 @@ exports.getHostingList = async (req, res) => {
     const allRecords = [
       ...standalone.map(info => ({
         _id: info._id,
-        domain: info.domain || "-",
+        domain: info.domain,
         platform: info.platform,
         email: info.email,
         server: info.server,
@@ -52,12 +52,13 @@ exports.getHostingList = async (req, res) => {
         hostingIssueDate: info.hostingIssueDate
       })),
       ...embeddedData
-    ];
+    ].filter(item => item.domain && item.domain.trim() !== "" && item.domain !== "-");
+
 
     // Deduplicated version for the main table
     const uniqueMap = new Map();
     allRecords.forEach(item => {
-      const key = `${item.email || ""}|${item.server || ""}`;
+      const key = `${(item.email || "").trim().toLowerCase()}|${(item.server || "").trim().toLowerCase()}`;
       if (!uniqueMap.has(key)) {
         uniqueMap.set(key, item);
       }
@@ -74,3 +75,37 @@ exports.getHostingList = async (req, res) => {
   }
 };
 
+// Update Hosting Info everywhere (HostingInfo + Scraped Models)
+exports.updateHostingInfoEverywhere = async (req, res) => {
+  try {
+    const { email, server, updates } = req.body;
+
+    if (!email && !server) {
+      return res.status(400).json({ success: false, message: "Email or Server required" });
+    }
+
+    // 1. Update in HostingInfo
+    await HostingInfo.updateMany(
+      { email, server },
+      { $set: updates }
+    );
+
+    // 2. Update in Scraped Models (where hostingInfo exists)
+    const updateObj = {};
+    for (let key in updates) {
+      if (updates[key] !== undefined) {
+    updateObj[`hostingInfo.${key}`] = updates[key];
+  }
+    }
+
+    await Promise.all([
+      ScrapedDatingSite.updateMany({ "hostingInfo.email": email, "hostingInfo.server": server }, { $set: updateObj }),
+      ScrapedGameSite.updateMany({ "hostingInfo.email": email, "hostingInfo.server": server }, { $set: updateObj }),
+      ScrapedSite.updateMany({ "hostingInfo.email": email, "hostingInfo.server": server }, { $set: updateObj }),
+    ]);
+
+    res.json({ success: true, message: "Hosting info updated everywhere" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

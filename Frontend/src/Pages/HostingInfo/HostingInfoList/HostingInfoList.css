@@ -13,6 +13,8 @@
   --hi-accent: #7c9aff;     /* primary */
   --hi-accent-2: #66ead7;   /* secondary */
   --hi-danger: #ff6b6b;
+  --hi-success: #3adb8d;
+  --hi-warning: #ffc048;
   --hi-border: rgba(255,255,255,0.08);
   --hi-shadow: 0 10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.02);
   --hi-radius: 18px;
@@ -35,39 +37,54 @@
 /* Page */
 .hi-page-list {
   min-height: 100%;
-  /* min-width: 900px; */
-  /* padding: clamp(16px, 0vw, 32px); */
   background: radial-gradient(1200px 800px at 10% -10%, rgba(124,154,255,0.15), transparent 55%),
               radial-gradient(900px 700px at 100% 10%, rgba(102,234,215,0.12), transparent 60%),
               var(--hi-bg);
+  padding: 24px;
   overflow-x: auto;
 }
 
 /* Cards */
 .hi-card-list {
-  max-width: 100%;
-  overflow: hidden;
+  width: 100%;
+  max-width: 1280px;
   margin: 0 auto;
   background: linear-gradient(180deg, var(--hi-card), var(--hi-card-2));
   border: 1px solid var(--hi-border);
   box-shadow: var(--hi-shadow);
   border-radius: var(--hi-radius);
   padding: clamp(16px, 2vw, 28px);
-  /* position: relative; */
-  /* overflow: visible; */
-  /* isolation: isolate; */
+  position: relative;
 }
 
 .hi-card-list::after {
   content: "";
   position: absolute;
   inset: -2px;
-  background: conic-gradient(from 120deg at 10% 10%, transparent 0 20%, rgba(124,154,255,0.2) 20% 30%, transparent 30% 55%, rgba(102,234,215,0.2) 55% 65%, transparent 65% 100%);
+  background: conic-gradient(
+    from 120deg at 10% 10%,
+    transparent 0 20%,
+    rgba(124,154,255,0.2) 20% 30%,
+    transparent 30% 55%,
+    rgba(102,234,215,0.2) 55% 65%,
+    transparent 65% 100%
+  );
   filter: blur(24px);
   opacity: 0.25;
   z-index: -1;
 }
 
+/* Title */
+.hi-title {
+  font-size: clamp(20px, 2vw, 28px);
+  font-weight: 700;
+  color: var(--hi-text);
+  text-align: center;
+  margin-bottom: 16px;
+  background: linear-gradient(90deg, var(--hi-accent), var(--hi-accent-2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
 
 /* ---------- Table/List ---------- */
 .hi-table-wrap {
@@ -76,37 +93,37 @@
   border: 1px solid var(--hi-border);
   border-radius: var(--hi-radius);
   box-shadow: var(--hi-shadow);
-  overflow-x: auto; /* Scroll horizontally if needed */
+  overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 
 .hi-table {
   width: 100%;
-  min-width: 900px; /* Force wider layout for many columns */
+  min-width: 900px;
   border-collapse: collapse;
-  font-size: 13px; /* Slightly smaller font for more columns */
-  table-layout: auto; /* Allows dynamic column widths */
+  font-size: 13px;
+  table-layout: auto;
 }
 
 .hi-table thead th {
   text-align: left;
-  padding: 12px 14px; /* Slightly reduced padding for compactness */
+  padding: 12px 14px;
   background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.01));
   color: var(--hi-text);
-  white-space: nowrap; /* Prevent column titles from wrapping */
+  white-space: nowrap;
   position: sticky;
   top: 0;
   z-index: 1;
 }
 
 .hi-table tbody td {
-  padding: 10px 14px; /* Compact row height */
+  padding: 10px 14px;
   color: var(--hi-text-dim);
   border-top: 1px solid var(--hi-border);
   vertical-align: middle;
-  white-space: nowrap; /* Keep data in one line */
+  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis; /* Ellipsis if text is too long */
+  text-overflow: ellipsis;
 }
 
 .hi-table tbody tr {
@@ -117,87 +134,49 @@
   background: rgba(124,154,255,0.09);
 }
 
-/* Pills still look good */
+/* Pills */
 .hi-pill {
   display: inline-block;
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: 999px;
   font-weight: 600;
   font-size: 11px;
-  letter-spacing: .2px;
   background: rgba(124,154,255,0.15);
   color: var(--hi-text);
   border: 1px solid var(--hi-border);
 }
 
-/* Small screens: make table horizontally scrollable */
-@media (max-width: 768px) {
-  .hi-table {
-    font-size: 12px;
-  }
-  .hi-table thead th,
-  .hi-table tbody td {
-    padding: 8px 10px;
-  }
-}
-.clickable {
-  color: blue;
-  cursor: pointer;
-  text-decoration: underline;
+.hi-pill.success {
+  background: rgba(58,219,141,0.15);
+  color: var(--hi-success);
 }
 
-.popup {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.hi-pill.danger {
+  background: rgba(255,107,107,0.15);
+  color: var(--hi-danger);
 }
 
-.popup-inner {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  max-width: 400px;
+.hi-pill.warning {
+  background: rgba(255,192,72,0.15);
+  color: var(--hi-warning);
 }
-.spinner-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 250px;
+
+/* ---------- States ---------- */
+.hi-empty {
   text-align: center;
-}
-
-.spinner {
-  border: 3px solid #f3f3f3; /* Light grey */
-  border-top: 3px solid #4cafef; /* Blue */
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  animation: spin 0.9s linear infinite;
-}
-
-.spinner-container p {
-  margin-top: 12px;
+  padding: 40px 20px;
   font-size: 14px;
-  color: #555;
+  color: var(--hi-text-dim);
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
+/* ---------- Buttons ---------- */
 .hi-btn-list {
-  grid-column: span 12;
   margin-top: 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 10px 24px;
+  padding: 10px 22px;
   border-radius: 10px;
   border: none;
   background: linear-gradient(135deg, var(--hi-accent), var(--hi-accent-2));
@@ -224,4 +203,233 @@
 .hi-btn-list:disabled {
   opacity: .65;
   cursor: not-allowed;
+}
+
+/* ---------- Popup ---------- */
+.popup {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.popup-inner {
+  background: var(--hi-card);
+  padding: 24px;
+  border-radius: var(--hi-radius);
+  max-width: 420px;
+  width: 90%;
+  box-shadow: var(--hi-shadow);
+  color: var(--hi-text);
+}
+
+/* ---------- Spinner ---------- */
+.spinner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 250px;
+  text-align: center;
+}
+
+.spinner {
+  border: 3px solid rgba(255,255,255,0.1);
+  border-top: 3px solid var(--hi-accent);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  animation: spin 0.9s linear infinite;
+}
+
+.spinner-container p {
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--hi-text-dim);
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .hi-table {
+    font-size: 12px;
+    min-width: 600px;
+  }
+  .hi-table thead th,
+  .hi-table tbody td {
+    padding: 8px 10px;
+  }
+  .hi-title {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hi-btn-list {
+    padding: 8px 16px;
+    font-size: 11px;
+  }
+}
+
+
+/* ---------- Buttons Variants ---------- */
+.hi-btn-edit {
+  margin-top: 10px;
+  margin-left: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 1px solid var(--hi-border);
+  background: linear-gradient(135deg, #444c66, #2a314a);
+  color: #fff;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.hi-btn-edit:hover {
+  background: linear-gradient(135deg, #50597a, #353c58);
+  transform: translateY(-2px);
+}
+
+.hi-btn-save {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--hi-success), #2bc184);
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.hi-btn-save:hover {
+  transform: translateY(-2px);
+}
+
+.hi-btn-cancel {
+  padding: 10px 20px;
+  border: 1px solid var(--hi-border);
+  border-radius: 10px;
+  background: var(--hi-bg-soft);
+  color: var(--hi-text-dim);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.hi-btn-cancel:hover {
+  background: var(--hi-card-2);
+}
+
+/* ---------- Edit Popup ---------- */
+.hi-edit-popup {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  animation: fadeIn 0.25s ease;
+}
+
+.hi-edit-card {
+  background: var(--hi-card);
+  padding: 24px;
+  border-radius: var(--hi-radius);
+  box-shadow: var(--hi-shadow);
+  width: 95%;
+  max-width: 420px;
+  animation: slideUp 0.3s ease;
+}
+
+.hi-edit-card h3 {
+  margin-bottom: 16px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--hi-text);
+}
+
+.hi-edit-card label {
+  display: block;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--hi-text-dim);
+}
+
+.hi-edit-card input {
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--hi-border);
+  background: var(--hi-bg-soft);
+  color: var(--hi-text);
+  font-size: 13px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hi-edit-card input:focus {
+  outline: none;
+  border-color: var(--hi-accent);
+  box-shadow: 0 0 0 2px rgba(124,154,255,0.25);
+}
+
+.hi-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+/* ---------- Animations ---------- */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(30px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+/* ---------- Mobile Cards for Table ---------- */
+@media (max-width: 600px) {
+  .hi-table {
+    display: none;
+  }
+
+  .hi-table-wrap {
+    border: none;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .hi-card-row {
+    background: var(--hi-card);
+    border: 1px solid var(--hi-border);
+    border-radius: var(--hi-radius);
+    box-shadow: var(--hi-shadow);
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+
+  .hi-card-row p {
+    margin: 4px 0;
+    font-size: 13px;
+    color: var(--hi-text-dim);
+  }
+
+  .hi-card-row strong {
+    color: var(--hi-text);
+  }
 }

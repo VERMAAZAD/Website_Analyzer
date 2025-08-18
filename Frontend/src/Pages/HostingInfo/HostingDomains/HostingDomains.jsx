@@ -4,7 +4,7 @@ import axios from "axios";
 import "./HostingDomains.css";
 
 export default function HostingDomains() {
-  const { email, server } = useParams();
+  const {server } = useParams();
   const [domains, setDomains] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -19,7 +19,7 @@ export default function HostingDomains() {
         );
 
         const filtered = res.data.all.filter(
-          (item) => item.email === email && item.server === server
+          (item) => item.server === server
         );
         setDomains(filtered);
       } catch (error) {
@@ -30,12 +30,12 @@ export default function HostingDomains() {
     };
 
     fetchDomains();
-  }, [email, server]);
+  }, [ server]);
 
   return (
     
     <div className="hosting-domains-page">
-      <h2>Email: {email || "-"} | Server: {server || "-"}</h2>
+      <h2>Server: {server || "-"}</h2>
        {loading ? (
         <div className="spinner-container">
           <div className="spinner"></div>
@@ -43,9 +43,11 @@ export default function HostingDomains() {
         </div>
       ) : (
       <ul className="domain-list-hosting">
-        {domains.map((d) => (
-          <li key={d._id}>{d.domain}</li>
-        ))}
+         {domains
+      .filter((d) => d.domain && d.domain.trim() !== "")
+      .map((d) => (
+        <li key={d._id}>{d.domain}</li>
+      ))}
       </ul>
       )}
     </div>

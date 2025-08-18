@@ -588,7 +588,7 @@ exports.testAffiliateLinks = async (req, res) => {
         let resp;
         try {
           resp = await axios.head(link, {
-            timeout: 3000,
+            timeout: 5000,
             maxRedirects: 0,
             validateStatus: () => true,
             headers: {
@@ -599,7 +599,7 @@ exports.testAffiliateLinks = async (req, res) => {
         } catch {
           // Fall back to GET if HEAD fails
           resp = await axios.get(link, {
-            timeout: 3000,
+            timeout: 5000,
             maxRedirects: 0,
             validateStatus: () => true,
             headers: {
@@ -675,30 +675,59 @@ exports.getAffiliateErrors = async (req, res) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    // Fetch anything not marked ok yet
-    const filter = { affiliateCheckStatus: { $ne: "ok" } };
-    if (req.user.role !== "admin") {
-      filter.user = req.user._id;
-    }
+    // Admin sees all, normal users see only their own
+    const filter = req.user.role === "admin" ? {} : { user: req.user._id };
 
-    const errors = await ScrapedSite.find(filter, {
+    const sites = await ScrapedSite.find(filter, {
       domain: 1,
       affiliateLink: 1,
       affiliateCheckStatus: 1,
     }).lean();
 
-    res.json({
-      errors: errors.map(site => ({
-        domain: site.domain,
-        affiliateLink: site.affiliateLink,
-        status: site.affiliateCheckStatus || "pending",
-      }))
-    });
+    const errors = sites
+      .filter(site => {
+        // ✅ Case 1: affiliateCheckStatus is not ok
+        if (site.affiliateCheckStatus !== "ok") return true;
+
+        // ✅ Case 2: affiliateLink is same as domain (not a real affiliate link)
+        if (
+          !site.affiliateLink ||
+          site.affiliateLink === `https://${site.domain}` ||
+          site.affiliateLink.includes(site.domain)
+        ) {
+          return true;
+        }
+
+        return false;
+      })
+      .map(site => {
+        let link = site.affiliateLink;
+        let errorMsg = site.affiliateCheckStatus || "Unknown error";
+
+        if (
+          !link ||
+          link === `https://${site.domain}` ||
+          link.includes(site.domain)
+        ) {
+          link = `https://${site.domain}`;
+          errorMsg = "No affiliate link found";
+        }
+
+        return {
+          domain: site.domain,
+          affiliateLink: link,
+          error: errorMsg,
+        };
+      });
+
+    res.json({ errors });
   } catch (err) {
     console.error("Get affiliate errors failed:", err.message);
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+
 
 
 
