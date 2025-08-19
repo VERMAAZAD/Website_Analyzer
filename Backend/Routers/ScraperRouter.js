@@ -26,33 +26,32 @@ const {
   renewHosting,
 } = require('../Controllers/ScraperController');
 const ensureAuthenticated = require('../Middlewares/Auth');
-const auth = require("../Middlewares/Auth");
 const { updateChangedDomains } = require('../Controllers/UpdaterController');
 
 router.post('/scan', scrapeWebsite);
-router.post('/save', auth, ensureAuthenticated, saveScrapedData);
-router.get('/all', auth, ensureAuthenticated, getAllScrapedSites); 
-router.get('/domain/:domain', auth, ensureAuthenticated, getScrapedSiteByDomain);
-router.get('/categories', auth, ensureAuthenticated, getAllCategories);
-router.get('/category-counts', auth, ensureAuthenticated, getCategoryCounts); 
-router.get('/by-category/:category', auth, ensureAuthenticated, getDomainsByCategory);
-router.delete('/domain/:domain', auth, ensureAuthenticated, deleteScrapedSite);
-router.get('/refresh-and-errors', auth, ensureAuthenticated, refreshStatusesAndGetErrors);
-router.get('/check-affiliate-errors', auth, ensureAuthenticated, testAffiliateLinks);
-router.get('/get-affiliate-errors', auth, ensureAuthenticated, getAffiliateErrors);
-router.get('/expiring', auth, ensureAuthenticated, getExpiringDomains);
-router.post('/renew', auth, ensureAuthenticated, renewDomain);
-router.get('/update-changed', auth, ensureAuthenticated, updateChangedDomains);
-router.put('/note/:domain', auth, ensureAuthenticated, updateNote);
-router.delete('/note/:domain', auth, ensureAuthenticated, deleteNote);
-router.get('/bing-check', auth, ensureAuthenticated, checkBingIndex);
-router.get('/unindexed-domains', auth, ensureAuthenticated, getUnindexedDomains);
-router.put('/hosting-info/:domain', auth, ensureAuthenticated, saveHostingInfo);
-router.get('/hosting-info/:domain', auth, ensureAuthenticated, getHostingInfo);
-router.get('/expire-hosting', auth, ensureAuthenticated, getExpireHosting);
-router.get('/renew-hosting', auth, ensureAuthenticated, renewHosting);
-router.put("/update-domain-name", auth, ensureAuthenticated, updateDomainName);
-router.get("/error-domain", auth, ensureAuthenticated, getErrorDomains);
+router.post('/save', ensureAuthenticated, saveScrapedData);
+router.get('/all', ensureAuthenticated, getAllScrapedSites); 
+router.get('/domain/:domain', ensureAuthenticated, getScrapedSiteByDomain);
+router.get('/categories', ensureAuthenticated, getAllCategories);
+router.get('/category-counts', ensureAuthenticated, getCategoryCounts); 
+router.get('/by-category/:category', ensureAuthenticated, getDomainsByCategory);
+router.delete('/domain/:domain', ensureAuthenticated, deleteScrapedSite);
+router.get('/refresh-and-errors', ensureAuthenticated, refreshStatusesAndGetErrors);
+router.get('/check-affiliate-errors', ensureAuthenticated, testAffiliateLinks);
+router.get('/get-affiliate-errors', ensureAuthenticated, getAffiliateErrors);
+router.get('/expiring', ensureAuthenticated, getExpiringDomains);
+router.post('/renew', ensureAuthenticated, renewDomain);
+router.get('/update-changed', ensureAuthenticated, updateChangedDomains);
+router.put('/note/:domain', ensureAuthenticated, updateNote);
+router.delete('/note/:domain', ensureAuthenticated, deleteNote);
+router.get('/bing-check', ensureAuthenticated, checkBingIndex);
+router.get('/unindexed-domains', ensureAuthenticated, getUnindexedDomains);
+router.put('/hosting-info/:domain', ensureAuthenticated, saveHostingInfo);
+router.get('/hosting-info/:domain', ensureAuthenticated, getHostingInfo);
+router.get('/expire-hosting', ensureAuthenticated, getExpireHosting);
+router.get('/renew-hosting', ensureAuthenticated, renewHosting);
+router.put("/update-domain-name", ensureAuthenticated, updateDomainName);
+router.get("/error-domain", ensureAuthenticated, getErrorDomains);
 
 
 

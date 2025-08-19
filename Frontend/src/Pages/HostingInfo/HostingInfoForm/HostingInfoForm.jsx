@@ -10,9 +10,6 @@ export default function HostingInfoForm({ domain }) {
     email: "",
     server: "",
     hostingIssueDate: "",
-    domainPlatform: "",
-    domainEmail: "",
-    cloudflare: ""
   });
 
   const handleChange = e => setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -40,10 +37,6 @@ export default function HostingInfoForm({ domain }) {
       <input className="hi-input" name="email" type="email" placeholder="Platform Email" value={formData.email} onChange={handleChange} />
       <input className="hi-input" name="server" placeholder="Server" value={formData.server} onChange={handleChange} />
       <input className="hi-input" name="hostingIssueDate" type="date" placeholder="Hosting Issue Date" value={formData.hostingIssueDate || ""} onChange={handleChange} />
-      <input className="hi-input" name="domainPlatform" placeholder="Domain Platform" value={formData.domainPlatform} onChange={handleChange} />
-      <input className="hi-input" name="domainEmail" placeholder="Domain Email" value={formData.domainEmail} onChange={handleChange} />
-      <input className="hi-input" name="cloudflare" placeholder="Cloudflare Info" value={formData.cloudflare} onChange={handleChange} />
-
       <button className="hi-btn" type="submit">Save Hosting Info</button>
     </form>
   </div>

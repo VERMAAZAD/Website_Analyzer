@@ -7,14 +7,16 @@ import { jwtDecode } from "jwt-decode";
 export default function HostingInfoList() {
   const [data, setData] = useState([]);
   const [allData, setAllData] = useState([]);
+  const [serversMap, setServersMap] = useState({});
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(null); // track row being edited
-  const [formData, setFormData] = useState({}); // store edit values
+  const [editing, setEditing] = useState(null);
+  const [formData, setFormData] = useState({});
+  const [selectedPlatform, setSelectedPlatform] = useState("All");
+  const [searchQuery, setSearchQuery] = useState(""); 
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchHostingInfo();
-  }, []);
+
+
 
   const fetchHostingInfo = async () => {
     try {
@@ -26,6 +28,7 @@ export default function HostingInfoList() {
       );
       setData(res.data.list || []);
       setAllData(res.data.all || []);
+      setServersMap(res.data.serversByEmail || {});
     } catch (error) {
       console.error("Error fetching hosting info:", error);
     } finally {
@@ -42,21 +45,16 @@ export default function HostingInfoList() {
     });
   };
 
-  const handleViewDomains = (email, server) => {
+  const handleServer = (email) => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    const { role } = jwtDecode(token); // extract role
-
+    const { role } = jwtDecode(token);
     if (role === "admin") {
-          navigate(
-            `/admin/hosting/domains/${encodeURIComponent(server)}`
-          );
-          } else {
-            navigate(
-              `/hosting/domains/${encodeURIComponent(server)}`
-            );
-   }
+      navigate(`/admin/servers/${encodeURIComponent(email)}`);
+    } else {
+      navigate(`/servers/${encodeURIComponent(email)}`);
+    }
   };
 
   const handleEdit = (row) => {
@@ -93,10 +91,54 @@ export default function HostingInfoList() {
     }
   };
 
+  // get unique platforms
+  const platforms = ["All", ...new Set(data.map((d) => d.platform).filter(Boolean))];
+
+  // filter rows by selected platform
+  const filteredData = data.filter((row) => {
+    const matchPlatform =
+      selectedPlatform === "All" || row.platform === selectedPlatform;
+
+    const searchLower = searchQuery.toLowerCase();
+    const matchSearch =
+      row.platform?.toLowerCase().includes(searchLower) ||
+      row.email?.toLowerCase().includes(searchLower) ||
+      row.server?.toLowerCase().includes(searchLower);
+
+    return matchPlatform && matchSearch;
+  });
+
+    useEffect(() => {
+    fetchHostingInfo();
+  }, []);
   return (
     <div className="hi-page-list">
       <div className="hi-card-list hi-appear">
         <h2 className="hi-title">All Hosting Info</h2>
+
+        <div className="hi-controls">
+        <div className="hi-filters">
+          {platforms.map((p, i) => (
+            <button
+              key={i}
+              className={`hi-filter-btn ${
+                selectedPlatform === p ? "active" : ""
+              }`}
+              onClick={() => setSelectedPlatform(p)}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+         <input
+            type="text"
+            className="hi-search"
+            placeholder="Search by platform, email or server..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
         {loading ? (
           <div className="spinner-container">
             <div className="spinner"></div>
@@ -109,22 +151,22 @@ export default function HostingInfoList() {
                 <tr>
                   <th>Platform</th>
                   <th>Email</th>
-                  <th>Server</th>
                   <th>Hosting Issue Date</th>
+                  <th>Server</th>
+                  <th>Server Count</th>
                   <th>Domain Count</th>
                   <th>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {data.length > 0 ? (
-                  data
+                {filteredData.length > 0 ? (
+                  filteredData
                     .filter((row) => {
                       const domainCount = allData.filter(
                         (item) =>
                           item.email === row.email && item.server === row.server
                       ).length;
 
-                      // Skip if all fields empty and no domains
                       return (
                         row.platform?.trim() ||
                         row.email?.trim() ||
@@ -135,25 +177,31 @@ export default function HostingInfoList() {
                     .map((row, i) => {
                       const domainCount = allData.filter(
                         (item) =>
-                          item.email === row.email && item.server === row.server && item.domain && item.domain.trim() !== "" && item.domain !== "-"
+                          item.email === row.email &&
+                          item.server === row.server &&
+                          item.domain &&
+                          item.domain.trim() !== "" &&
+                          item.domain !== "-"
                       ).length;
 
                       return (
                         <tr key={i}>
                           <td>{row.platform || "-"}</td>
                           <td>{row.email || "-"}</td>
-                          <td>{row.server || "-"}</td>
                           <td>{formatDate(row.hostingIssueDate)}</td>
-                          <td>{domainCount}</td>
+                           <td>
+                               <button
+                            className="hi-btn-list"
+                            onClick={() => handleServer(row.email)}
+                          >
+                            Show Servers
+                          </button>
+                          </td>
+                          
+                          <td>{row.serverCount || 0}</td>
+                          <td>{row.domainCount || 0}</td>
+                         
                           <td>
-                            <button
-                              className="hi-btn-list"
-                              onClick={() =>
-                                handleViewDomains(row.email, row.server)
-                              }
-                            >
-                              View Domains
-                            </button>
                             <button
                               className="hi-btn-edit"
                               onClick={() => handleEdit(row)}
@@ -176,7 +224,7 @@ export default function HostingInfoList() {
           </div>
         )}
       </div>
-
+      
       {/* Edit Popup */}
       {editing && (
         <div className="hi-edit-popup">
@@ -200,7 +248,10 @@ export default function HostingInfoList() {
               <button className="hi-btn-save" onClick={handleUpdate}>
                 Save
               </button>
-              <button className="hi-btn-cancel" onClick={() => setEditing(null)}>
+              <button
+                className="hi-btn-cancel"
+                onClick={() => setEditing(null)}
+              >
                 Cancel
               </button>
             </div>

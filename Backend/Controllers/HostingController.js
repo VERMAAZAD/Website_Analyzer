@@ -46,29 +46,67 @@ exports.getHostingList = async (req, res) => {
         platform: info.platform,
         email: info.email,
         server: info.server,
-        domainPlatform: info.domainPlatform,
-        domainEmail: info.domainEmail,
-        cloudflare: info.cloudflare,
         hostingIssueDate: info.hostingIssueDate
       })),
       ...embeddedData
-    ].filter(item => item.domain && item.domain.trim() !== "" && item.domain !== "-");
+    ].filter(item => item.email && item.email.trim() !== "" && item.email !== "-");
 
+     const emailMap = new Map();
 
-    // Deduplicated version for the main table
-    const uniqueMap = new Map();
-    allRecords.forEach(item => {
-      const key = `${(item.email || "").trim().toLowerCase()}|${(item.server || "").trim().toLowerCase()}`;
-      if (!uniqueMap.has(key)) {
-        uniqueMap.set(key, item);
+      allRecords.forEach(item => {
+      const emailKey = item.email.trim().toLowerCase();
+      if (!emailMap.has(emailKey)) {
+        emailMap.set(emailKey, {
+          email: item.email,
+          platform: item.platform,
+          hostingIssueDate: item.hostingIssueDate,
+          servers: new Set() // collect related servers
+        });
+      }
+      if (item.server) {
+        emailMap.get(emailKey).servers.add(item.server);
       }
     });
 
-    res.json({
-      success: true,
-      list: [...uniqueMap.values()], // For table display
-      all: allRecords                // For popup full domain list
-    });
+
+    // Deduplicated version for the main table
+   // Format response
+  const uniqueEmails = [...emailMap.values()].map(entry => {
+  const relatedRecords = allRecords.filter(r => r.email.toLowerCase() === entry.email.toLowerCase());
+
+  const serverCount = new Set(
+    relatedRecords.map(r => r.server).filter(Boolean)
+  ).size;
+
+  const domainCount = relatedRecords.filter(
+    r => r.domain && r.domain.trim() !== "" && r.domain !== "-"
+  ).length;
+
+  return {
+    email: entry.email,
+    platform: entry.platform,
+    hostingIssueDate: entry.hostingIssueDate,
+    servers: [...entry.servers],
+    serverCount,
+    domainCount
+  };
+});
+
+     res.json({
+  success: true,
+  list: uniqueEmails.map(e => ({
+    email: e.email,
+    platform: e.platform,
+    hostingIssueDate: e.hostingIssueDate,
+    serverCount: e.serverCount,
+    domainCount: e.domainCount
+  })),
+  all: allRecords,
+  serversByEmail: uniqueEmails.reduce((acc, e) => {
+    acc[e.email.toLowerCase()] = e.servers;
+    return acc;
+  }, {})
+});
 
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

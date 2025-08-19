@@ -31,6 +31,8 @@ import HostingInfoListUser from './Pages/HostingInfo/HostingInfoList/HostingInfo
 import HostingInfoListAdmin from './Pages/HostingInfo/HostingInfoList/HostingInfoListAdmin';
 import HostingDomainsUser from './Pages/HostingInfo/HostingDomains/HostingDomainsUser';
 import HostingDomainsAdmin from './Pages/HostingInfo/HostingDomains/HostingDomainsAdmin';
+import ServerListUser from './Pages/HostingInfo/ServerList/ServerListUser';
+import ServerListAdmin from './Pages/HostingInfo/ServerList/ServerListAdmin';
 
 
 function App() {
@@ -52,7 +54,8 @@ function App() {
         <Route path='/not-index/:type' element={<ProtectedRoute allowedRoles={['user']}><BingCheckerUser /></ProtectedRoute>}/>
         <Route path='/hosting-form' element={<ProtectedRoute allowedRoles={['user']}><HostingInfoFormUser /></ProtectedRoute>}/>
         <Route path='/hosting-data' element={<ProtectedRoute allowedRoles={['user']}><HostingInfoListUser /></ProtectedRoute>}/>
-        <Route path='/hosting/domains/:server' element={<ProtectedRoute allowedRoles={['user']}><HostingDomainsUser /></ProtectedRoute>}/>
+        <Route path='/hosting/domains/:email/:server' element={<ProtectedRoute allowedRoles={['user']}><HostingDomainsUser /></ProtectedRoute>}/>
+        <Route path='/servers/:email' element={<ProtectedRoute allowedRoles={['user']}><ServerListUser /></ProtectedRoute>}/>
         
 
       {/* Admin Routes */}
@@ -69,7 +72,8 @@ function App() {
       <Route path='/admin/not-index/:type' element={<ProtectedRoute allowedRoles={['admin']}><BingCheckerAdmin /></ProtectedRoute>}/>
       <Route path='/admin/hosting-form' element={<ProtectedRoute allowedRoles={['admin']}><HostingInfoFormAdmin /></ProtectedRoute>}/>
       <Route path='/admin/hosting-data' element={<ProtectedRoute allowedRoles={['admin']}><HostingInfoListAdmin /></ProtectedRoute>}/>
-      <Route path='/admin/hosting/domains/:server' element={<ProtectedRoute allowedRoles={['admin']}><HostingDomainsAdmin /></ProtectedRoute>}/>
+      <Route path='/admin/hosting/domains/:email/:server' element={<ProtectedRoute allowedRoles={['admin']}><HostingDomainsAdmin /></ProtectedRoute>}/>
+      <Route path='/admin/servers/:email' element={<ProtectedRoute allowedRoles={['admin']}><ServerListAdmin /></ProtectedRoute>}/>
 
       </Routes>
       <ToastContainer/>
