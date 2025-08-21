@@ -1039,8 +1039,6 @@ exports.getUnindexedDomains = async (req, res) => {
 
 
 
-
-
 exports.saveHostingInfo = async (req, res) => {
   const { domain } = req.params;
   const {

@@ -24,7 +24,6 @@ const HostingInfoEditor = ({ domain }) => {
     domainPlatform: [],
     domainEmail: [],
     cloudflare: [],
-    hostingIssueDate: [],
   });
 
   const superCategory = localStorage.getItem("superCategory") || "natural";
@@ -54,7 +53,6 @@ const HostingInfoEditor = ({ domain }) => {
         setDomainPlatform(data.domainPlatform || "");
         setDomainEmail(data.domainEmail || "");
         setCloudflare(data.cloudflare || "");
-        sethostingIssueDate(data.date || "");
         setSavedData(data);
 
         // ✅ Load history if available
@@ -81,6 +79,26 @@ const HostingInfoEditor = ({ domain }) => {
     });
   };
 
+  const fetchByServer = async (serverName) => {
+  if (!serverName) return;
+
+  try {
+    const res = await axios.get(
+      `${import.meta.env.VITE_API_URI}/api/hosting/by-server/${serverName}`,
+      {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      }
+    );
+
+    const data = res.data;
+    // Autofill platform + email
+    if (data.platform) setPlatform(data.platform);
+    if (data.email) setEmail(data.email);
+  } catch (err) {
+    console.log("No auto-fill data found for this server");
+  }
+};
+
   const handleSave = async () => {
     const data = {
       platform,
@@ -89,7 +107,6 @@ const HostingInfoEditor = ({ domain }) => {
       domainPlatform,
       domainEmail,
       cloudflare,
-      hostingIssueDate,
     };
 
     try {
@@ -138,22 +155,6 @@ const HostingInfoEditor = ({ domain }) => {
           </datalist>
         </div>
         <div className="hosting-field">
-          <label>Hosting Issue Date:</label>
-          <input
-            type="date"
-            value={hostingIssueDate}
-            list="platform-options"
-            onChange={(e) => sethostingIssueDate(e.target.value)}
-            placeholder=""
-          />
-          <datalist id="platform-options">
-            {history.platform.map((val, i) => (
-              <option key={i} value={val} />
-            ))}
-          </datalist>
-        </div>
-
-        <div className="hosting-field">
           <label>Hosting Mail:</label>
           <input
             type="text"
@@ -175,7 +176,8 @@ const HostingInfoEditor = ({ domain }) => {
             type="text"
             value={server}
             list="server-options"
-            onChange={(e) => setServer(e.target.value)}
+            onChange={(e) => {setServer(e.target.value), fetchByServer(e.target.value)}}
+            
             placeholder="e.g. Apache, NGINX"
           />
           <datalist id="server-options">

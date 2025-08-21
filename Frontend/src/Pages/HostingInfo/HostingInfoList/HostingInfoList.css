@@ -1,8 +1,4 @@
-/* ---------------------------
-   Hosting Info – modern theme
-   --------------------------- */
 
-/* Color system */
 :root {
   --hi-bg: #0b1220;
   --hi-bg-soft: #101a2e;
@@ -10,8 +6,8 @@
   --hi-card-2: #0f1830;
   --hi-text: #e9eefb;
   --hi-text-dim: #b9c3d8;
-  --hi-accent: #7c9aff;     /* primary */
-  --hi-accent-2: #66ead7;   /* secondary */
+  --hi-accent: #7c9aff;    
+  --hi-accent-2: #66ead7;   
   --hi-danger: #ff6b6b;
   --hi-success: #3adb8d;
   --hi-warning: #ffc048;

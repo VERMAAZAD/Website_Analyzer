@@ -60,6 +60,7 @@ export default function HostingInfoList() {
   const handleEdit = (row) => {
     setEditing(row);
     setFormData({
+      email: row.email || "",
       platform: row.platform || "",
       hostingIssueDate: row.hostingIssueDate
         ? row.hostingIssueDate.split("T")[0]
@@ -71,14 +72,14 @@ export default function HostingInfoList() {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleUpdate = async () => {
+    const handleUpdate = async () => {
     try {
       const token = localStorage.getItem("token");
       await axios.put(
         `${import.meta.env.VITE_API_URI}/api/hosting/update-hosting`,
         {
           email: editing.email,
-          server: editing.server,
+          platform: editing.platform,
           updates: formData,
         },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -226,10 +227,17 @@ export default function HostingInfoList() {
       </div>
       
       {/* Edit Popup */}
-      {editing && (
+       {editing && (
         <div className="hi-edit-popup">
           <div className="hi-edit-card">
             <h3>Edit Hosting Info</h3>
+            <label>Email</label>
+            <input
+              type="text"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+            />
             <label>Platform</label>
             <input
               type="text"
