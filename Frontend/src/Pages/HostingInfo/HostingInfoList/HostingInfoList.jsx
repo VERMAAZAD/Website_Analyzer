@@ -3,6 +3,7 @@ import axios from "axios";
 import "./HostingInfoList.css";
 import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
+import AllServersList from "./AllServersList";
 
 export default function HostingInfoList() {
   const [data, setData] = useState([]);
@@ -13,6 +14,7 @@ export default function HostingInfoList() {
   const [formData, setFormData] = useState({});
   const [selectedPlatform, setSelectedPlatform] = useState("All");
   const [searchQuery, setSearchQuery] = useState(""); 
+  const [showAllServers, setShowAllServers] = useState(false);
   const navigate = useNavigate();
 
 
@@ -139,7 +141,16 @@ export default function HostingInfoList() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
+          <button
+  className="hi-btn-allservers"
+  onClick={() => setShowAllServers((prev) => !prev)}
+>
+  {showAllServers ? "Hide All Servers" : "Show All Servers"}
+</button>
 
+{showAllServers && (
+  <AllServersList allData={allData} setAllData={setAllData} onEdit={handleEdit} />
+)}
         {loading ? (
           <div className="spinner-container">
             <div className="spinner"></div>

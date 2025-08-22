@@ -983,23 +983,41 @@ if (totalDomains > 0 && checkedTodayCount === totalDomains) {
           continue;
         }
 
-        const isIndexed = await page.evaluate(() => {
-          const results = Array.from(document.querySelectorAll('li.b_algo'));
-          const noResultsText = document.querySelector('.b_no')?.innerText?.toLowerCase() || '';
-          const visibleResults = results.filter(r => r.offsetParent !== null);
-          return visibleResults.length > 0 && !noResultsText.includes('did not match any documents');
-        });
+          const isIndexed = await page.evaluate((domain) => {
+          const domainLower = domain.toLowerCase();
 
-        const site = await ScrapedSite.findOne({ domain: fullUrl });
-        if (site) {
-          site.isIndexedOnBing = isIndexed;
-          site.lastBingCheck = new Date();
-          await site.save();
-        }
-        if (!isIndexed) {
-          unindexed.push(fullUrl);
-          checkedToday.push(fullUrl);
-        }
+          // Bing "no results" messages
+          const noResultsText =
+            document.querySelector('.b_no, #b_results .b_message')?.innerText?.toLowerCase() || '';
+
+          // Collect all result links
+          const links = Array.from(document.querySelectorAll('#b_results a'))
+            .map(a => a.href)
+            .filter(href => href && !href.includes('bing.com') && !href.startsWith('/'));
+
+          // True if any link contains the domain
+          const hasDomainLink = links.some(href => href.toLowerCase().includes(domainLower));
+
+          return hasDomainLink && !noResultsText.includes('did not match any documents');
+        }, domain);
+
+
+
+
+const html = await page.content();
+console.log(`🔎 Bing results for ${domain}:\n`, html.slice(0, 800));
+
+      const site = await ScrapedSite.findOne({ domain: fullUrl });
+if (site) {
+  site.isIndexedOnBing = isIndexed;
+  site.lastBingCheck = new Date();
+  await site.save();
+}
+
+checkedToday.push(fullUrl);
+if (!isIndexed) {
+  unindexed.push(fullUrl);
+}
 
       } catch (err) {
         console.warn(`❌ Error checking ${domain}:`, err.message);

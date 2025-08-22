@@ -10,7 +10,6 @@ const HostingInfoEditor = ({ domain }) => {
   const [domainPlatform, setDomainPlatform] = useState("");
   const [domainEmail, setDomainEmail] = useState("");
   const [cloudflare, setCloudflare] = useState("");
-  const [hostingIssueDate, sethostingIssueDate] = useState("");
 
   const [savedData, setSavedData] = useState({});
   const [saving, setSaving] = useState(false);
@@ -246,7 +245,6 @@ const HostingInfoEditor = ({ domain }) => {
       {(savedData.platform || savedData.email || savedData.cloudflare) && (
         <div className="saved-hosting-info">
           <p><strong>📦 Hosting Platform:</strong> {savedData.platform}</p>
-          <p><strong>☁️ Hosting Issue Date:</strong> {savedData.hostingIssueDate}</p>
           <p><strong>📧 Hosting Email:</strong> {savedData.email}</p>
           <p><strong>🖥️ Hosting Server:</strong> {savedData.server}</p>
           <p><strong>🌐 Domain Platform:</strong> {savedData.domainPlatform}</p>

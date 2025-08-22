@@ -27,7 +27,6 @@ cron.schedule('*/20 * * * *', async () => {
   try {
     await updateChangedDomains(fakeReq, fakeRes);
   } catch (err) {
-    // Optional: handle error silently
   } finally {
     isUpdating = false;
   }
