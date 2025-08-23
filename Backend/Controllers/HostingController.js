@@ -1,21 +1,25 @@
   const HostingInfo = require("../Models/HostingInfo");
 
   // Add Hosting Info
- exports.addHostingInfo = async (req, res) => {
+exports.addHostingInfo = async (req, res) => {
   try {
-    const { server } = req.body;
+    const { email, server } = req.body;
 
-    // 🔍 check if server already exists
-    const existing = await HostingInfo.findOne({ server: server.trim() });
+    // 🔍 check if server already exists for this email
+    const existing = await HostingInfo.findOne({
+      email: email.trim().toLowerCase(),
+      server: server.trim().toLowerCase(),
+    });
+
     if (existing) {
       return res.status(400).json({
         success: false,
-        message: `Server already exists with email: ${existing.email}`,
+        message: `Server already exists for this email`,
         existing: {
           email: existing.email,
           platform: existing.platform,
           server: existing.server,
-        }
+        },
       });
     }
 
@@ -34,149 +38,86 @@
   const ScrapedSite = require("../Models/ScrapedSite");
 
   exports.getHostingList = async (req, res) => {
-    try {
-      const filter = req.user.role === "admin" ? {} : { user: req.user._id };
-
-      // Standalone hosting info
-      const standalone = await HostingInfo.find(filter).sort({ createdAt: -1 });
-
-      // Embedded hosting info
-      const sources = [
-        await ScrapedDatingSite.find(filter, { domain: 1, hostingInfo: 1 }),
-        await ScrapedGameSite.find(filter, { domain: 1, hostingInfo: 1 }),
-        await ScrapedSite.find(filter, { domain: 1, hostingInfo: 1 }),
-      ];
-
-      const embeddedData = sources
-        .flat()
-        .filter(site => site.hostingInfo && Object.keys(site.hostingInfo).length > 0)
-        .map(site => ({
-          _id: site._id,
-          domain: site.domain,
-          ...site.hostingInfo,
-        }));
-
-      // All records (for View Domains popup)
-      const allRecords = [
-        ...standalone.map(info => ({
-          _id: info._id,
-          domain: info.domain,
-          platform: info.platform,
-          email: info.email,
-          server: info.server,
-          ServerExpiryDate: info.ServerExpiryDate,
-          hostingIssueDate: info.hostingIssueDate,
-        })),
-        ...embeddedData,
-      ].filter(item => item.email && item.email.trim() !== "" && item.email !== "-");
-
-      // ✅ Deduplicate by email + platform
-      const comboMap = new Map();
-
-      allRecords.forEach(item => {
-        const comboKey = `${item.email.trim().toLowerCase()}|${(item.platform || "").trim().toLowerCase()}`;
-        if (!comboMap.has(comboKey)) {
-          comboMap.set(comboKey, {
-            email: item.email,
-            platform: item.platform,
-            hostingIssueDate: item.hostingIssueDate,
-            servers: new Set(),
-          });
-        }
-        if (item.server) {
-          comboMap.get(comboKey).servers.add(item.server);
-        }
-      });
-
-      const uniqueCombos = [...comboMap.values()].map(entry => {
-        const relatedRecords = allRecords.filter(
-          r =>
-            r.email.toLowerCase() === entry.email.toLowerCase() &&
-            (r.platform || "").toLowerCase() === (entry.platform || "").toLowerCase()
-        );
-
-        const serverCount = new Set(
-          relatedRecords.map(r => r.server).filter(Boolean)
-        ).size;
-
-        const domainCount = relatedRecords.filter(
-          r => r.domain && r.domain.trim() !== "" && r.domain !== "-"
-        ).length;
-
-          //per-server domain counts
-        const serverDomainCounts = relatedRecords.reduce((acc, r) => {
-          if (r.server && r.domain && r.domain.trim() !== "" && r.domain !== "-") {
-            acc[r.server] = (acc[r.server] || 0) + 1;
-          }
-          return acc;
-        }, {});
-
-
-        return {
-          email: entry.email,
-          platform: entry.platform,
-          hostingIssueDate: entry.hostingIssueDate,
-          servers: [...entry.servers],
-          serverCount,
-          domainCount,
-          serverDomainCounts,
-        };
-      });
-
-      res.json({
-        success: true,
-        list: uniqueCombos.map(e => ({
-          email: e.email,
-          platform: e.platform,
-          hostingIssueDate: e.hostingIssueDate,
-          serverCount: e.serverCount,
-          domainCount: e.domainCount,
-        })),
-        all: allRecords,
-        serversByEmailPlatform: uniqueCombos.reduce((acc, e) => {
-          const key = `${e.email.toLowerCase()}|${(e.platform || "").toLowerCase()}`;
-          acc[key] = {
-            servers: e.servers,
-            domainCounts: e.serverDomainCounts,
-          };
-          return acc;
-        }, {}),
-      });
-
-    } catch (error) {
-      res.status(500).json({ success: false, message: error.message });
-    }
-  };
-
-// Update server + expiry date by id
-exports.updateServerInfo = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { server, ServerExpiryDate } = req.body;
+    const filter = req.user.role === "admin" ? {} : { user: req.user._id };
 
-    // Update HostingInfo
-    await HostingInfo.findByIdAndUpdate(id, { server, ServerExpiryDate });
+    // 1. Get standalone HostingInfo (the "master" records for platform/email/issueDate)
+    const standalone = await HostingInfo.find(filter).sort({ createdAt: -1 });
 
-    // Also update in Scraped models if embedded
-    await Promise.all([
-      ScrapedDatingSite.updateMany({ "hostingInfo._id": id }, {
-        $set: { "hostingInfo.server": server, "hostingInfo.ServerExpiryDate": ServerExpiryDate }
-      }),
-      ScrapedGameSite.updateMany({ "hostingInfo._id": id }, {
-        $set: { "hostingInfo.server": server, "hostingInfo.ServerExpiryDate": ServerExpiryDate }
-      }),
-      ScrapedSite.updateMany({ "hostingInfo._id": id }, {
-        $set: { "hostingInfo.server": server, "hostingInfo.ServerExpiryDate": ServerExpiryDate }
-      }),
-    ]);
+    // 2. Collect embedded hostingInfo from scraped models
+    const sources = [
+      await ScrapedDatingSite.find(filter, { domain: 1, hostingInfo: 1 }),
+      await ScrapedGameSite.find(filter, { domain: 1, hostingInfo: 1 }),
+      await ScrapedSite.find(filter, { domain: 1, hostingInfo: 1 }),
+    ];
 
-    res.json({ success: true, message: "Server info updated successfully" });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    const embeddedData = sources
+      .flat()
+      .filter(site => site.hostingInfo && Object.keys(site.hostingInfo).length > 0)
+      .map(site => ({
+        _id: site._id,
+        domain: site.domain,
+        ...site.hostingInfo,
+      }));
+
+    // 3. Combine all records (for counts)
+    const allRecords = [
+      ...standalone.map(info => ({
+        _id: info._id,
+        domain: info.domain,
+        platform: info.platform,
+        email: info.email,
+        server: info.server,
+        ServerExpiryDate: info.ServerExpiryDate,
+        hostingIssueDate: info.hostingIssueDate,
+      })),
+      ...embeddedData,
+    ].filter(item => item.email && item.email.trim() !== "" && item.email !== "-");
+
+    // 4. Build response list — only from HostingInfo, but with counts
+    const list = standalone.map(info => {
+      const relatedRecords = allRecords.filter(
+        r =>
+          r.email.toLowerCase() === info.email.toLowerCase() &&
+          (r.platform || "").toLowerCase() === (info.platform || "").toLowerCase()
+      );
+
+      const serverCount = new Set(relatedRecords.map(r => r.server).filter(Boolean)).size;
+      const domainCount = relatedRecords.filter(
+        r => r.domain && r.domain.trim() !== "" && r.domain !== "-"
+      ).length;
+
+      return {
+        email: info.email,
+        platform: info.platform,
+        hostingIssueDate: info.hostingIssueDate,
+        serverCount,
+        domainCount,
+      };
+    });
+
+      const hostingServers = standalone
+      .filter(h => h.server && h.server.trim() !== "")
+      .map(h => ({
+        _id: h._id,
+        email: h.email,
+        server: h.server,
+        ServerExpiryDate: h.ServerExpiryDate,
+      }));
+
+
+    res.json({
+      success: true,
+      list,      
+      all: allRecords, 
+      servers: hostingServers,
+    });
+
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-  
 
 // Update Hosting Info everywhere (HostingInfo + Scraped Models)
 exports.updateHostingInfoEverywhere = async (req, res) => {
@@ -219,7 +160,72 @@ exports.updateHostingInfoEverywhere = async (req, res) => {
   }
 };
 
+// Update Server name everywhere (by email)
+exports.updateServerEverywhere = async (req, res) => {
+  try {
+    const { email, oldServer, newServer, ServerExpiryDate } = req.body;
 
+    if (!email || !oldServer || !newServer) {
+      return res.status(400).json({ success: false, message: "Email, oldServer, and newServer are required" });
+    }
+
+    // 1. Update in HostingInfo
+    await HostingInfo.updateMany(
+      { email, server: oldServer },
+      { $set: { server: newServer, ServerExpiryDate } }
+    );
+
+    // 2. Update in Scraped models
+    const updateObj = {
+      "hostingInfo.server": newServer,
+    };
+    if (ServerExpiryDate) updateObj["hostingInfo.ServerExpiryDate"] = ServerExpiryDate;
+
+    const filterScraped = {
+      "hostingInfo.email": email,
+      "hostingInfo.server": oldServer,
+    };
+
+    await Promise.all([
+      ScrapedDatingSite.updateMany(filterScraped, { $set: updateObj }),
+      ScrapedGameSite.updateMany(filterScraped, { $set: updateObj }),
+      ScrapedSite.updateMany(filterScraped, { $set: updateObj }),
+    ]);
+
+    res.json({ success: true, message: "Server updated everywhere" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+// Update server + expiry date by id
+exports.updateServerInfo = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { server, ServerExpiryDate } = req.body;
+
+    // Update HostingInfo
+    await HostingInfo.findByIdAndUpdate(id, { server, ServerExpiryDate });
+
+    // Also update in Scraped models if embedded
+    await Promise.all([
+      ScrapedDatingSite.updateMany({ "hostingInfo._id": id }, {
+        $set: { "hostingInfo.server": server, "hostingInfo.ServerExpiryDate": ServerExpiryDate }
+      }),
+      ScrapedGameSite.updateMany({ "hostingInfo._id": id }, {
+        $set: { "hostingInfo.server": server, "hostingInfo.ServerExpiryDate": ServerExpiryDate }
+      }),
+      ScrapedSite.updateMany({ "hostingInfo._id": id }, {
+        $set: { "hostingInfo.server": server, "hostingInfo.ServerExpiryDate": ServerExpiryDate }
+      }),
+    ]);
+
+    res.json({ success: true, message: "Server info updated successfully" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
 
 
 
@@ -241,3 +247,7 @@ exports.updateHostingInfoEverywhere = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
+
+
+

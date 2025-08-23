@@ -675,21 +675,31 @@ exports.getAffiliateErrors = async (req, res) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    // Admin sees all, normal users see only their own
+    // ✅ Admin sees all, normal users see only their own
     const filter = req.user.role === "admin" ? {} : { user: req.user._id };
+
+    // ✅ Only consider recent affiliate checks (last 10 minutes)
+    const cutoff = new Date(Date.now() - 1000 * 60 * 10);
 
     const sites = await ScrapedSite.find(filter, {
       domain: 1,
       affiliateLink: 1,
       affiliateCheckStatus: 1,
+      affiliateErrorMessage: 1,
+      lastAffiliateCheck: 1,   // ✅ make sure schema stores this
     }).lean();
 
     const errors = sites
       .filter(site => {
-        // ✅ Case 1: affiliateCheckStatus is not ok
-        if (site.affiliateCheckStatus !== "ok") return true;
+        // Ignore stale errors (not checked in last 10 minutes)
+        if (site.affiliateCheckStatus === "error") {
+          if (!site.lastAffiliateCheck || site.lastAffiliateCheck < cutoff) {
+            return false; // ❌ stale, ignore
+          }
+          return true; // ✅ recent error
+        }
 
-        // ✅ Case 2: affiliateLink is same as domain (not a real affiliate link)
+        // No or invalid affiliate link
         if (
           !site.affiliateLink ||
           site.affiliateLink === `https://${site.domain}` ||
@@ -702,7 +712,7 @@ exports.getAffiliateErrors = async (req, res) => {
       })
       .map(site => {
         let link = site.affiliateLink;
-        let errorMsg = site.affiliateCheckStatus || "Unknown error";
+        let errorMsg = site.affiliateErrorMessage || "Unknown error";
 
         if (
           !link ||
@@ -717,6 +727,7 @@ exports.getAffiliateErrors = async (req, res) => {
           domain: site.domain,
           affiliateLink: link,
           error: errorMsg,
+          lastChecked: site.lastAffiliateCheck || null,
         };
       });
 
@@ -726,6 +737,7 @@ exports.getAffiliateErrors = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
 
 
 

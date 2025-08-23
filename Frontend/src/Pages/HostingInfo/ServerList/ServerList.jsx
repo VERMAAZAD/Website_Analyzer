@@ -8,7 +8,8 @@ const ServerList = () => {
   const { email } = useParams();
   const [servers, setServers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [editData, setEditData] = useState(null); 
+  const [editData, setEditData] = useState(null);
+  const [oldServer, setOldServer] = useState(""); // store original server name
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,25 +27,32 @@ const ServerList = () => {
           (item) => item.email?.toLowerCase() === email.toLowerCase()
         );
 
-        // ✅ group servers with domain counts`
+        // ✅ group servers with domain counts
         const serverMap = {};
-       filtered.forEach((item) => {
+        filtered.forEach((item) => {
           if (item.server) {
             if (!serverMap[item.server]) {
-              serverMap[item.server] = { count: 0, expiry: item.ServerExpiryDate || null, _id: item._id };
+              serverMap[item.server] = {
+                count: 0,
+                expiry: item.ServerExpiryDate || null,
+                _id: item._id,
+              };
             }
-            // only increment count if domain exists
-            if (item.domain && item.domain.trim() !== "" && item.domain !== "-") {
+            if (
+              item.domain &&
+              item.domain.trim() !== "" &&
+              item.domain !== "-"
+            ) {
               serverMap[item.server].count += 1;
             }
           }
         });
 
         const serverList = Object.entries(serverMap).map(([server, data]) => ({
-            server,
-            domainCount: data.count,
-            ServerExpiryDate: data.expiry,
-            _id: data._id,
+          server,
+          domainCount: data.count,
+          ServerExpiryDate: data.expiry,
+          _id: data._id,
         }));
 
         setServers(serverList);
@@ -58,19 +66,23 @@ const ServerList = () => {
     fetchServers();
   }, [email]);
 
-   const handleEditSave = async () => {
+  const handleEditSave = async () => {
     try {
       const token = localStorage.getItem("token");
       await axios.put(
-        `${import.meta.env.VITE_API_URI}/api/hosting/update-server/${editData._id}`,
+        `${import.meta.env.VITE_API_URI}/api/hosting/update-server-everywhere`,
         {
-          server: editData.server,
+          email,
+          oldServer, // original name
+          newServer: editData.server, // updated value
           ServerExpiryDate: editData.ServerExpiryDate,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
       setEditData(null);
-      window.location.reload(); // reload list
+      setOldServer("");
+      window.location.reload();
     } catch (err) {
       console.error("Update failed", err);
     }
@@ -82,55 +94,62 @@ const ServerList = () => {
 
     const { role } = jwtDecode(token);
     if (role === "admin") {
-      navigate(`/admin/hosting/domains/${encodeURIComponent(email)}/${encodeURIComponent(server)}`);
+      navigate(
+        `/admin/hosting/domains/${encodeURIComponent(email)}/${encodeURIComponent(server)}`
+      );
     } else {
-      navigate(`/hosting/domains/${encodeURIComponent(email)}/${encodeURIComponent(server)}`);
+      navigate(
+        `/hosting/domains/${encodeURIComponent(email)}/${encodeURIComponent(server)}`
+      );
     }
   };
 
   return (
     <div>
-    <div className="hosting-domains-page">
-      <h2>
-        Servers for <span>{email || "-"}</span>
-      </h2>
+      <div className="hosting-domains-page">
+        <h2>
+          Servers for <span>{email || "-"}</span>
+        </h2>
 
-      {loading ? (
-        <div className="spinner-container">
-          <div className="spinner"></div>
-          <p>Loading Server info...</p>
-        </div>
-      ) : servers.length > 0 ? (
-        <ul className="domain-list-server">
-          {servers.map((srv, idx) => (
-            <li key={idx}>
-              <span className="srv-name">{srv.server}</span>
-              <span className="srv-count">({srv.domainCount} domains)</span>
-              <span className="srv-exp">
-                Exp:{" "}
-                {srv.ServerExpiryDate
-                  ? new Date(srv.ServerExpiryDate).toLocaleDateString()
-                  : "N/A"}
-              </span>
-              <button
-                className="hi-btn-list"
-                onClick={() => handleServerClick(srv.server)}
-              >
-                View Domains
-              </button>
-               <button
-                className="hi-btn-edit"
-                onClick={() => setEditData(srv)}
-              >
-                Edit
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p>No servers found for this email.</p>
-      )}
-    </div>
+        {loading ? (
+          <div className="spinner-container">
+            <div className="spinner"></div>
+            <p>Loading Server info...</p>
+          </div>
+        ) : servers.length > 0 ? (
+          <ul className="domain-list-server">
+            {servers.map((srv, idx) => (
+              <li key={idx}>
+                <span className="srv-name">{srv.server}</span>
+                <span className="srv-count">({srv.domainCount} domains)</span>
+                <span className="srv-exp">
+                  Exp:{" "}
+                  {srv.ServerExpiryDate
+                    ? new Date(srv.ServerExpiryDate).toLocaleDateString()
+                    : "N/A"}
+                </span>
+                <button
+                  className="hi-btn-list"
+                  onClick={() => handleServerClick(srv.server)}
+                >
+                  View Domains
+                </button>
+                <button
+                  className="hi-btn-edit"
+                  onClick={() => {
+                    setEditData(srv);
+                    setOldServer(srv.server); // store original server
+                  }}
+                >
+                  Edit
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>No servers found for this email.</p>
+        )}
+      </div>
 
       {editData && (
         <div className="popup">
@@ -149,21 +168,33 @@ const ServerList = () => {
               type="date"
               value={
                 editData.ServerExpiryDate
-                  ? new Date(editData.ServerExpiryDate).toISOString().split("T")[0]
+                  ? new Date(editData.ServerExpiryDate)
+                      .toISOString()
+                      .split("T")[0]
                   : ""
               }
               onChange={(e) =>
-                setEditData({ ...editData, ServerExpiryDate: e.target.value })
+                setEditData({
+                  ...editData,
+                  ServerExpiryDate: e.target.value,
+                })
               }
             />
             <div className="btns">
               <button onClick={handleEditSave}>Save</button>
-              <button onClick={() => setEditData(null)}>Cancel</button>
+              <button
+                onClick={() => {
+                  setEditData(null);
+                  setOldServer("");
+                }}
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>
       )}
-      </div>
+    </div>
   );
-}
+};
 export default ServerList;

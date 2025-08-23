@@ -8,7 +8,7 @@ import AllServersList from "./AllServersList";
 export default function HostingInfoList() {
   const [data, setData] = useState([]);
   const [allData, setAllData] = useState([]);
-  const [serversMap, setServersMap] = useState({});
+ const [servers, setServers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
   const [formData, setFormData] = useState({});
@@ -30,7 +30,7 @@ export default function HostingInfoList() {
       );
       setData(res.data.list || []);
       setAllData(res.data.all || []);
-      setServersMap(res.data.serversByEmail || {});
+      setServers(res.data.servers || []);
     } catch (error) {
       console.error("Error fetching hosting info:", error);
     } finally {
@@ -149,7 +149,7 @@ export default function HostingInfoList() {
 </button>
 
 {showAllServers && (
-  <AllServersList allData={allData} setAllData={setAllData} onEdit={handleEdit} />
+  <AllServersList servers={servers} setServers={setServers} fetchHostingInfo={fetchHostingInfo} />
 )}
         {loading ? (
           <div className="spinner-container">

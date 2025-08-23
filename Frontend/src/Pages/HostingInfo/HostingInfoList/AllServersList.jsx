@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import axios from "axios";
 import "./HostingInfoList.css"; // ✅ reuse same CSS file
 
-export default function AllServersList({ allData, setAllData, fetchHostingInfo }) {
+export default function AllServersList({ servers, setServers, fetchHostingInfo }) {
   const [editing, setEditing] = useState(null);
   const [formData, setFormData] = useState({
     server: "",
@@ -11,23 +11,14 @@ export default function AllServersList({ allData, setAllData, fetchHostingInfo }
 
   const [search, setSearch] = useState("");
 
-  // ✅ Deduplicate servers (unique by server + email)
-  const uniqueServers = useMemo(() => {
-    return Array.from(
-      new Map(
-        allData.map((srv) => [`${srv.email}_${srv.server}`, srv])
-      ).values()
-    );
-  }, [allData]);
-
-   // ✅ Filter servers by search
+ // ✅ Filter servers by search
   const filteredServers = useMemo(() => {
-    return uniqueServers.filter(
+    return servers.filter(
       (srv) =>
         srv.server?.toLowerCase().includes(search.toLowerCase()) ||
         srv.email?.toLowerCase().includes(search.toLowerCase())
     );
-  }, [uniqueServers, search]);
+  }, [servers, search]);
 
   // open popup and prefill
   const handleEditClick = (srv) => {
@@ -52,7 +43,7 @@ export default function AllServersList({ allData, setAllData, fetchHostingInfo }
         formData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setAllData((prev) =>
+      setServers((prev) =>
         prev.map((item) =>
           item._id === editing._id ? { ...item, ...formData } : item
         )
@@ -64,6 +55,8 @@ export default function AllServersList({ allData, setAllData, fetchHostingInfo }
       console.error("❌ Failed to update server:", err);
     }
   };
+
+  
 
   return (
     <div className="hi-card-list hi-appear">
