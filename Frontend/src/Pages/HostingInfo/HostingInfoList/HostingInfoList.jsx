@@ -117,8 +117,15 @@ export default function HostingInfoList() {
   return (
     <div className="hi-page-list">
       <div className="hi-card-list hi-appear">
+            <button
+  className="hi-btn-allservers"
+  onClick={() => setShowAllServers((prev) => !prev)}
+>
+  {showAllServers ? "Show Hosting Data" : "Show All Servers"}
+</button>
 {!showAllServers && (
   <>
+  
   <h2 className="hi-title">All Hosting Info</h2>
         <div className="hi-controls">
         <div className="hi-filters">
@@ -144,12 +151,7 @@ export default function HostingInfoList() {
         </div>
         </>
         )}
-          <button
-  className="hi-btn-allservers"
-  onClick={() => setShowAllServers((prev) => !prev)}
->
-  {showAllServers ? "Show Hosting Data" : "Show All Servers"}
-</button>
+      
 
 {showAllServers ? (
   <AllServersList servers={servers} setServers={setServers} fetchHostingInfo={fetchHostingInfo} />

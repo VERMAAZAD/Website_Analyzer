@@ -755,8 +755,9 @@ exports.getExpiringDomains = async (req, res) => {
 
     const domains = await ScrapedSite.find(query);
 
-     const expiring = [];
-    const expiredDomains = [];
+    const expiring = [];
+    const reminder = [];
+    const deleteAfter = [];
 
     domains.forEach(domain => {
       if (!domain.issueDate) return;
@@ -765,22 +766,34 @@ exports.getExpiringDomains = async (req, res) => {
       const expiryDate = new Date(issueDate);
       expiryDate.setFullYear(issueDate.getFullYear() + 1);
 
-       if (expiryDate >= now && expiryDate <= tenDaysFromNow) {
+      if (expiryDate >= now && expiryDate <= tenDaysFromNow) {
         expiring.push(domain);
-      } else if (expiryDate < now) {
-        expiredDomains.push(domain._id);
+      } 
+      else if (expiryDate < now && expiryDate >= new Date(now.getTime() - (5 * 24 * 60 * 60 * 1000))) {
+        reminder.push(domain);
+      } 
+      else if (expiryDate < new Date(now.getTime() - (5 * 24 * 60 * 60 * 1000))) {
+        deleteAfter.push(domain._id);
       }
     });
 
-    if (expiredDomains.length > 0) {
-      await ScrapedSite.deleteMany({ _id: { $in: expiredDomains } });
+    // delete domains older than 5 days past expiry
+    if (deleteAfter.length > 0) {
+      await ScrapedSite.deleteMany({ _id: { $in: deleteAfter } });
     }
 
-    res.json(expiring);
+    res.json({
+      success: true,
+      expiring,
+      reminder
+    });
+
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Failed to fetch expiring domains' });
   }
 };
+
 
 //Domain renew
 

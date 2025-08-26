@@ -335,3 +335,27 @@ exports.renewServer = async (req, res) => {
   }
 };
 
+// DELETE a server by ID
+exports.deleteServer = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ success: false, message: "Server ID is required" });
+    }
+
+    // Admin can delete any; user can delete only their own
+    const query = req.user.role === "admin" ? { _id: id } : { _id: id, user: req.user._id };
+
+    const deleted = await HostingInfo.findOneAndDelete(query);
+
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: "Server not found or not authorized" });
+    }
+
+    res.json({ success: true, message: "Server deleted successfully", deleted });
+  } catch (err) {
+    console.error("❌ Error deleting server:", err);
+    res.status(500).json({ success: false, message: "Failed to delete server" });
+  }
+};

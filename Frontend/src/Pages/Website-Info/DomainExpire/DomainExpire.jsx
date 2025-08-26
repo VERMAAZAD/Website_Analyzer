@@ -5,16 +5,17 @@ import { handleError, handleSuccess } from '../../../toastutils';
 
 function DomainExpire() {
   const [expiringDomains, setExpiringDomains] = useState([]);
+  const [reminderDomains, setReminderDomains] = useState([]);
   const [selectedDomains, setSelectedDomains] = useState([]);
   const [loading, setLoading] = useState(true);
   const [savingDomain, setSavingDomain] = useState(null); // Track domain being saved
+
   const superCategory = localStorage.getItem("superCategory") || "natural"; 
   const apiBase = superCategory === "casino"
     ? "casino/scraper"
     : superCategory === "dating"
     ? "dating/scraper"
     : "api/scraper";
-
 
   useEffect(() => {
     fetchExpiringDomains();
@@ -27,7 +28,8 @@ function DomainExpire() {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      setExpiringDomains(res.data);
+      setExpiringDomains(res.data.expiring || []);
+      setReminderDomains(res.data.reminder || []);
     } catch (err) {
       handleError(err);
     } finally {
@@ -67,73 +69,103 @@ function DomainExpire() {
   };
 
   return (
-      <div className="domain-expire-container">
-        <h2>Domains Expiring Soon</h2>
+    <div className="domain-expire-container">
+      <h2>Domains Expiring Soon</h2>
 
-        {loading ? (
-          <p>Loading...</p>
-        ) : expiringDomains.length === 0 ? (
-          <p>No domains are expiring within the next 10 days.</p>
-        ) : (
-          <table className="expire-table">
-            <thead>
-              <tr>
-                <th>Renew</th>
-                <th>Domain</th>
-                <th>Issue Date</th>
-                <th>Expiry Date</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {expiringDomains.map((domain, idx) => {
-                const issueDate = new Date(domain.issueDate);
-                const expiryDate = new Date(issueDate);
-                expiryDate.setFullYear(issueDate.getFullYear() + 1);
+      {loading ? (
+        <p>Loading...</p>
+      ) : expiringDomains.length === 0 ? (
+        <p>No domains are expiring within the next 10 days.</p>
+      ) : (
+        <table className="expire-table">
+          <thead>
+            <tr>
+              <th>Renew</th>
+              <th>Domain</th>
+              <th>Issue Date</th>
+              <th>Expiry Date</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {expiringDomains.map((domain, idx) => {
+              const issueDate = new Date(domain.issueDate);
+              const expiryDate = new Date(issueDate);
+              expiryDate.setFullYear(issueDate.getFullYear() + 1);
 
-                const today = new Date();
-                const diffTime = expiryDate.getTime() - today.getTime();
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              const today = new Date();
+              const diffTime = expiryDate.getTime() - today.getTime();
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-                if (diffDays <= 10 && diffDays > 0) {
-                  return (
-                    <tr key={idx}>
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={selectedDomains.includes(domain.domain)}
-                          onChange={() => handleCheckboxChange(domain.domain)}
-                        />
-                      </td>
-                      <td>
-                          {domain.domain}
-                          {domain.note && ` (${domain.note})`}
-                        </td>
-                      <td>{issueDate.toLocaleDateString()}</td>
-                      <td>{expiryDate.toLocaleDateString()}</td>
-                      <td>
-                        ⚠️ {diffDays} day{diffDays !== 1 ? 's' : ''} remaining
-                        <br />
-                        {selectedDomains.includes(domain.domain) && (
-                          <button
-                            className="save-btn-inline"
-                            onClick={() => handleSaveSingle(domain.domain)}
-                            disabled={savingDomain === domain.domain}
-                          >
-                            {savingDomain === domain.domain ? 'Saving...' : 'Save'}
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                }
+              return (
+                <tr key={idx}>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={selectedDomains.includes(domain.domain)}
+                      onChange={() => handleCheckboxChange(domain.domain)}
+                    />
+                  </td>
+                  <td>
+                    {domain.domain}
+                    {domain.note && ` (${domain.note})`}
+                  </td>
+                  <td>{issueDate.toLocaleDateString()}</td>
+                  <td>{expiryDate.toLocaleDateString()}</td>
+                  <td>
+                    ⚠️ {diffDays} day{diffDays !== 1 ? 's' : ''} remaining
+                    <br />
+                    {selectedDomains.includes(domain.domain) && (
+                      <button
+                        className="save-btn-inline"
+                        onClick={() => handleSaveSingle(domain.domain)}
+                        disabled={savingDomain === domain.domain}
+                      >
+                        {savingDomain === domain.domain ? 'Saving...' : 'Save'}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
 
-                return null;
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
+      {/* Reminder Section */}
+      <h2>Reminder: Expired Domains (Remove from Hosting)</h2>
+      {reminderDomains.length === 0 ? (
+        <p>No expired domains pending removal.</p>
+      ) : (
+        <table className="expire-table reminder-table">
+          <thead>
+            <tr>
+              <th>Domain</th>
+              <th>Expiry Date</th>
+              <th>Reminder</th>
+            </tr>
+          </thead>
+          <tbody>
+            {reminderDomains.map((domain, idx) => {
+              const issueDate = new Date(domain.issueDate);
+              const expiryDate = new Date(issueDate);
+              expiryDate.setFullYear(issueDate.getFullYear() + 1);
+
+              return (
+                <tr key={idx}>
+                  <td>
+                    {domain.domain}
+                    {domain.note && ` (${domain.note})`}
+                  </td>
+                  <td>{expiryDate.toLocaleDateString()}</td>
+                  <td>⚠️ Expired — please remove from hosting</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+    </div>
   );
 }
 
