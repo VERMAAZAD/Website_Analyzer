@@ -45,7 +45,6 @@ const ScrapedSiteSchema = new mongoose.Schema({
     domainPlatform: { type: String, default: "" },
     domainEmail: { type: String, default: "" },
     cloudflare: { type: String, default: "" },
-    hostingIssueDate: { type: Date, default: null },
     status: { type: String, default: "active" },
 },
 });

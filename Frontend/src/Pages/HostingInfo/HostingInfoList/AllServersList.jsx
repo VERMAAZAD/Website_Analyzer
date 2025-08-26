@@ -59,7 +59,8 @@ export default function AllServersList({ servers, setServers, fetchHostingInfo }
   
 
   return (
-    <div className="hi-card-list hi-appear">
+    // <div className="hi-card-list hi-appear">
+    <>
       <h2 className="hi-title">All Servers</h2>
        <div className="hi-search-wrap">
         <input
@@ -146,6 +147,7 @@ export default function AllServersList({ servers, setServers, fetchHostingInfo }
           </div>
         </div>
       )}
-    </div>
+      </>
+    // </div>
   );
 }

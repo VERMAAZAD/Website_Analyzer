@@ -22,8 +22,6 @@ const {
   updateDomainName,
   getErrorDomains,
   getAffiliateErrors,
-  getExpireHosting,
-  renewHosting,
 } = require('../Controllers/ScraperController');
 const ensureAuthenticated = require('../Middlewares/Auth');
 const { updateChangedDomains } = require('../Controllers/UpdaterController');
@@ -48,8 +46,6 @@ router.get('/bing-check', ensureAuthenticated, checkBingIndex);
 router.get('/unindexed-domains', ensureAuthenticated, getUnindexedDomains);
 router.put('/hosting-info/:domain', ensureAuthenticated, saveHostingInfo);
 router.get('/hosting-info/:domain', ensureAuthenticated, getHostingInfo);
-router.get('/expire-hosting', ensureAuthenticated, getExpireHosting);
-router.get('/renew-hosting', ensureAuthenticated, renewHosting);
 router.put("/update-domain-name", ensureAuthenticated, updateDomainName);
 router.get("/error-domain", ensureAuthenticated, getErrorDomains);
 

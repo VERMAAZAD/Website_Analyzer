@@ -1,4 +1,4 @@
-.domain-expire-container {
+.server-expire-container {
   max-width: 960px;
   margin: 3rem auto;
   padding: 2rem;
@@ -8,7 +8,7 @@
   font-family: 'Segoe UI', sans-serif;
 }
 
-.domain-expire-container h2 {
+.server-expire-container h2 {
   text-align: center;
   margin-bottom: 2rem;
   color: #2b2e4a;
@@ -16,7 +16,7 @@
   font-weight: 600;
 }
 
-.expire-table {
+.server-expire-table {
   width: 100%;
   border-collapse: collapse;
   border-radius: 12px;
@@ -25,8 +25,8 @@
   background-color: #fff;
 }
 
-.expire-table th,
-.expire-table td {
+.server-expire-table th,
+.server-expire-table td {
   padding: 1rem;
   text-align: left;
   border-bottom: 1px solid #eee;
@@ -34,21 +34,21 @@
   vertical-align: top;
 }
 
-.expire-table th {
+.server-expire-table th {
   background-color: #e8f0fe;
   color: #2b2e4a;
   font-weight: 600;
 }
 
-.expire-table td {
+.server-expire-table td {
   color: #333;
 }
 
-.expire-table tr:last-child td {
+.server-expire-table tr:last-child td {
   border-bottom: none;
 }
 
-.expire-table tr:hover {
+.server-expire-table tr:hover {
   background-color: #f5faff;
 }
 
@@ -97,14 +97,14 @@ input[type='checkbox'] {
 
 /* Optional: Make table scrollable on small screens */
 @media (max-width: 768px) {
-  .expire-table {
+  .server-expire-table {
     display: block;
     overflow-x: auto;
     white-space: nowrap;
   }
 
-  .expire-table th,
-  .expire-table td {
+  .server-expire-table th,
+  .server-expire-table td {
     padding: 0.75rem;
   }
 }

@@ -69,7 +69,6 @@ exports.addHostingInfo = async (req, res) => {
         email: info.email,
         server: info.server,
         ServerExpiryDate: info.ServerExpiryDate,
-        hostingIssueDate: info.hostingIssueDate,
       })),
       ...embeddedData,
     ].filter(item => item.email && item.email.trim() !== "" && item.email !== "-");
@@ -90,7 +89,6 @@ exports.addHostingInfo = async (req, res) => {
       return {
         email: info.email,
         platform: info.platform,
-        hostingIssueDate: info.hostingIssueDate,
         serverCount,
         domainCount,
       };
@@ -250,4 +248,90 @@ exports.updateServerInfo = async (req, res) => {
 
 
 
+
+// ✅ Get expiring servers (within 10 days)
+exports.getExpiringServers = async (req, res) => {
+  try {
+    const now = new Date();
+    const tenDaysFromNow = new Date();
+    tenDaysFromNow.setDate(now.getDate() + 10);
+
+    // Admin can see all, normal users only their own
+    const query = req.user.role === "admin" ? {} : { user: req.user._id };
+
+    const servers = await HostingInfo.find(query);
+
+    const expiring = [];
+    const expiredServers = [];
+
+    servers.forEach(server => {
+      if (!server.ServerExpiryDate) return;
+
+      const expiryDate = new Date(server.ServerExpiryDate);
+
+      if (expiryDate >= now && expiryDate <= tenDaysFromNow) {
+        expiring.push(server);
+      } else if (expiryDate < now) {
+        expiredServers.push(server._id);
+      }
+    });
+
+    if (expiredServers.length > 0) {
+      await HostingInfo.deleteMany({ _id: { $in: expiredServers } });
+    }
+
+    res.json({ servers: expiring }); // 👈 match frontend `res.data.servers`
+  } catch (err) {
+    console.error("Error fetching expiring servers:", err);
+    res.status(500).json({ error: "Failed to fetch expiring servers" });
+  }
+};
+
+
+// ✅ Renew servers
+exports.renewServer = async (req, res) => {
+  try {
+    const { servers } = req.body;
+
+    if (!Array.isArray(servers) || servers.length === 0) {
+      return res.status(400).json({ error: "Expected non-empty array of server IDs" });
+    }
+
+    const results = await Promise.all(
+      servers.map(async (serverId) => {
+        const query = req.user.role === "admin"
+          ? { _id: serverId }
+          : { _id: serverId, user: req.user._id };
+
+        const existing = await HostingInfo.findOne(query);
+
+        if (!existing) {
+          return { serverId, status: "not found" };
+        }
+
+        let newExpiryDate;
+        if (existing.ServerExpiryDate) {
+          newExpiryDate = new Date(existing.ServerExpiryDate);
+          newExpiryDate.setFullYear(newExpiryDate.getFullYear() + 1);
+        } else {
+          newExpiryDate = new Date();
+          newExpiryDate.setFullYear(newExpiryDate.getFullYear() + 1);
+        }
+
+        existing.ServerExpiryDate = newExpiryDate;
+        await existing.save();
+
+        return { serverId, status: "renewed", newExpiryDate };
+      })
+    );
+
+    res.json({
+      message: "Server renewal process completed",
+      results
+    });
+  } catch (err) {
+    console.error("Server renewal error:", err);
+    res.status(500).json({ error: "Server renewal failed", details: err.message });
+  }
+};
 

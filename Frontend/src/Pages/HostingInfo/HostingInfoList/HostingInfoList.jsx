@@ -8,7 +8,7 @@ import AllServersList from "./AllServersList";
 export default function HostingInfoList() {
   const [data, setData] = useState([]);
   const [allData, setAllData] = useState([]);
- const [servers, setServers] = useState([]);
+  const [servers, setServers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
   const [formData, setFormData] = useState({});
@@ -117,8 +117,9 @@ export default function HostingInfoList() {
   return (
     <div className="hi-page-list">
       <div className="hi-card-list hi-appear">
-        <h2 className="hi-title">All Hosting Info</h2>
-
+{!showAllServers && (
+  <>
+  <h2 className="hi-title">All Hosting Info</h2>
         <div className="hi-controls">
         <div className="hi-filters">
           {platforms.map((p, i) => (
@@ -141,17 +142,18 @@ export default function HostingInfoList() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
+        </>
+        )}
           <button
   className="hi-btn-allservers"
   onClick={() => setShowAllServers((prev) => !prev)}
 >
-  {showAllServers ? "Hide All Servers" : "Show All Servers"}
+  {showAllServers ? "Show Hosting Data" : "Show All Servers"}
 </button>
 
-{showAllServers && (
+{showAllServers ? (
   <AllServersList servers={servers} setServers={setServers} fetchHostingInfo={fetchHostingInfo} />
-)}
-        {loading ? (
+): loading ? (
           <div className="spinner-container">
             <div className="spinner"></div>
             <p>Loading hosting info...</p>
@@ -163,7 +165,6 @@ export default function HostingInfoList() {
                 <tr>
                   <th>Platform</th>
                   <th>Email</th>
-                  <th>Hosting Issue Date</th>
                   <th>Server</th>
                   <th>Server Count</th>
                   <th>Domain Count</th>
@@ -200,7 +201,6 @@ export default function HostingInfoList() {
                         <tr key={i}>
                           <td>{row.platform || "-"}</td>
                           <td>{row.email || "-"}</td>
-                          <td>{formatDate(row.hostingIssueDate)}</td>
                            <td>
                                <button
                             className="hi-btn-list"
@@ -256,13 +256,7 @@ export default function HostingInfoList() {
               value={formData.platform}
               onChange={handleChange}
             />
-            <label>Hosting Issue Date</label>
-            <input
-              type="date"
-              name="hostingIssueDate"
-              value={formData.hostingIssueDate}
-              onChange={handleChange}
-            />
+           
             <div className="hi-edit-actions">
               <button className="hi-btn-save" onClick={handleUpdate}>
                 Save

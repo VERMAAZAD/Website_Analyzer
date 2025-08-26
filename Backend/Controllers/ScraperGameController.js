@@ -932,7 +932,6 @@ exports.saveHostingInfo = async (req, res) => {
     domainPlatform,
     domainEmail,
     cloudflare,
-    hostingIssueDate,
   } = req.body;
 
   try {
@@ -954,7 +953,6 @@ exports.saveHostingInfo = async (req, res) => {
       domainPlatform,
       domainEmail,
       cloudflare,
-      hostingIssueDate,
     };
 
     await site.save();
@@ -986,95 +984,6 @@ exports.getHostingInfo = async (req, res) => {
   }
 };
 
-exports.getExpireHosting = async (req, res) => {
-  try {
-    const now = new Date();
-    const tenDaysFromNow = new Date(now);
-    tenDaysFromNow.setDate(now.getDate() + 10);
-
-    const query = req.user.role === "admin" ? {} : { user: req.user._id };
-    const domains = await ScrapedGameSite.find(query);
-
-    const expiring = [];
-    const expiredDomains = [];
-
-    domains.forEach(domain => {
-      const issueDate = domain.hostingInfo?.hostingIssueDate;
-      if (!issueDate) return;
-
-      const expiryDate = new Date(issueDate);
-      expiryDate.setFullYear(expiryDate.getFullYear() + 1); // always 1 year
-
-      if (expiryDate >= now && expiryDate <= tenDaysFromNow) {
-        expiring.push({ ...domain.toObject(), expiryDate });
-      } else if (expiryDate < now) {
-        expiredDomains.push(domain._id);
-      }
-    });
-
-    // Mark expired instead of deleting
-    if (expiredDomains.length > 0) {
-      await ScrapedGameSite.updateMany(
-        { _id: { $in: expiredDomains } },
-        { $set: { "hostingInfo.status": "expired" } }
-      );
-    }
-
-    res.json(expiring);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to fetch expiring domains" });
-  }
-};
-
-
-exports.renewHosting = async (req, res) => {
-  try {
-    const { domains } = req.body;
-    if (!Array.isArray(domains)) {
-      return res.status(400).json({ error: "Expected array of domains" });
-    }
-
-    const queryBase = req.user.role === "admin" ? {} : { user: req.user._id };
-    const now = new Date();
-
-    await Promise.all(domains.map(async (domainName) => {
-      const site = await ScrapedGameSite.findOne({ ...queryBase, domain: domainName });
-      if (!site) return;
-
-      const issueDate = site.hostingInfo?.hostingIssueDate
-        ? new Date(site.hostingInfo.hostingIssueDate)
-        : now;
-
-      // Calculate current expiry (1 year from issue date)
-      let expiryDate = new Date(issueDate);
-      expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-
-      // If expired, renew from today
-      if (expiryDate < now) {
-        expiryDate = new Date(now);
-      }
-
-      // Add 1 year for renewal
-      expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-
-      await ScrapedGameSite.updateOne(
-        { _id: site._id },
-        {
-          $set: {
-            "hostingInfo.hostingIssueDate": expiryDate,
-            "hostingInfo.status": "active"
-          }
-        }
-      );
-    }));
-
-    res.json({ message: "Hosting renewed successfully" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Renewal failed" });
-  }
-};
 
 
 

@@ -23,8 +23,8 @@ import UrlScanUser from './Pages/Website-Info/UrlScan/UrlScanUser';
 import UrlScanAdmin from './Pages/Website-Info/UrlScan/UrlScanAdmin';
 import BingCheckerUser from './components/BingChecker/BingCheckerUser';
 import BingCheckerAdmin from './components/BingChecker/BingCheckerAdmin';
-import HostingExpireUser from './components/HostingExpire/HostingExpireUser';
-import HostingExpireAdmin from './components/HostingExpire/HostingExpireAdmin';
+import ServerExpireUser from './Pages/HostingInfo/ServerExpire/ServerExpireUser';
+import ServerExpireAdmin from './Pages/HostingInfo/ServerExpire/ServerExpireAdmin';
 import HostingInfoFormUser from './Pages/HostingInfo/HostingInfoForm/HostingInfoFormUser';
 import HostingInfoFormAdmin from './Pages/HostingInfo/HostingInfoForm/HostingInfoFormAdmin';
 import HostingInfoListUser from './Pages/HostingInfo/HostingInfoList/HostingInfoListUser';
@@ -50,7 +50,7 @@ function App() {
         <Route path='/domain-errors/:type' element={<ProtectedRoute allowedRoles={['user']}><ErrorDomainUser /></ProtectedRoute>}/>
         <Route path='/affiliate-errors/:type' element={<ProtectedRoute allowedRoles={['user']}><ErrorAffiliatesUser /></ProtectedRoute>}/>
         <Route path='/domain-expire/:type' element={<ProtectedRoute allowedRoles={['user']}><DomainExpireUser /></ProtectedRoute>}/>
-        <Route path='/hosting-expire/:type' element={<ProtectedRoute allowedRoles={['user']}><HostingExpireUser /></ProtectedRoute>}/>
+        <Route path='/hosting-expire/:type' element={<ProtectedRoute allowedRoles={['user']}><ServerExpireUser /></ProtectedRoute>}/>
         <Route path='/not-index/:type' element={<ProtectedRoute allowedRoles={['user']}><BingCheckerUser /></ProtectedRoute>}/>
         <Route path='/hosting-form' element={<ProtectedRoute allowedRoles={['user']}><HostingInfoFormUser /></ProtectedRoute>}/>
         <Route path='/hosting-data' element={<ProtectedRoute allowedRoles={['user']}><HostingInfoListUser /></ProtectedRoute>}/>
@@ -68,7 +68,7 @@ function App() {
       <Route path='/admin/domains/:type' element={<ProtectedRoute allowedRoles={['admin']}><DomainListAdmin /></ProtectedRoute>}/>
       <Route path='/admin/domain-errors/:type' element={<ProtectedRoute allowedRoles={['admin']}><ErrorDomainAdmin /></ProtectedRoute>}/>
       <Route path='/admin/domain-expire/:type' element={<ProtectedRoute allowedRoles={['admin']}><DomainExpireAdmin /></ProtectedRoute>}/>
-      <Route path='/admin/hosting-expire/:type' element={<ProtectedRoute allowedRoles={['admin']}><HostingExpireAdmin /></ProtectedRoute>}/>
+      <Route path='/admin/hosting-expire/:type' element={<ProtectedRoute allowedRoles={['admin']}><ServerExpireAdmin /></ProtectedRoute>}/>
       <Route path='/admin/not-index/:type' element={<ProtectedRoute allowedRoles={['admin']}><BingCheckerAdmin /></ProtectedRoute>}/>
       <Route path='/admin/hosting-form' element={<ProtectedRoute allowedRoles={['admin']}><HostingInfoFormAdmin /></ProtectedRoute>}/>
       <Route path='/admin/hosting-data' element={<ProtectedRoute allowedRoles={['admin']}><HostingInfoListAdmin /></ProtectedRoute>}/>

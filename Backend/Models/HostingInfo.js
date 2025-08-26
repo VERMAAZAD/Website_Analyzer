@@ -5,7 +5,6 @@ const hostingInfoSchema = new mongoose.Schema({
   email: { type: String, default: "" },
   server: { type: String, default: "" },
   ServerExpiryDate: { type: Date, default: null },
-  hostingIssueDate: { type: Date, default: null },
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   createdAt: { type: Date, default: Date.now }
 });
