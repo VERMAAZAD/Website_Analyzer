@@ -11,6 +11,7 @@ const Login = () => {
             password: ''
         })
          const [showPassword, setShowPassword] = useState(false);
+         const navigate = useNavigate();
 
         const handleChange = (e) => {
                 const {name, value} = e.target;
@@ -19,7 +20,6 @@ const Login = () => {
                 setLoginInfo(copyLoginInfo);
         }
 
-        const navigate = useNavigate();
         const handleLogin = async (e) => {
             e.preventDefault();
             const {email, password} = loginInfo;
@@ -39,18 +39,17 @@ const Login = () => {
             const result = await response.json();
            const { success, message, jwtToken, user, error } = result;
             if (success) {
-                handleSuccess(message);
-                localStorage.setItem('token', jwtToken);
+                handleSuccess(message); 
+
+               localStorage.setItem('token', jwtToken);
                localStorage.setItem('loggedInUser', JSON.stringify(user?.name));
-               
                localStorage.setItem('superCategory', 'natural');
-                setTimeout(() => {
-                   if (user.role === 'admin') {
-            navigate('/admin/products/natural'); 
-          } else {
-            navigate(`/products/natural`);
-          }
-                }, 1000)
+                
+                if (user.role === 'admin') {
+                  navigate('/admin/products/natural'); 
+                } else {
+                  navigate(`/products/natural`);
+                }
             } else if (error) {
                 const details = error?.details[0].message;
                 handleError(details);

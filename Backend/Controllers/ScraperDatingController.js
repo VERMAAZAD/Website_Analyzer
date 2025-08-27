@@ -551,7 +551,6 @@ exports.testAffiliateLinks = async (req, res) => {
           $set: {
             affiliateCheckStatus: status,
             lastAffiliateCheck: new Date(),
-            note: status === "error" ? errorMessage : "",
           },
         }
       );

@@ -8,6 +8,7 @@ function SharedAffiliateErrors() {
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [isBackgroundCheck, setIsBackgroundCheck] = useState(false);
+  const [selectedTab, setSelectedTab] = useState("missing"); // ✅ new state
 
   const superCategory = localStorage.getItem("superCategory") || "natural";
   const apiBase =
@@ -17,7 +18,7 @@ function SharedAffiliateErrors() {
       ? "dating/scraper"
       : "api/scraper";
 
-  // ✅ Load cached errors from backend (fast response)
+  // ✅ Load cached errors
   const fetchAffiliateErrorsCached = async () => {
     try {
       const res = await axios.get(
@@ -30,20 +31,29 @@ function SharedAffiliateErrors() {
     } catch (err) {
       handleError("❌ Failed to load cached affiliate errors");
     } finally {
-      setLoading(false); // ✅ important, ends initial loading
+      setLoading(false);
     }
   };
 
-  // ✅ Force a fresh check (slower, live re-check)
+  // ✅ Live re-check
   const refreshAffiliateErrors = async () => {
     setIsBackgroundCheck(true);
     try {
-      const res = await axios.get(
-        `${import.meta.env.VITE_API_URI}/${apiBase}/check-affiliate-errors`,
-        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
-      );
+      const [freshCheck, cachedCheck] = await Promise.all([
+        axios.get(`${import.meta.env.VITE_API_URI}/${apiBase}/check-affiliate-errors`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        }),
+        axios.get(`${import.meta.env.VITE_API_URI}/${apiBase}/get-affiliate-errors`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        }),
+      ]);
 
-      setErrors(res.data.errors || []);
+      const missingLinks = (cachedCheck.data.errors || []).filter(
+        (e) => e.error === "No affiliate link found"
+      );
+      const brokenLinks = freshCheck.data.errors || [];
+
+      setErrors([...missingLinks, ...brokenLinks]);
       setLastUpdated(new Date().toLocaleTimeString());
     } catch (err) {
       handleError("❌ Failed to refresh affiliate errors");
@@ -53,19 +63,25 @@ function SharedAffiliateErrors() {
   };
 
   useEffect(() => {
-    // 1. Load cached data immediately
+  if (errors.length === 0) {
+    // fetch only if errors are empty (first load)
     fetchAffiliateErrorsCached();
 
-    // 2. Trigger live refresh after 3s
+    // optional: background refresh once after 3s only at first load
     const timer = setTimeout(() => refreshAffiliateErrors(), 3000);
-
     return () => clearTimeout(timer);
-  }, []);
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
+
+  // ✅ Split into categories
+  const missingLinks = errors.filter((e) => e.error === "No affiliate link found");
+  const brokenLinks = errors.filter((e) => e.error !== "No affiliate link found");
 
   return (
     <div className="affiliate-errors-container">
       <div className="affiliate-errors-header">
-        <h2 className="affiliate-errors-title">🚨 Failed Affiliate Links</h2>
+        <h2 className="affiliate-errors-title">🚨 Affiliate Link Issues</h2>
 
         <button
           onClick={refreshAffiliateErrors}
@@ -76,39 +92,87 @@ function SharedAffiliateErrors() {
         </button>
 
         {lastUpdated && (
-          <p className="affiliate-last-updated">
-            🕒 Last Updated: {lastUpdated}
-          </p>
+          <p className="affiliate-last-updated">🕒 Last Updated: {lastUpdated}</p>
         )}
       </div>
 
-      {/* ✅ Empty / success state */}
-      {!loading && errors.length === 0 ? (
-        <p className="affiliate-errors-success-msg">
-          ✅ All affiliate links are working!
-        </p>
-      ) : null}
+      {/* ✅ Tab Buttons */}
+      <div className="affiliate-errors-tabs">
+        <button
+          className={`affiliate-tab-btn ${selectedTab === "missing" ? "active" : ""}`}
+          onClick={() => setSelectedTab("missing")}
+        >
+          ⚠️ Missing Links ({missingLinks.length})
+        </button>
+        <button
+          className={`affiliate-tab-btn ${selectedTab === "broken" ? "active" : ""}`}
+          onClick={() => setSelectedTab("broken")}
+        >
+          ❌ Broken Links ({brokenLinks.length})
+        </button>
+      </div>
 
-      {/* ✅ Error list */}
-      {errors.length > 0 && (
-        <ul className="affiliate-errors-list">
-          {errors.map((site, index) => (
-            <li key={index} className="affiliate-errors-item">
-              <p>
-                <strong>Domain:</strong> {site.domain}
-              </p>
-              <p>
-                <strong>Affiliate Link:</strong>{" "}
-                <a href={site.affiliateLink} target="_blank" rel="noreferrer">
-                  {site.affiliateLink}
-                </a>
-              </p>
-              <p>
-                <strong>Error:</strong> {site.error || "Unknown error"}
-              </p>
-            </li>
-          ))}
-        </ul>
+      {/* ✅ Success message (per tab) */}
+{!loading && selectedTab === "missing" && missingLinks.length === 0 && (
+  <p className="affiliate-errors-success-msg">
+    ✅ No missing affiliate links!
+  </p>
+)}
+
+{!loading && selectedTab === "broken" && brokenLinks.length === 0 && (
+  <p className="affiliate-errors-success-msg">
+    ✅ No broken affiliate links!
+  </p>
+)}
+
+      {/* ✅ Missing Affiliate Links */}
+      {selectedTab === "missing" && missingLinks.length > 0 && (
+        <div className="affiliate-errors-section">
+          <h3 className="affiliate-errors-subtitle">⚠️ Missing Affiliate Links</h3>
+          <ul className="affiliate-errors-list">
+            {missingLinks.map((site, index) => (
+              <li key={index} className="affiliate-errors-item">
+                <p>
+                  <strong>Domain:</strong> {site.domain}
+                </p>
+                <p>
+                  <strong>Affiliate Link:</strong>{" "}
+                  <a href={site.affiliateLink} target="_blank" rel="noreferrer">
+                    {site.affiliateLink}
+                  </a>
+                </p>
+                <p>
+                  <strong>Error:</strong> {site.error}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* ✅ Broken Affiliate Links */}
+      {selectedTab === "broken" && brokenLinks.length > 0 && (
+        <div className="affiliate-errors-section">
+          <h3 className="affiliate-errors-subtitle">❌ Broken Affiliate Links</h3>
+          <ul className="affiliate-errors-list">
+            {brokenLinks.map((site, index) => (
+              <li key={index} className="affiliate-errors-item">
+                <p>
+                  <strong>Domain:</strong> {site.domain}
+                </p>
+                <p>
+                  <strong>Affiliate Link:</strong>{" "}
+                  <a href={site.affiliateLink} target="_blank" rel="noreferrer">
+                    {site.affiliateLink}
+                  </a>
+                </p>
+                <p>
+                  <strong>Error:</strong> {site.error || "Unknown error"}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );
