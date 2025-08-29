@@ -1,23 +1,24 @@
 const cron = require('node-cron');
 const { updateChangedDomains } = require('../Controllers/UpdaterController');
 
+
 const fakeReq = {
   user: {
-    role: 'admin',
+    role: 'admin',   
     _id: 'admin-cron-job',
   },
 };
 
 const fakeRes = {
-  json: () => {},
-  status: () => ({
-    json: () => {},
+  json: (data) => console.log('Cron Update Done:', data),
+  status: (code) => ({
+    json: (err) => console.error(`Cron Update Failed [${code}]:`, err),
   }),
 };
 
 let isUpdating = false;
 
-cron.schedule('*/20 * * * *', async () => {
+cron.schedule('* * * * *', async () => {   
   if (isUpdating) {
     return;
   }
@@ -27,7 +28,9 @@ cron.schedule('*/20 * * * *', async () => {
   try {
     await updateChangedDomains(fakeReq, fakeRes);
   } catch (err) {
+    
   } finally {
     isUpdating = false;
+   
   }
 });

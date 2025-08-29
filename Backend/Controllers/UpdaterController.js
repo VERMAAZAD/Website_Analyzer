@@ -1,5 +1,7 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
+const pLimit = require("p-limit").default;
+
 const ScrapedSite = require('../Models/ScrapedSite');
 const ScrapedGameSite = require('../Models/ScrapedGameSite');
 const ScrapedDatingSite = require('../Models/ScrapedDatingSite');
@@ -18,14 +20,14 @@ function extractData(html, $) {
   };
 }
 
-// helper to retry axios requests
+// retry wrapper
 async function fetchWithRetry(url, options, retries = 2) {
   for (let i = 0; i <= retries; i++) {
     try {
       return await axios.get(url, options);
     } catch (err) {
       if (i === retries) throw err;
-      await new Promise(r => setTimeout(r, 1000 * (i + 1))); // backoff
+      await new Promise(r => setTimeout(r, 1000 * (i + 1)));
     }
   }
 }
@@ -57,7 +59,7 @@ async function processSite(model, site, label) {
       robotsTxt = robotsRes.value.data;
     }
 
-    // affiliate link
+    // affiliate link detection
     let affiliateLink = null;
     for (const result of [orderHtmlRes, orderRes]) {
       if (result.status === 'fulfilled' && result.value.status < 400) {
@@ -143,15 +145,19 @@ exports.updateChangedDomains = async (req, res) => {
     ];
 
     let totalUpdated = 0;
-    const BATCH_SIZE = 10; // process 10 domains in parallel
+    const CONCURRENCY = 20; // process up to 20 domains at once
+    const limit = pLimit(CONCURRENCY);
 
     for (const { model, label } of models) {
-      const allDomains = await model.find(filter);
+      const cursor = model.find(filter).cursor();
 
-      for (let i = 0; i < allDomains.length; i += BATCH_SIZE) {
-        const batch = allDomains.slice(i, i + BATCH_SIZE);
-        const results = await Promise.all(batch.map(site => processSite(model, site, label)));
-        totalUpdated += results.filter(Boolean).length;
+      for (let site = await cursor.next(); site != null; site = await cursor.next()) {
+        try {
+          const updated = await limit(() => processSite(model, site, label));
+          if (updated) totalUpdated++;
+        } catch (err) {
+          console.error(`Failed to process ${label} domain ${site.domain}:`, err.message);
+        }
       }
     }
 

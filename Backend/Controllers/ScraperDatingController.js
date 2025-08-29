@@ -795,30 +795,30 @@ exports.checkBingIndex = async (req, res) => {
 
   const baseFilter = req.user.role === 'admin' ? {} : { user: req.user._id };
 
- // Check if ALL domains are already checked today
-const totalDomains = await ScrapedDatingSite.countDocuments(baseFilter);
-const checkedTodayCount = await ScrapedDatingSite.countDocuments({
-  ...baseFilter,
-  lastBingCheck: { $gte: startOfToday }
-});
-
-// If all are checked today, allow re-check
-let filter;
-if (totalDomains > 0 && checkedTodayCount === totalDomains) {
-  filter = baseFilter; // No date restriction
-} else {
-  filter = {
+  // Check if ALL domains are already checked today
+  const totalDomains = await ScrapedDatingSite.countDocuments(baseFilter);
+  const checkedTodayCount = await ScrapedDatingSite.countDocuments({
     ...baseFilter,
-    $or: [
-      { lastBingCheck: { $exists: false } },
-      { lastBingCheck: { $lt: startOfToday } }
-    ]
-  };
-}
+    lastBingCheck: { $gte: startOfToday }
+  });
+
+  // If all are checked today, allow re-check
+  let filter;
+  if (totalDomains > 0 && checkedTodayCount === totalDomains) {
+    filter = baseFilter; // No date restriction
+  } else {
+    filter = {
+      ...baseFilter,
+      $or: [
+        { lastBingCheck: { $exists: false } },
+        { lastBingCheck: { $lt: startOfToday } }
+      ]
+    };
+  }
 
   const domains = await ScrapedDatingSite.find(filter, 'domain');
-
   const domainList = domains.map(site => site.domain);
+
   const unindexed = [];
   const checkedToday = [];
   let browser;
@@ -826,20 +826,20 @@ if (totalDomains > 0 && checkedTodayCount === totalDomains) {
   try {
     browser = await puppeteer.launch({
       headless: true,
-      executablePath: puppeteer.executablePath(), 
-        args: [
+      executablePath: puppeteer.executablePath(),
+      args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-gpu',
         '--single-process'
-        ],
+      ],
     });
 
     for (const fullUrl of domainList) {
       let domain;
       try {
-         domain = fullUrl.startsWith('http') ? new URL(fullUrl).hostname : fullUrl;
+        domain = fullUrl.startsWith('http') ? new URL(fullUrl).hostname : fullUrl;
       } catch {
         continue;
       }
@@ -856,18 +856,26 @@ if (totalDomains > 0 && checkedTodayCount === totalDomains) {
           waitUntil: 'domcontentloaded',
           timeout: 30000,
         });
-   // Simulate human behavior
+
+        // Simulate human behavior
         await page.mouse.move(200, 200);
         await page.evaluate(() => window.scrollBy(0, window.innerHeight / 2));
         await new Promise(resolve => setTimeout(resolve, 2000));
 
-        // CAPTCHA Detection
-        const isCaptcha = await page.evaluate(() => !!document.querySelector('#b_captcha'));
-        if (isCaptcha) {
-          console.warn(`🚫 CAPTCHA for ${domain}`);
-          continue;
+        // CAPTCHA / Human Verification Detection
+        const isBlocked = await page.evaluate(() => {
+          const captchaOld = document.querySelector('#b_captcha');
+          const captchaNew = document.body.innerText.includes("Verify you are human");
+          const recaptcha = document.querySelector("iframe[src*='recaptcha']");
+          return captchaOld || captchaNew || recaptcha;
+        });
+
+        if (isBlocked) {
+          console.warn(`🚫 Human verification triggered for ${domain}`);
+          continue; // skip domain instead of breaking
         }
 
+        // Check if indexed
         const isIndexed = await page.evaluate(() => {
           const results = Array.from(document.querySelectorAll('li.b_algo'));
           const noResultsText = document.querySelector('.b_no')?.innerText?.toLowerCase() || '';
@@ -881,10 +889,11 @@ if (totalDomains > 0 && checkedTodayCount === totalDomains) {
           site.lastBingCheck = new Date();
           await site.save();
         }
+
         if (!isIndexed) {
           unindexed.push(fullUrl);
-          checkedToday.push(fullUrl);
         }
+        checkedToday.push(fullUrl);
 
       } catch (err) {
         console.warn(`❌ Error checking ${domain}:`, err.message);
@@ -903,6 +912,7 @@ if (totalDomains > 0 && checkedTodayCount === totalDomains) {
     if (browser) await browser.close();
   }
 };
+
 
 exports.getUnindexedDomains = async (req, res) => {
   if (!req.user || !req.user._id) {

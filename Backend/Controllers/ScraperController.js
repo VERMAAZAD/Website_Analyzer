@@ -739,10 +739,6 @@ exports.getAffiliateErrors = async (req, res) => {
 
 
 
-
-
-
-
 exports.getExpiringDomains = async (req, res) => {
   try {
     const now = new Date();
@@ -917,151 +913,6 @@ exports.deleteNote = async (req, res) => {
 
 
 
-const puppeteer = require('puppeteer-extra');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-const UserAgent = require('user-agents');
-
-puppeteer.use(StealthPlugin());
-
-exports.checkBingIndex = async (req, res) => {
-  // 1. Ensure user is logged in
-  if (!req.user || !req.user._id) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  const startOfToday = new Date();
-  startOfToday.setUTCHours(0, 0, 0, 0);
-
-  const baseFilter = req.user.role === 'admin' ? {} : { user: req.user._id };
-
- // Check if ALL domains are already checked today
-const totalDomains = await ScrapedSite.countDocuments(baseFilter);
-const checkedTodayCount = await ScrapedSite.countDocuments({
-  ...baseFilter,
-  lastBingCheck: { $gte: startOfToday }
-});
-
-// If all are checked today, allow re-check
-let filter;
-if (totalDomains > 0 && checkedTodayCount === totalDomains) {
-  filter = baseFilter; // No date restriction
-} else {
-  filter = {
-    ...baseFilter,
-    $or: [
-      { lastBingCheck: { $exists: false } },
-      { lastBingCheck: { $lt: startOfToday } }
-    ]
-  };
-}
-
-  const domains = await ScrapedSite.find(filter, 'domain');
-
-  const domainList = domains.map(site => site.domain);
-  const unindexed = [];
-  const checkedToday = [];
-  let browser;
-
-  try {
-    browser = await puppeteer.launch({
-      headless: true,
-      executablePath: puppeteer.executablePath(), 
-        args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--single-process'
-        ],
-    });
-
-    for (const fullUrl of domainList) {
-      let domain;
-      try {
-         domain = fullUrl.startsWith('http') ? new URL(fullUrl).hostname : fullUrl;
-      } catch {
-        continue;
-      }
-
-      const page = await browser.newPage();
-      const userAgent = new UserAgent().toString();
-      const bingQueryUrl = `https://www.bing.com/search?q=site:${domain}`;
-
-      await page.setUserAgent(userAgent);
-      await page.setViewport({ width: 1280, height: 800 });
-
-      try {
-        await page.goto(bingQueryUrl, {
-          waitUntil: 'domcontentloaded',
-          timeout: 30000,
-        });
-   // Simulate human behavior
-        await page.mouse.move(200, 200);
-        await page.evaluate(() => window.scrollBy(0, window.innerHeight / 2));
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // CAPTCHA Detection
-        const isCaptcha = await page.evaluate(() => !!document.querySelector('#b_captcha'));
-        if (isCaptcha) {
-          console.warn(`🚫 CAPTCHA for ${domain}`);
-          continue;
-        }
-
-          const isIndexed = await page.evaluate((domain) => {
-          const domainLower = domain.toLowerCase();
-
-          // Bing "no results" messages
-          const noResultsText =
-            document.querySelector('.b_no, #b_results .b_message')?.innerText?.toLowerCase() || '';
-
-          // Collect all result links
-          const links = Array.from(document.querySelectorAll('#b_results a'))
-            .map(a => a.href)
-            .filter(href => href && !href.includes('bing.com') && !href.startsWith('/'));
-
-          // True if any link contains the domain
-          const hasDomainLink = links.some(href => href.toLowerCase().includes(domainLower));
-
-          return hasDomainLink && !noResultsText.includes('did not match any documents');
-        }, domain);
-
-
-
-
-const html = await page.content();
-console.log(`🔎 Bing results for ${domain}:\n`, html.slice(0, 800));
-
-      const site = await ScrapedSite.findOne({ domain: fullUrl });
-if (site) {
-  site.isIndexedOnBing = isIndexed;
-  site.lastBingCheck = new Date();
-  await site.save();
-}
-
-checkedToday.push(fullUrl);
-if (!isIndexed) {
-  unindexed.push(fullUrl);
-}
-
-      } catch (err) {
-        console.warn(`❌ Error checking ${domain}:`, err.message);
-        continue;
-      } finally {
-        await page.close();
-      }
-    }
-
-    return res.json({ unindexed, checkedToday });
-
-  } catch (err) {
-    console.error('❌ Error launching Puppeteer:', err.message);
-    res.status(500).json({ error: 'Server error' });
-  } finally {
-    if (browser) await browser.close();
-  }
-};
-
-
 exports.getUnindexedDomains = async (req, res) => {
   if (!req.user || !req.user._id) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -1180,5 +1031,189 @@ exports.updateDomainName = async (req, res) => {
   } catch (err) {
     console.error("Domain update failed:", err.message);
     res.status(500).json({ message: "Server error while updating domain name." });
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+const UserAgent = require('user-agents');
+
+puppeteer.use(StealthPlugin());
+
+// helper sleep function
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+exports.checkBingIndex = async (req, res) => {
+  if (!req.user || !req.user._id) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const startOfToday = new Date();
+  startOfToday.setUTCHours(0, 0, 0, 0);
+
+  const baseFilter = req.user.role === 'admin' ? {} : { user: req.user._id };
+  const domains = await ScrapedSite.find(
+    {
+      ...baseFilter,
+      $or: [
+        { lastBingCheck: { $exists: false } },
+        { lastBingCheck: { $lt: startOfToday } },
+      ],
+    },
+    'domain'
+  );
+
+  const domainList = domains.map((d) => d.domain);
+  const unindexed = [];
+  const checkedToday = [];
+
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+      ],
+    });
+
+    const limit = pLimit(3); // max 3 domains concurrently
+
+    const tasks = domainList.map((fullUrl) =>
+      limit(async () => {
+        let page;
+        let domain;
+        try {
+          domain = fullUrl.startsWith('http')
+            ? new URL(fullUrl).hostname
+            : fullUrl;
+
+          page = await browser.newPage();
+
+          // block unnecessary resources
+          await page.setRequestInterception(true);
+          page.on('request', (req) => {
+            if (['image', 'font', 'stylesheet'].includes(req.resourceType())) {
+              req.abort();
+            } else {
+              req.continue();
+            }
+          });
+
+          // set UA + viewport
+          const userAgent = new UserAgent().toString();
+          await page.setUserAgent(userAgent);
+          await page.setViewport({
+            width: 1280,
+            height: 600 + Math.floor(Math.random() * 400),
+          });
+
+          const bingQueryUrl = `https://www.bing.com/search?q=site:${domain}`;
+
+          // safer navigation
+          try {
+            await page.goto(bingQueryUrl, {
+              waitUntil: 'domcontentloaded',
+              timeout: 30000,
+            });
+          } catch (navErr) {
+            console.warn(`⚠️ Navigation failed for ${domain}:`, navErr.message);
+            return;
+          }
+
+          // wait for results container OR no-results marker
+          await page.waitForSelector('#b_content', { timeout: 10000 }).catch(() =>
+            console.warn(`⏳ Results container not found for ${domain}`)
+          );
+
+          // human-like actions
+          await page.mouse.move(
+            100 + Math.random() * 500,
+            200 + Math.random() * 300
+          );
+          await page.evaluate(() =>
+            window.scrollBy(0, window.innerHeight / 2)
+          );
+          await sleep(2000 + Math.random() * 3000);
+
+          // detect captcha / block
+          const isBlocked = await page.evaluate(() => {
+            return (
+              document.querySelector('#b_captcha') ||
+              document.body.innerText.includes('Verify you are human') ||
+              document.querySelector("iframe[src*='recaptcha']")
+            );
+          });
+          if (isBlocked) {
+            console.warn(`🚫 Captcha triggered for ${domain}`);
+            return;
+          }
+
+          // check indexing
+          const isIndexed = await page.evaluate(() => {
+            const results = Array.from(
+              document.querySelectorAll('li.b_algo')
+            );
+            const noResultsText =
+              document.querySelector('.b_no')?.innerText?.toLowerCase() || '';
+            const visibleResults = results.filter(
+              (r) => r.offsetParent !== null
+            );
+            return (
+              visibleResults.length > 0 &&
+              !noResultsText.includes('did not match any documents')
+            );
+          });
+
+          // save result in DB
+          const site = await ScrapedSite.findOne({ domain: fullUrl });
+          if (site) {
+            site.isIndexedOnBing = isIndexed;
+            site.lastBingCheck = new Date();
+            await site.save();
+          }
+
+          if (!isIndexed) unindexed.push(fullUrl);
+          checkedToday.push(fullUrl);
+        } catch (err) {
+          console.warn(`❌ Error checking ${domain}:`, err.message);
+        } finally {
+          if (page) {
+            try {
+              await page.close();
+            } catch {}
+          }
+        }
+      })
+    );
+
+    await Promise.all(tasks);
+
+    return res.json({ unindexed, checkedToday });
+  } catch (err) {
+    console.error('❌ Puppeteer error:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  } finally {
+    if (browser) {
+      try {
+        await browser.close();
+      } catch {}
+    }
   }
 };

@@ -347,13 +347,41 @@ exports.deleteServer = async (req, res) => {
     // Admin can delete any; user can delete only their own
     const query = req.user.role === "admin" ? { _id: id } : { _id: id, user: req.user._id };
 
-    const deleted = await HostingInfo.findOneAndDelete(query);
-
-    if (!deleted) {
+    // Find server first
+    const serverDoc = await HostingInfo.findOne(query);
+    if (!serverDoc) {
       return res.status(404).json({ success: false, message: "Server not found or not authorized" });
     }
 
-    res.json({ success: true, message: "Server deleted successfully", deleted });
+    const serverName = serverDoc.server;
+
+    // Delete from HostingInfo
+    await HostingInfo.deleteOne({ _id: serverDoc._id });
+
+    // Remove only hostingInfo.platform, hostingInfo.server, hostingInfo.email
+    const update = {
+      $unset: {
+        "hostingInfo.platform": "",
+        "hostingInfo.server": "",
+        "hostingInfo.email": "",
+      },
+    };
+
+    const updatedResults = await Promise.all([
+      ScrapedSite.updateMany({ "hostingInfo.server": serverName }, update),
+      ScrapedGameSite.updateMany({ "hostingInfo.server": serverName }, update),
+      ScrapedDatingSite.updateMany({ "hostingInfo.server": serverName }, update),
+    ]);
+
+    res.json({
+      success: true,
+      message: `Server '${serverName}' deleted from HostingInfo and hostingInfo fields cleared from related sites`,
+      updates: {
+        scrapedSitesModified: updatedResults[0].modifiedCount,
+        scrapedGameSitesModified: updatedResults[1].modifiedCount,
+        scrapedDatingSitesModified: updatedResults[2].modifiedCount,
+      },
+    });
   } catch (err) {
     console.error("❌ Error deleting server:", err);
     res.status(500).json({ success: false, message: "Failed to delete server" });
