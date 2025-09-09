@@ -145,23 +145,39 @@ exports.updateChangedDomains = async (req, res) => {
     ];
 
     let totalUpdated = 0;
-    const CONCURRENCY = 20; // process up to 20 domains at once
+    const CONCURRENCY = 5; // lower concurrency
+    const BATCH_SIZE = 50; // process 50 per cycle
+    const CHECK_INTERVAL_MINUTES = 60; // only check once per hour
+    const cutoff = new Date(Date.now() - CHECK_INTERVAL_MINUTES * 60 * 1000);
+
     const limit = pLimit(CONCURRENCY);
 
     for (const { model, label } of models) {
-      const cursor = model.find(filter).cursor();
+      let skip = 0;
+      while (true) {
+        // fetch in batches only sites not checked recently
+        const sites = await model.find({
+          ...filter,
+          $or: [{ lastChecked: { $exists: false } }, { lastChecked: { $lt: cutoff } }]
+        })
+        .skip(skip)
+        .limit(BATCH_SIZE);
 
-      for (let site = await cursor.next(); site != null; site = await cursor.next()) {
-        try {
-          const updated = await limit(() => processSite(model, site, label));
-          if (updated) totalUpdated++;
-        } catch (err) {
-          console.error(`Failed to process ${label} domain ${site.domain}:`, err.message);
+        if (sites.length === 0) break;
+
+        const results = await Promise.allSettled(
+          sites.map(site => limit(() => processSite(model, site, label)))
+        );
+
+        for (const r of results) {
+          if (r.status === 'fulfilled' && r.value) totalUpdated++;
         }
+
+        skip += BATCH_SIZE;
       }
     }
 
-    res.json({ message: 'All domain models checked and updated', updated: totalUpdated });
+    res.json({ message: 'Checked and updated domains in batches', updated: totalUpdated });
   } catch (err) {
     console.error('Update function failed:', err.message);
     res.status(500).json({ error: 'Update failed' });

@@ -43,6 +43,7 @@ const apiBase =
         <li><Link to={`/admin/hosting-form`}>Add Hosting</Link></li>
         <li><Link to={`/admin/hosting-data`}>Hosting Data</Link></li>
         <li><Link to={`/admin/hosting-expire/${superCategory}`}>Server Expire</Link></li>
+        {/* <li><Link to={`/admin/run-comment-bot`}>Commenting Bot</Link></li> */}
         <li onClick={handleLogout}><Link to="/login">Logout</Link></li>
       </ul>
       <ToastContainer/>

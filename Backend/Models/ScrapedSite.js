@@ -34,6 +34,7 @@ const ScrapedSiteSchema = new mongoose.Schema({
   affiliateLink: { type: String, default: null },
   lastAffiliateCheck: { type: Date },
   affiliateCheckStatus: { type: String },
+  affiliateErrorMessage: { type: String, default: null },
   issueDate: { type: Date, default: null },
   note: { type: String, default: '' },
   isIndexedOnBing: { type: Boolean, default: false },

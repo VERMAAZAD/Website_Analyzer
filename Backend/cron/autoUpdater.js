@@ -18,7 +18,7 @@ const fakeRes = {
 
 let isUpdating = false;
 
-cron.schedule('* * * * *', async () => {   
+cron.schedule("0 * * * *", async () => {  
   if (isUpdating) {
     return;
   }

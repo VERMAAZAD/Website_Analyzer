@@ -33,6 +33,8 @@ import HostingDomainsUser from './Pages/HostingInfo/HostingDomains/HostingDomain
 import HostingDomainsAdmin from './Pages/HostingInfo/HostingDomains/HostingDomainsAdmin';
 import ServerListUser from './Pages/HostingInfo/ServerList/ServerListUser';
 import ServerListAdmin from './Pages/HostingInfo/ServerList/ServerListAdmin';
+import CommentBotUser from './Pages/Comment Bot/CommentBotUser';
+import CommentBotAdmin from './Pages/Comment Bot/CommentBotAdmin';
 
 
 function App() {
@@ -56,6 +58,7 @@ function App() {
         <Route path='/hosting-data' element={<ProtectedRoute allowedRoles={['user']}><HostingInfoListUser /></ProtectedRoute>}/>
         <Route path='/hosting/domains/:email/:server' element={<ProtectedRoute allowedRoles={['user']}><HostingDomainsUser /></ProtectedRoute>}/>
         <Route path='/servers/:email' element={<ProtectedRoute allowedRoles={['user']}><ServerListUser /></ProtectedRoute>}/>
+        <Route path='/run-comment-bot' element={<ProtectedRoute allowedRoles={['user']}><CommentBotUser /></ProtectedRoute>}/>
         
 
       {/* Admin Routes */}
@@ -74,6 +77,7 @@ function App() {
       <Route path='/admin/hosting-data' element={<ProtectedRoute allowedRoles={['admin']}><HostingInfoListAdmin /></ProtectedRoute>}/>
       <Route path='/admin/hosting/domains/:email/:server' element={<ProtectedRoute allowedRoles={['admin']}><HostingDomainsAdmin /></ProtectedRoute>}/>
       <Route path='/admin/servers/:email' element={<ProtectedRoute allowedRoles={['admin']}><ServerListAdmin /></ProtectedRoute>}/>
+      <Route path='/admin/run-comment-bot' element={<ProtectedRoute allowedRoles={['user']}><CommentBotAdmin /></ProtectedRoute>}/>
 
       </Routes>
       <ToastContainer/>

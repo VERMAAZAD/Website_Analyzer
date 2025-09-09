@@ -51,7 +51,9 @@ function SharedAffiliateErrors() {
       const missingLinks = (cachedCheck.data.errors || []).filter(
         (e) => e.error === "No affiliate link found"
       );
-      const brokenLinks = freshCheck.data.errors || [];
+      const brokenLinks = (freshCheck.data.errors || []).filter(
+  (e) => e.error && e.error !== "No affiliate link found"
+      );
 
       setErrors([...missingLinks, ...brokenLinks]);
       setLastUpdated(new Date().toLocaleTimeString());
@@ -64,14 +66,8 @@ function SharedAffiliateErrors() {
 
   useEffect(() => {
   if (errors.length === 0) {
-    // fetch only if errors are empty (first load)
     fetchAffiliateErrorsCached();
-
-    // optional: background refresh once after 3s only at first load
-    const timer = setTimeout(() => refreshAffiliateErrors(), 3000);
-    return () => clearTimeout(timer);
   }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
 }, []);
 
   // ✅ Split into categories

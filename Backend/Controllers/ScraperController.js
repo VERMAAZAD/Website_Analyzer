@@ -474,95 +474,7 @@ exports.getErrorDomains = async (req, res) => {
   }
 };
 
-
-
-// exports.testAffiliateLinks = async (req, res) => {
-//   const limit = pLimit(5);
-//   try {
-//     if (!req.user || !req.user._id) {
-//       return res.status(401).json({ error: 'Unauthorized' });
-//     }
-
-//     const filter = { affiliateLink: { $ne: null } };
-
-//     // 👤 Admin sees all users, regular users see their own
-//     if (req.user.role !== 'admin') {
-//       filter.user = req.user._id;
-//     }
-
-//     const domains = await ScrapedSite.find(filter);
-//     const failedLinks = [];
-
-//     const checkLink = async (site) => {
-//       const link = site.affiliateLink;
-      
-//       try {
-//         const resp = await axios.get(link, {
-//           timeout: 7000,
-//           headers: {
-//             'User-Agent': 'Mozilla/5.0',
-//             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
-//           },
-//           maxRedirects: 0, // We want to inspect redirect manually
-//           validateStatus: () => true, // Allow all responses through
-//         });
-
-//         const redirectLocation = resp.headers.location || '';
-
-//         // ❌ Case 1: Permanent redirects (301/308)
-//         if ([301, 308].includes(resp.status)) {
-//           failedLinks.push({
-//             domain: site.domain,
-//             affiliateLink: link,
-//             error: `Permanent redirect with status ${resp.status} to ${redirectLocation}`
-//           });
-//         }
-
-//         // ❌ Case 2: Redirects to known invalid/error pages
-//         else if (
-//           [302, 303, 307].includes(resp.status) &&
-//           (redirectLocation.includes('errCode=invalidvendor') || redirectLocation.includes('error'))
-//         ) {
-//           failedLinks.push({
-//             domain: site.domain,
-//             affiliateLink: link,
-//             error: `Redirected with status ${resp.status} to error URL: ${redirectLocation}`
-//           });
-//         }
-
-//         // ❌ Case 3: HTTP 4xx or 5xx errors
-//         else if (resp.status >= 400) {
-//           failedLinks.push({
-//             domain: site.domain,
-//             affiliateLink: link,
-//             error: `Returned error status ${resp.status}`
-//           });
-//         }
-
-//         // ✅ Else: considered valid — do nothing
-
-//       } catch (err) {
-//         failedLinks.push({
-//           domain: site.domain,
-//           affiliateLink: link,
-//           error: err.message || 'Unknown request error'
-//         });
-//       }
-//     }
-//     await Promise.allSettled(domains.map(site => limit(() => checkLink(site))));
-
-//     res.json({
-//       total: domains.length,
-//       failed: failedLinks.length,
-//       errors: failedLinks
-//     });
-
-//   } catch (err) {
-//     console.error('Affiliate test failed:', err.message);
-//     res.status(500).json({ error: 'Internal server error' });
-//   }
-// };
-
+// 🔹 TEST AFFILIATE LINKS
 exports.testAffiliateLinks = async (req, res) => {
   const limit = pLimit(30); // ✅ Concurrency control
   try {
@@ -570,7 +482,10 @@ exports.testAffiliateLinks = async (req, res) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const filter = { affiliateLink: { $ne: null } };
+    const filter = { 
+      affiliateLink: { $ne: null, $ne: "" }, 
+      statusCode: 200 
+    };
     if (req.user.role !== "admin") {
       filter.user = req.user._id;
     }
@@ -584,12 +499,11 @@ exports.testAffiliateLinks = async (req, res) => {
       let errorMessage = null;
 
       try {
-        // Try HEAD request first
         let resp;
         try {
           resp = await axios.head(link, {
-            timeout: 5000,
-            maxRedirects: 0,
+            timeout: 10000,
+            maxRedirects: 5,
             validateStatus: () => true,
             headers: {
               "User-Agent": "Mozilla/5.0",
@@ -597,10 +511,9 @@ exports.testAffiliateLinks = async (req, res) => {
             },
           });
         } catch {
-          // Fall back to GET if HEAD fails
           resp = await axios.get(link, {
-            timeout: 5000,
-            maxRedirects: 0,
+            timeout: 10000,
+            maxRedirects: 5,
             validateStatus: () => true,
             headers: {
               "User-Agent": "Mozilla/5.0",
@@ -622,8 +535,13 @@ exports.testAffiliateLinks = async (req, res) => {
           status = "error";
           errorMessage = `Redirect error ${resp.status} → ${redirectLocation}`;
         } else if (resp.status >= 400) {
-          status = "error";
-          errorMessage = `HTTP ${resp.status}`;
+          if ([403, 404, 406].includes(resp.status)) {
+            status = "ok"; 
+            errorMessage = null;
+          } else {
+            status = "error";
+            errorMessage = `HTTP ${resp.status}`;
+          }
         }
       } catch (err) {
         status = "error";
@@ -636,12 +554,12 @@ exports.testAffiliateLinks = async (req, res) => {
         {
           $set: {
             affiliateCheckStatus: status,
+            affiliateErrorMessage: status === "ok" ? null : errorMessage,
             lastAffiliateCheck: new Date(),
           },
         }
       );
 
-      // Collect for API response
       if (status === "error") {
         failedLinks.push({
           domain: site.domain,
@@ -651,7 +569,6 @@ exports.testAffiliateLinks = async (req, res) => {
       }
     };
 
-    // Run checks concurrently
     await Promise.allSettled(domains.map((site) => limit(() => checkLink(site))));
 
     res.json({
@@ -667,17 +584,14 @@ exports.testAffiliateLinks = async (req, res) => {
 
 
 
-// GET /get-affiliate-errors
+// 🔹 GET AFFILIATE ERRORS
 exports.getAffiliateErrors = async (req, res) => {
   try {
     if (!req.user || !req.user._id) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    // ✅ Admin sees all, normal users see only their own
-    const filter = req.user.role === "admin" ? {} : { user: req.user._id };
-
-    // ✅ Only consider recent affiliate checks (last 10 minutes)
+    const filter = req.user.role === "admin" ? {statusCode: 200} : { user: req.user._id, statusCode: 200 };
     const cutoff = new Date(Date.now() - 1000 * 60 * 10);
 
     const sites = await ScrapedSite.find(filter, {
@@ -685,39 +599,38 @@ exports.getAffiliateErrors = async (req, res) => {
       affiliateLink: 1,
       affiliateCheckStatus: 1,
       affiliateErrorMessage: 1,
-      lastAffiliateCheck: 1,   // ✅ make sure schema stores this
+      lastAffiliateCheck: 1,
     }).lean();
 
     const errors = sites
-      .filter(site => {
-        // Ignore stale errors (not checked in last 10 minutes)
-        if (site.affiliateCheckStatus === "error") {
+      .filter((site) => {
+        // ✅ Broken affiliate link
+        if (site.affiliateCheckStatus === "error" && site.affiliateErrorMessage) {
           if (!site.lastAffiliateCheck || site.lastAffiliateCheck < cutoff) {
-            return false; // ❌ stale, ignore
+            return false; // ❌ stale
           }
-          return true; // ✅ recent error
-        }
-
-        // No or invalid affiliate link
-        if (
-          !site.affiliateLink ||
-          site.affiliateLink === `https://${site.domain}` ||
-          site.affiliateLink.includes(site.domain)
-        ) {
           return true;
         }
 
-        return false;
+        // ✅ Missing link
+        if (!site.affiliateLink || site.affiliateLink.trim() === "") {
+          return true;
+        }
+
+        // ✅ Invalid link (exact same as domain, no affiliate param)
+        const normalized = `https://${site.domain}`;
+        if (site.affiliateLink === normalized) {
+          return true;
+        }
+
+        return false; // ✅ Valid link
       })
-      .map(site => {
+      .map((site) => {
         let link = site.affiliateLink;
         let errorMsg = site.affiliateErrorMessage || "Unknown error";
 
-        if (
-          !link ||
-          link === `https://${site.domain}` ||
-          link.includes(site.domain)
-        ) {
+        // Handle missing/invalid
+        if (!link || link.trim() === "" || link === `https://${site.domain}`) {
           link = `https://${site.domain}`;
           errorMsg = "No affiliate link found";
         }
@@ -736,6 +649,8 @@ exports.getAffiliateErrors = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+
 
 
 

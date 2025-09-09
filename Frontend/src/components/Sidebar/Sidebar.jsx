@@ -26,7 +26,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       </div>
       <ul className="nav-links">
         <li><Link to={`/products/${superCategory}`}> User Dashboard</Link></li>
-        <li><Link to={`/urlscan/${superCategory}`}>UrlScan</Link></li>
+        <li><Link to={`/urlscan/${superCategory}`}>Url Scan</Link></li>
         <li><Link to={`/domains/`}>Domain List</Link></li>
        <li><Link to={`/domain-errors/${superCategory}`}>Error Domains</Link></li>
        <li><Link to={`/affiliate-errors/${superCategory}`}>Error Affiliate</Link></li>
@@ -35,6 +35,7 @@ const Sidebar = ({ isOpen, onClose }) => {
        <li><Link to={`/hosting-form`}>Add Hosting</Link></li>
        <li><Link to={`/hosting-data`}>Hosting Data</Link></li>
        <li><Link to={`/hosting-expire/${superCategory}`}>Expire Server</Link></li>
+       {/* <li><Link to={`/run-comment-bot`}>Commenting Bot</Link></li> */}
         <li className="logout" onClick={handleLogout}>
         <Link>Logout</Link>
         </li>
