@@ -354,6 +354,7 @@ exports.deleteServer = async (req, res) => {
     }
 
     const serverName = serverDoc.server;
+    const serverEMail = serverDoc.email;
 
     // Delete from HostingInfo
     await HostingInfo.deleteOne({ _id: serverDoc._id });
@@ -368,9 +369,9 @@ exports.deleteServer = async (req, res) => {
     };
 
     const updatedResults = await Promise.all([
-      ScrapedSite.updateMany({ "hostingInfo.server": serverName }, update),
-      ScrapedGameSite.updateMany({ "hostingInfo.server": serverName }, update),
-      ScrapedDatingSite.updateMany({ "hostingInfo.server": serverName }, update),
+      ScrapedSite.updateMany({ "hostingInfo.server": serverName, "hostingInfo.email": serverEMail }, update),
+      ScrapedGameSite.updateMany({ "hostingInfo.server": serverName, "hostingInfo.email": serverEMail }, update),
+      ScrapedDatingSite.updateMany({ "hostingInfo.server": serverName, "hostingInfo.email": serverEMail }, update),
     ]);
 
     res.json({
