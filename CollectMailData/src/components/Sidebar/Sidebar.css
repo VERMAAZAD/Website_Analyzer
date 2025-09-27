@@ -1,0 +1,143 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* Push content */
+  width: 210px;
+  background-color: #1f2937;
+  color: #ffffff;
+  height: 98vh;
+  padding: 20px;
+  position: fixed;
+  left: -260px;
+  top: 0;
+  transition: left 0.3s ease;
+  z-index: 1000;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar.open {
+  left: 0;
+}
+
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.logo {
+  font-size: 26px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.close-btn {
+  font-size: 24px;
+  background: none;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.close-btn:hover {
+  color: #f87171; /* Light red */
+}
+
+.nav-links {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.nav-links li.logout {
+  margin-top: auto;
+  font-weight: 500;
+  color: #f87171;
+  cursor: pointer;
+  padding: 8px 12px;
+  transition: background 0.3s ease;
+  border-radius: 6px;
+}
+.nav-links li.logout:hover {
+  background-color: #7f1d1d;
+  color: #fff;
+}
+
+.nav-links li {
+  margin-bottom: 10px;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: #cbd5e1; /* Light gray text */
+  font-size: 14px;
+  display: block;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+.nav-links a:hover {
+  background-color: #374151; /* Hover background */
+  color: #ffffff;
+}
+
+.nav-links a.active {
+  background-color: #2563eb;
+  color: #ffffff;
+}
+
+.nav-links li:last-child {
+  margin-top: auto;
+  font-weight: 500;
+  color: #f87171;
+  cursor: pointer;
+  padding: 8px 12px;
+  transition: background 0.3s ease;
+  border-radius: 6px;
+}
+
+.nav-links li:last-child:hover {
+  background-color: #7f1d1d;
+  color: #fff;
+}
+
+@media (min-width: 768px) {
+  .sidebar {
+    left: 0;
+  }
+
+  .close-btn {
+    display: none;
+  }
+}
+.dropdown {
+  position: relative;
+  cursor: pointer;
+}
+
+.dropdown-toggle {
+  padding: 10px 15px;
+  color: #fff;
+}
+
+.dropdown-menu {
+  list-style: none;
+  padding-left: 20px;
+  background: #1e1e1e;
+}
+
+.dropdown-menu li a {
+  display: block;
+  padding: 8px 0;
+  color: #ddd;
+  text-decoration: none;
+}
+
+.dropdown-menu li a:hover {
+  color: #fff;
+}
