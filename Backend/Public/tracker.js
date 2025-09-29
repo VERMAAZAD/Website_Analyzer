@@ -74,24 +74,36 @@
       } catch (err) { /* ignore */ }
     }
 
-    function flush() {
-      if (!BUFFER.length) return;
-      var payload = {
-        siteId: SITE_ID,
-        anonId: ANON,
-        page: window.location.pathname + window.location.search,
-        ts: Date.now(),
-        events: BUFFER.splice(0, BUFFER.length)
-      };
-      try {
-        var blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-        if (navigator.sendBeacon) {
-          navigator.sendBeacon(ENDPOINT, blob);
-        } else {
-          fetch(ENDPOINT, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' } }).catch(()=>{});
-        }
-      } catch (e) {}
-    }
+  function flush() {
+  if (!BUFFER.length) return;
+  var payload = {
+    siteId: SITE_ID,
+    anonId: ANON,
+    page: window.location.pathname + window.location.search,
+    ts: Date.now(),
+    events: BUFFER.splice(0, BUFFER.length)
+  };
+
+  try {
+    fetch(ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      credentials: "omit" // don’t send cookies
+    })
+    .then(res => {
+      if (!res.ok) {
+        console.error("Tracker flush failed:", res.status, res.statusText);
+      }
+    })
+    .catch(err => {
+      console.error("Tracker fetch error:", err);
+    });
+  } catch (e) {
+    console.error("Tracker flush exception:", e);
+  }
+}
+
 
     document.addEventListener('click', captureClick, true);
     setInterval(flush, FLUSH_MS);
