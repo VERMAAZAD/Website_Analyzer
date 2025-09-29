@@ -20,7 +20,8 @@ app.use(bodyParser.json());
 const corsOptions = {
   origin: [
     "https://monitorchecker.com", 
-    "http://localhost:5173"      
+    "http://localhost:5173",
+    "https://analytics.monitorchecker.com"      
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
