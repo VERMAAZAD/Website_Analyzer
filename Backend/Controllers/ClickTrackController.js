@@ -1,4 +1,3 @@
-const express = require('express');
 const ClickBatch = require('../Models/ClickEvent'); // adjust path
 
 exports.clickTracker  = async (req, res) => {

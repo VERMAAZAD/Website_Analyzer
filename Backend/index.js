@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const path = require('path');
 
 require('dotenv').config();
 require('./Models/database');
@@ -18,17 +19,20 @@ const ClickTrackRouter = require('./Routers/ClickTrackRouter')
 const PORT = process.env.PORT || 5000;
 
 app.use(bodyParser.json());
+
 const corsOptions = {
-  origin: [
-    "https://monitorchecker.com", 
-    "http://localhost:5173",
-    "https://analytics.monitorchecker.com"      
-  ],
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    return callback(null, true);
+  },
+  credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true
+  allowedHeaders: ["Content-Type", "Authorization"]
 };
+
 app.use(cors(corsOptions));
+// app.use(cors());
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/auth', AuthRouter)
 app.use('/api/scraper', ScraperRouter);
