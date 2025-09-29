@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import "./AllmailData.css"; // <-- import CSS file
+import "./AllmailData.css";
 import Layout from "../components/Layouts/Layout";
 
 const AllmailData = () => {

@@ -3,8 +3,8 @@
   flex-direction: column;
   justify-content: space-between; /* Push content */
   width: 210px;
-  background-color: #1f2937;
-  color: #ffffff;
+  background-color: #FFFFFF;
+  color: #000;
   height: 98vh;
   padding: 20px;
   position: fixed;
@@ -12,7 +12,7 @@
   top: 0;
   transition: left 0.3s ease;
   z-index: 1000;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+  box-shadow: rgba(0, 0, 0, 0.05) 0px 0px 0px 1px;
 }
 
 .sidebar.open {
@@ -29,14 +29,14 @@
 .logo {
   font-size: 26px;
   font-weight: 700;
-  color: #ffffff;
+  color: #000;
 }
 
 .close-btn {
   font-size: 24px;
   background: none;
   border: none;
-  color: #ffffff;
+  color: #000;
   cursor: pointer;
   transition: color 0.3s ease;
 }
@@ -64,7 +64,7 @@
 }
 .nav-links li.logout:hover {
   background-color: #7f1d1d;
-  color: #fff;
+  color: #000;
 }
 
 .nav-links li {
@@ -73,7 +73,7 @@
 
 .nav-links a {
   text-decoration: none;
-  color: #cbd5e1; /* Light gray text */
+  color: #000000; /* Light gray text */
   font-size: 14px;
   display: block;
   padding: 8px 12px;

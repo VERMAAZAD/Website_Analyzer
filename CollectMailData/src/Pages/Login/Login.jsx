@@ -1,10 +1,10 @@
 import './Login.css';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { handleError, handleSuccess } from '../../toastutils';
+import { handleError, handleSuccess } from '../../utils/toastutils';
 
 const Login = () => {
-  const [step, setStep] = useState(1); 
+  const [step, setStep] = useState(1); // Step 1: login, Step 2: verify code
   const [loginInfo, setLoginInfo] = useState({ email: '', password: '' });
   const [code, setCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -78,10 +78,10 @@ const Login = () => {
         localStorage.setItem('superCategory', 'natural');
 
         if (user.role === 'admin') {
-             navigate('/admin/products/natural'); 
-                } else {
-             navigate(`/products/natural`);
-                }
+          navigate('/admin/mailcollection');
+        } else {
+          navigate('/mailcollection');
+        }
       } else {
         handleError(result.message || 'Invalid or expired code');
       }
@@ -151,7 +151,7 @@ const Login = () => {
 
         <button type="submit" disabled={loading}>
           {loading ? (
-            <div className="spinner-login"></div> // show spinner inside button
+            <div className="spinner"></div> // show spinner inside button
           ) : step === 1 ? (
             'Login Now'
           ) : (

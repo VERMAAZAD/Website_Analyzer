@@ -2,10 +2,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: #1f2937;
-  color: white;
+  background-color: #FFFFFF;
+  color: #000;
   padding: 10px 20px;
   position: relative;
+  box-shadow: rgba(0, 0, 0, 0.05) 0px 0px 0px 1px;
   margin-top: -10px;
 }
 .header h2{

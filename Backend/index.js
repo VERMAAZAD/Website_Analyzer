@@ -12,7 +12,7 @@ const AdminRouter = require('./Routers/AdminRouter');
 const ScraperGameRouter = require('./Routers/ScraperGameRouter')
 const ScraperDatingRouter = require('./Routers/ScraperDatingRouter')
 const HostingRouter = require('./Routers/HostingRouter')
-const GetEmailRouter = require('./Routers/GetEmailRouter')
+const CollectMailDataRouter = require('./Routers/CollectMailDataRouter')
 
 const PORT = process.env.PORT || 5000;
 
@@ -34,7 +34,7 @@ app.use('/admin', AdminRouter);
 app.use('/casino/scraper', ScraperGameRouter);
 app.use('/dating/scraper', ScraperDatingRouter);
 app.use("/api/hosting", HostingRouter)
-app.use("/webEmailData", GetEmailRouter)
+app.use("/collectmail", CollectMailDataRouter)
 
 app.listen(PORT, () => {
     console.log('Server is Running');

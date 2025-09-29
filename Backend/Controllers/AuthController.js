@@ -35,7 +35,7 @@ const signup = async (req, res) => {
     }
 };
 
-const login = async (req, res) => {
+const initiateLogin = async (req, res) => {
     try {
         const { email: rawEmail, password } = req.body;
         const email = rawEmail.toLowerCase();
@@ -50,6 +50,42 @@ const login = async (req, res) => {
             return res.status(403).json({ message: 'Auth failed: password is incorrect', success: false });
         }
 
+        const authCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
+        const expiry = new Date(Date.now() + 10 * 60 * 1000); // expires in 10 minutes
+
+        user.authCode = authCode;
+        user.authCodeExpiry = expiry;
+        await user.save();
+
+        await sendEmail(
+            email,
+            'Your Login Verification Code',
+            `Your login code is: ${authCode}`,
+            `<p>Your login code is: <strong>${authCode}</strong></p>`
+        );
+
+        res.status(200).json({ success: true, message: 'Verification code sent to your email' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal Server Error", success: false });
+    }
+};
+
+const verifyLoginCode = async (req, res) => {
+    try {
+        const { email: rawEmail, code } = req.body;
+        const email = rawEmail.toLowerCase();
+
+        const user = await UserModel.findOne({ email });
+        if (!user || user.authCode !== code || user.authCodeExpiry < Date.now()) {
+            return res.status(400).json({ message: 'Invalid or expired code', success: false });
+        }
+
+        // Clear code fields after use
+        user.authCode = undefined;
+        user.authCodeExpiry = undefined;
+        await user.save();
+
         const jwtToken = jwt.sign(
             { email: user.email, _id: user._id, role: user.role },
             process.env.JWT_SECRET,
@@ -57,7 +93,7 @@ const login = async (req, res) => {
         );
 
         res.status(200).json({
-            message: "Login successfully",
+            message: "Login successful",
             success: true,
             jwtToken,
             user: {
@@ -130,4 +166,4 @@ const resetPassword = async (req, res) => {
 };
 
 
-module.exports = { signup, login, requestPasswordReset, resetPassword};
+module.exports = { signup, initiateLogin, verifyLoginCode, requestPasswordReset, resetPassword};

@@ -7,7 +7,10 @@ const userSchema = new Schema({
     password: { type: String, required: true },
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
     resetCode: { type: String },
-    resetCodeExpiry: { type: Date }
+    resetCodeExpiry: { type: Date },
+    authCode: { type: String },
+    authCodeExpiry: { type: Date },
+
 });
 
 
