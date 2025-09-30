@@ -43,6 +43,7 @@ const AllmailData = () => {
                 <th>User IP</th>
                 <th>User Country</th>
                 <th>Created At</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -54,6 +55,23 @@ const AllmailData = () => {
                   <td>{user.ip ? user.ip : ''}</td>
                   <td>{user.geo ? user.geo.country : ''}</td>
                   <td>{new Date(user.createdAt).toLocaleString()}</td>
+                  <td>
+                  <button
+                    onClick={async () => {
+                      if (confirm("Are you sure you want to delete this user?")) {
+                        await fetch(`${import.meta.env.VITE_API_URI}/collectmail/users/${user._id}`, {
+                          method: "DELETE",
+                        });
+                        // Refresh table
+                        setUsers(users.filter((u) => u._id !== user._id));
+                      }
+                    }}
+                    style={{ color: "red", cursor: "pointer" }}
+                  >
+                    Delete
+                  </button>
+                </td>
+
                 </tr>
               ))}
             </tbody>

@@ -59,7 +59,7 @@ exports.subscribeUser = async (req, res) => {
 
     await newUser.save();
 
-    res.json({ success: true, message: "User saved successfully with geo data!" });
+    res.json({ success: true, message: "SignUp successfully!" });
   } catch (err) {
     console.error("subscribeUser error:", err);
     res.status(500).json({ success: false, error: err.message });
@@ -72,6 +72,26 @@ exports.getAllUsers = async (req, res) => {
     res.json(users);
   } catch (err) {
     console.error("getAllUsers error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+
+// Delete user by ID
+exports.deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await CollectEmailData.findById(id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    await CollectEmailData.findByIdAndDelete(id);
+
+    res.json({ success: true, message: "User deleted successfully" });
+  } catch (err) {
+    console.error("deleteUser error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 };
