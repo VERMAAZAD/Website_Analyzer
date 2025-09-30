@@ -15,6 +15,7 @@ const ScraperDatingRouter = require('./Routers/ScraperDatingRouter')
 const HostingRouter = require('./Routers/HostingRouter')
 const CollectMailDataRouter = require('./Routers/CollectMailDataRouter')
 const ClickTrackRouter = require('./Routers/ClickTrackRouter')
+const TrafficCheckerRouter = require('./Routers/TrafficCheckerRouter')
 
 const PORT = process.env.PORT || 5000;
 
@@ -40,6 +41,7 @@ app.use('/dating/scraper', ScraperDatingRouter);
 app.use("/api/hosting", HostingRouter)
 app.use("/collectmail", CollectMailDataRouter)
 app.use("/trackweb", ClickTrackRouter)
+app.use("/traffic", TrafficCheckerRouter)
 
 app.listen(PORT, () => {
     console.log('Server is Running');
