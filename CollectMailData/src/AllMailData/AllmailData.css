@@ -1,5 +1,5 @@
 .allmail-container {
-  max-width: 1000px;
+  max-width: 900px;
   margin: 40px auto;
   padding: 20px;
   background: #ffffff;
@@ -35,13 +35,13 @@
 .user-table td {
   padding: 12px 15px;
   border-bottom: 1px solid #ddd;
+  min-width: 200px;
 }
 
 .user-table tbody tr:hover {
   background: #f1f7ff;
 }
 
-/* Status Messages */
 .loading,
 .error,
 .no-data {

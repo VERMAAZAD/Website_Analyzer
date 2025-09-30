@@ -40,6 +40,8 @@ const AllmailData = () => {
                 <th>Name</th>
                 <th>Email</th>
                 <th>Landing Page</th>
+                <th>User IP</th>
+                <th>User Country</th>
                 <th>Created At</th>
               </tr>
             </thead>
@@ -49,6 +51,8 @@ const AllmailData = () => {
                   <td>{user.name}</td>
                   <td>{user.email}</td>
                   <td>{user.landingPageUrl}</td>
+                  <td>{user.ip ? user.ip : ''}</td>
+                  <td>{user.geo ? user.geo.country : ''}</td>
                   <td>{new Date(user.createdAt).toLocaleString()}</td>
                 </tr>
               ))}
