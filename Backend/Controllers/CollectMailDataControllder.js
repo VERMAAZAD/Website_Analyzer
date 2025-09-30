@@ -1,3 +1,6 @@
+const requestIp = require("request-ip");
+const geoip = require("geoip-lite");
+
 const CollectEmailData = require("../Models/CollectMailDataModel");
 const {
   isValidEmailFormat,
@@ -14,12 +17,13 @@ exports.subscribeUser = async (req, res) => {
       return res.status(400).json({ success: false, message: "Name and email are required" });
     }
 
-   const existingUser = await CollectEmailData.findOne({ email });
-
+    // Check if email already exists
+    const existingUser = await CollectEmailData.findOne({ email });
     if (existingUser) {
       return res.status(200).json({ success: true, message: "Welcome back!" });
     }
 
+    // Validate email
     if (!isValidEmailFormat(email)) {
       return res.status(400).json({ success: false, message: "Invalid email format" });
     }
@@ -33,11 +37,31 @@ exports.subscribeUser = async (req, res) => {
       return res.status(400).json({ success: false, message: "Email domain not valid" });
     }
 
-    const newUser = new CollectEmailData({ name, email, landingPageUrl });
+    // 🔹 Get client IP + Geo
+    const clientIp = requestIp.getClientIp(req) || "unknown";
+    const geo = geoip.lookup(clientIp) || {};
+
+    // Save new user
+    const newUser = new CollectEmailData({
+      name,
+      email,
+      landingPageUrl,
+      ip: clientIp,
+      geo: {
+        country: geo.country || "",
+        region: geo.region || "",
+        city: geo.city || "",
+        lat: geo.ll ? geo.ll[0] : null,
+        lon: geo.ll ? geo.ll[1] : null,
+        timezone: geo.timezone || ""
+      }
+    });
+
     await newUser.save();
 
-    res.json({ success: true, message: "User saved successfully!" });
+    res.json({ success: true, message: "User saved successfully with geo data!" });
   } catch (err) {
+    console.error("subscribeUser error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 };
@@ -47,6 +71,7 @@ exports.getAllUsers = async (req, res) => {
     const users = await CollectEmailData.find().sort({ createdAt: -1 });
     res.json(users);
   } catch (err) {
+    console.error("getAllUsers error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 };

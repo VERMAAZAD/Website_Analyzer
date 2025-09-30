@@ -10,7 +10,7 @@ const AllmailData = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await fetch("https://collect-user-data.vercel.app/api/users"); // change for deployment
+        const res = await fetch(`${import.meta.env.VITE_API_URI}/collectmail/users`);
         const data = await res.json();
         setUsers(data);
       } catch (err) {

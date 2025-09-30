@@ -133,9 +133,6 @@ const requestPasswordReset = async (req, res) => {
 		`Your reset code is: ${resetCode}`, // Fallback plain text
 		generateResetEmailHTML(resetCode)   // Styled HTML
 		);
-
-        // await sendEmail(email, 'Your Password Reset Code', `Your reset code is: ${resetCode}`);
-
         res.json({ success: true, message: "Reset code sent to email" });
     } catch (error) {
         res.status(500).json({ success: false, message: "Server error" });

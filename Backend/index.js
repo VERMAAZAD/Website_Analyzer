@@ -21,7 +21,7 @@ const PORT = process.env.PORT || 5000;
 app.use(bodyParser.json());
 const corsOptions = {
     origin: (origin, callback) => {
-    callback(null, true); // Allow all origins by reflecting the origin
+    callback(null, true);
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],

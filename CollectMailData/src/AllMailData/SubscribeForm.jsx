@@ -1,9 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { handleSuccess, handleError } from "../utils/toastutils";
 
 const SubscribeForm = () => {
   const [formData, setFormData] = useState({ name: "", email: "" });
   const [loading, setLoading] = useState(false);
+  const [landingPageUrl, setLandingPageUrl] = useState("");
+
+  useEffect(() => {
+    setLandingPageUrl(window.location.href);
+  }, []);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -14,10 +19,16 @@ const SubscribeForm = () => {
     setLoading(true);
 
     try {
+      const payload = {
+        ...formData,
+        landingPageUrl,
+        userAgent: navigator.userAgent, // capture browser/device info
+      };
+
       const res = await fetch(`${import.meta.env.VITE_API_URI}/collectmail/subscribe`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
