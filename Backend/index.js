@@ -33,6 +33,10 @@ app.use(cors(corsOptions));
 // app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
+
+app.get('/', (req, res) => {
+    res.send('🚀 Server is up and running!');
+});
 app.use('/auth', AuthRouter)
 app.use('/api/scraper', ScraperRouter);
 app.use('/admin', AdminRouter);

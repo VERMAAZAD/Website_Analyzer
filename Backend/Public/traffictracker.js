@@ -8,7 +8,6 @@
         return c.substring(cookieName.length, c.length);
       }
     }
-    // create new id
     const newId = self.crypto?.randomUUID?.() || Math.random().toString(36).substring(2);
     document.cookie = "visitorId=" + newId + ";path=/;max-age=" + 60 * 60 * 24 * 365;
     return newId;
