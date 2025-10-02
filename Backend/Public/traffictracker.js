@@ -16,7 +16,7 @@
   const siteId = document.currentScript.getAttribute("data-site-id");
   const visitorId = getVisitorId();
 
-  fetch(`http://localhost:5000/traffic/traffic-check`, {
+  fetch(`https://api.monitorchecker.com/traffic/traffic-check`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
