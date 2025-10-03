@@ -12,7 +12,9 @@ const Sidebar = ({ isOpen, onClose }) => {
         <button className="close-btn" onClick={onClose}>×</button>
       </div>
       <ul className="nav-links">
-        <li><Link to={`/`}> User Dashboard</Link></li>
+        <li><Link to={`/mail-collection`}>Mail Collection</Link></li>
+        <li><Link to={`/user-traffic`}>Domain Traffic</Link></li>
+        <li><Link to={`/`}>Logout</Link></li>
       </ul>
     </div>
     

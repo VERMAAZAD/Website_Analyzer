@@ -1,0 +1,76 @@
+.allmail-container {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 7px;
+  box-shadow: rgba(0, 0, 0, 0.05) 0px 0px 0px 1px;
+  font-family: Arial, sans-serif;
+}
+
+.allmail-container h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+/* Table Wrapper */
+.table-wrapper {
+  overflow-x: auto; /* for mobile responsiveness */
+}
+
+.user-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+}
+
+.user-table thead {
+  background: #673DE6;
+  color: #fff;
+}
+
+.user-table th,
+.user-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #ddd;
+  min-width: 200px;
+}
+
+.user-table tbody tr:hover {
+  background: #f1f7ff;
+}
+
+.loading,
+.error,
+.no-data {
+  text-align: center;
+  font-size: 16px;
+  padding: 20px;
+}
+
+.loading {
+  color: #4a90e2;
+}
+
+.error {
+  color: #d9534f;
+}
+
+.no-data {
+  color: #999;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .user-table th,
+  .user-table td {
+    padding: 10px 8px;
+    font-size: 13px;
+  }
+
+  .allmail-container {
+    padding: 15px;
+  }
+}
