@@ -8,6 +8,7 @@ import AllmailData from './AllMailData/AllmailData';
 import ProtectedRoute from './utils/ProtectedRoute';
 import UserTraffic from './UserTraffic/UserTraffic';
 import DomainTraffic from './DomainTraffic/DomainTraffic';
+import Last7DaysTraffic from './UserTraffic/Last7DaysTraffic';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Route path='/mail-collection' element={<ProtectedRoute allowedRoles={['user', 'admin']}><AllmailData /></ProtectedRoute>}/>
         <Route path='/user-traffic' element={<ProtectedRoute allowedRoles={['user', 'admin']}><UserTraffic /></ProtectedRoute>}/>
         <Route path='/traffic/:domain' element={<ProtectedRoute allowedRoles={['user', 'admin']}><DomainTraffic /></ProtectedRoute>}/>
+        <Route path='/traffic/last7days' element={<ProtectedRoute allowedRoles={['user', 'admin']}><Last7DaysTraffic /></ProtectedRoute>}/>
       </Routes>
       <ToastContainer/>
     </>

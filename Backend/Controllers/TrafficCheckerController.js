@@ -28,7 +28,6 @@ exports.checkTraffic = async (req, res) => {
 
 
 
-//list of all unique domains
 function formatUTCDateString(d) {
   const y = d.getUTCFullYear();
   const m = String(d.getUTCMonth() + 1).padStart(2, "0");
@@ -145,10 +144,6 @@ exports.GetallUniqueDomains = async (req, res) => {
 };
 
 
-
-
-
-
 // visitor breakdown by country for that domain.
 exports.domainTraffic = async (req, res) => {
   try {
@@ -181,45 +176,63 @@ exports.domainTraffic = async (req, res) => {
 
 
 
-
-
-// get daily traffic for last 30 days (or 7 days)
-exports.GetDailyDomainTraffic = async (req, res) => {
+exports.GetLast7DaysTraffic = async (req, res) => {
   try {
-    const { domain } = req.params;
-    const days = parseInt(req.query.days) || 7; // default 7 days
+    const now = new Date();
+    const sevenDaysAgo = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate()
+    ));
+    sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate() - 6); // last 7 days
 
-    const sinceDate = new Date();
-    sinceDate.setDate(sinceDate.getDate() - days);
-
-    const stats = await Trafficchecker.aggregate([
+    const dailyStats = await Trafficchecker.aggregate([
       {
         $match: {
-          domain,
-          timestamp: { $gte: sinceDate }
+          domain: { $exists: true, $ne: "" },
+          timestamp: { $gte: sevenDaysAgo }
         }
       },
       {
         $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } },
+          _id: {
+            domain: "$domain",
+            day: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp", timezone: "+00:00" } }
+          },
           totalViews: { $sum: 1 },
           uniqueVisitors: { $addToSet: "$visitorId" }
         }
       },
       {
         $project: {
-          day: "$_id",
+          domain: "$_id.domain",
+          day: "$_id.day",
           totalViews: 1,
           uniqueVisitors: { $size: "$uniqueVisitors" },
           _id: 0
         }
-      },
-      { $sort: { day: 1 } }
+      }
     ]);
 
-    res.json(stats);
+    // organize by domain → day
+    const domainMap = {};
+    dailyStats.forEach(s => {
+      if (!domainMap[s.domain]) domainMap[s.domain] = {};
+      domainMap[s.domain][s.day] = {
+        total: s.totalViews,
+        unique: s.uniqueVisitors
+      };
+    });
+
+    // final response
+    const result = Object.keys(domainMap).map(domain => ({
+      domain,
+      daily: domainMap[domain] // { "2025-09-28": {total,unique}, ... }
+    }));
+
+    res.json(result);
   } catch (err) {
-    console.error("Error fetching daily traffic:", err);
-    res.status(500).json({ error: "Failed to fetch daily traffic" });
+    console.error("Error fetching last 7 days:", err);
+    res.status(500).json({ error: "Failed to fetch last 7 days traffic" });
   }
 };

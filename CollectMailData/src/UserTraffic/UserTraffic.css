@@ -1,6 +1,6 @@
 .allmail-container {
   max-width: 900px;
-  margin: 40px auto;
+  margin: 20px;
   padding: 20px;
   background: #ffffff;
   border-radius: 7px;
@@ -73,4 +73,91 @@
   .allmail-container {
     padding: 15px;
   }
+}
+
+
+
+/* date filter css */
+
+.date-filters {
+  margin: 20px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.date-filters button {
+  padding: 6px 14px;
+  border: 1px solid #ddd;
+  background-color: #f8f8f8;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.date-filters button:hover {
+  background-color: #eaeaea;
+}
+
+.date-filters button.active {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+  font-weight: 600;
+}
+
+/* Range Picker container */
+.date-range {
+  display: flex;
+  gap: 12px;
+  align-items: end;
+  margin: 20px 0;
+  flex-wrap: wrap;
+}
+
+.date-range label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.date-range input[type="date"] {
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  transition: border 0.2s ease;
+}
+
+.date-range input[type="date"]:focus {
+  border-color: #007bff;
+}
+
+.date-range button {
+  padding: 8px 16px;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s ease;
+}
+
+.date-range button:hover {
+  background: #218838;
+}
+
+.user-table td small {
+  font-size: 12px;
+  color: #555;
+}
+
+.user-table td span {
+  font-weight: bold;
 }

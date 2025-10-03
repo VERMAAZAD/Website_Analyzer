@@ -1,5 +1,5 @@
 const express = require("express");
-const { checkTraffic, GetallUniqueDomains, domainTraffic, GetDailyDomainTraffic } = require("../Controllers/TrafficCheckerController");
+const { checkTraffic, GetallUniqueDomains, domainTraffic, GetLast7DaysTraffic } = require("../Controllers/TrafficCheckerController");
 const router = express.Router();
 
 
@@ -7,6 +7,7 @@ const router = express.Router();
 router.post("/traffic-check", checkTraffic);
 router.get('/unique/domains', GetallUniqueDomains);
 router.get('/stats/domain/:domain', domainTraffic);
-router.get('/stats/domain/:domain/daily', GetDailyDomainTraffic);
+// router.get('/stats/domain/:domain/daily', GetDailyDomainTraffic);
+router.get("/unique/domains/last7days", GetLast7DaysTraffic);
 
 module.exports = router;

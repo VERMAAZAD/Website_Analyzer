@@ -23,14 +23,17 @@ const AllmailData = () => {
     fetchUsers();
   }, []);
 
-  if (loading) return <p className="loading">Loading user data...</p>;
-  if (error) return <p className="error">{error}</p>;
-
   return (
     <Layout>
     <div className="allmail-container">
       <h2>All Subscribed Users</h2>
-      {users.length === 0 ? (
+       {loading ? (
+          <div className="spinner-container">
+            <div className="spinner"></div>
+          </div>
+        ) : error ? (
+          <p className="error">{error}</p>
+        ) : users.length === 0 ? (
         <p className="no-data">No data found</p>
       ) : (
         <div className="table-wrapper">
