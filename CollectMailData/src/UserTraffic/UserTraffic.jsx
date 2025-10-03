@@ -11,7 +11,7 @@ const UserTraffic = () => {
 
   useEffect(() => {
     axios
-      .get("http://localhost:5000/traffic/unique/domains")
+      .get(`${import.meta.env.VITE_API_URI}/traffic/unique/domains`)
       .then((res) => {
         console.log("Fetched domains:", res.data); // debug
         setDomains(Array.isArray(res.data) ? res.data : []);
@@ -22,7 +22,7 @@ const UserTraffic = () => {
   const handleDomainClick = (domain) => {
     setSelectedDomain(domain);
     axios
-      .get(`http://localhost:5000/traffic/stats/domain/${domain}`)
+      .get(`${import.meta.env.VITE_API_URI}/traffic/stats/domain/${domain}`)
       .then((res) => {
         console.log("Location stats:", res.data); // debug
         setLocationStats(Array.isArray(res.data) ? res.data : []);

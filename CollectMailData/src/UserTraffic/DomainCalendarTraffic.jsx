@@ -13,7 +13,7 @@ const DomainCalendarTraffic = () => {
   const [selectedData, setSelectedData] = useState(null);
 
   useEffect(() => {
-    axios.get(`http://localhost:5000/traffic/stats/domain/${domain}/daily?days=7`)
+    axios.get(`${import.meta.env.VITE_API_URI}/traffic/stats/domain/${domain}/daily?days=7`)
       .then(res => {
         setDailyStats(res.data);
       })

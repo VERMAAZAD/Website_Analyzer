@@ -9,7 +9,7 @@ const DomainTraffic = () => {
   const [locationStats, setLocationStats] = useState([]);
 
   useEffect(() => {
-    axios.get(`http://localhost:5000/traffic/stats/domain/${domain}`)
+    axios.get(`${import.meta.env.VITE_API_URI}/traffic/stats/domain/${domain}`)
       .then(res => {
         console.log("Location stats:", res.data);
         setLocationStats(Array.isArray(res.data) ? res.data : []);
