@@ -78,9 +78,9 @@ const Login = () => {
         localStorage.setItem('superCategory', 'natural');
 
         if (user.role === 'admin') {
-          navigate('/admin/mailcollection');
+          navigate('/admin/mail-collection');
         } else {
-          navigate('/mailcollection');
+          navigate('/mail-collection');
         }
       } else {
         handleError(result.message || 'Invalid or expired code');
