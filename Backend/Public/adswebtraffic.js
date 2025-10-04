@@ -17,7 +17,7 @@
   const visitorId = getVisitorId();
 
   
-  fetch(`https://api.monitorchecker.com/traffic/traffic-check`, {
+  fetch(`https://api.monitorchecker.com/adswebsite/traffic-check`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
