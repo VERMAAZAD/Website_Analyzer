@@ -10,7 +10,7 @@ const {
 
 exports.subscribeUser = async (req, res) => {
   try {
-    const { name, email } = req.body;
+    const { name, email, gender, age, category } = req.body;
     const landingPageUrl = req.headers["referer"] || "unknown";
 
     if (!name || !email) {
@@ -45,6 +45,9 @@ exports.subscribeUser = async (req, res) => {
     const newUser = new CollectEmailData({
       name,
       email,
+      gender,
+      age,
+      category,
       landingPageUrl,
       ip: clientIp,
       geo: {
