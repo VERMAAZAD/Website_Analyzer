@@ -107,8 +107,8 @@
   accent-color: #673DE6; 
   cursor: pointer;
 }
-/* Spinner styles */
-.spinner {
+
+.spinner-login {
   border: 3px solid rgba(255, 255, 255, 0.3);
   border-top: 3px solid white;
   border-radius: 50%;

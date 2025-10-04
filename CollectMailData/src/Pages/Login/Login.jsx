@@ -151,7 +151,7 @@ const Login = () => {
 
         <button type="submit" disabled={loading}>
           {loading ? (
-            <div className="spinner"></div> // show spinner inside button
+            <div className="spinner-login"></div>
           ) : step === 1 ? (
             'Login Now'
           ) : (

@@ -161,3 +161,65 @@
 .user-table td span {
   font-weight: bold;
 }
+
+
+.domain-search {
+  padding: 8px 14px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  width: 250px;
+  transition: 0.2s ease;
+}
+
+.domain-search:focus {
+  border-color: #007bff;
+  outline: none;
+  box-shadow: 0 0 3px rgba(0, 123, 255, 0.3);
+}
+.traffic-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+
+.sort-dropdown {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background-color: #f9f9f9;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  appearance: none;
+}
+
+.sort-dropdown:hover {
+  border-color: #007bff;
+  background-color: #fff;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.25);
+}
+
+.sort-dropdown:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.35);
+  background-color: #fff;
+}
+
+.sort-dropdown option {
+  background-color: #fff;
+  color: #333;
+  font-size: 15px;
+  padding: 10px;
+}
+
+.sort-dropdown option:hover,
+.sort-dropdown option:focus,
+.sort-dropdown option:checked {
+  background-color: #007bff;
+  color: #fff;
+}

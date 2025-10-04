@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import Layout from "../components/Layouts/Layout";
-import "./DomainTraffic.css"; // make sure to create this CSS or reuse global spinner CSS
+import "./DomainTraffic.css";
 
 const DomainTraffic = () => {
   const { domain } = useParams();

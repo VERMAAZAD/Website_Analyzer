@@ -1,8 +1,18 @@
 import './Sidebar.css';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 const Sidebar = ({ isOpen, onClose }) => {
-  const location = useLocation(); // highlight active link
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  const handleLogout = (e) => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('loggedInUser');
+       handleSuccess('User Logged Out')
+           setTimeout(() => {
+      navigate('/login');
+    }, 1500);
+    }
 
   return (
     <div className={`sidebar ${isOpen ? 'open' : ''}`}>
@@ -30,7 +40,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             User Traffic
           </Link>
         </li>
-        <li className="logout">
+        <li className="logout" onClick={handleLogout}>
           <i className="fa-solid fa-right-from-bracket"></i>
           <Link to="/">Logout</Link>
         </li>

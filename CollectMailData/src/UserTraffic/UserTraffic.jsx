@@ -8,9 +8,10 @@ const UserTraffic = () => {
   const [domains, setDomains] = useState([]);
   const [selectedDomain, setSelectedDomain] = useState(null);
   const [locationStats, setLocationStats] = useState([]);
-
-   const [loadingDomains, setLoadingDomains] = useState(true);
+  const [loadingDomains, setLoadingDomains] = useState(true);
   const [loadingStats, setLoadingStats] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortOption, setSortOption] = useState("todayTotal");
 
   useEffect(() => {
     setLoadingDomains(true);
@@ -37,10 +38,49 @@ const UserTraffic = () => {
       .finally(() => setLoadingStats(false));
   };
 
+    const filteredDomains = domains.filter((d) =>
+    d.domain.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+   const sortedDomains = [...filteredDomains].sort((a, b) => {
+    if (sortOption === "todayTotal") {
+      return b.todayTotal - a.todayTotal; // High → Low
+    } else if (sortOption === "totalChangePercent") {
+      return (b.totalChangePercent || 0) - (a.totalChangePercent || 0);
+    } else if (sortOption === "uniqueChangePercent") {
+      return (b.uniqueChangePercent || 0) - (a.uniqueChangePercent || 0);
+    } else {
+      return 0;
+    }
+  });
+
+  const totalTraffic = sortedDomains.reduce((sum, d) => sum + (d.todayTotal || 0), 0);
+const totalUniqueTraffic = sortedDomains.reduce((sum, d) => sum + (d.todayUnique || 0), 0);
+
+
   return (
     <Layout>
       <div className="allmail-container">
         <h2>All Domains Traffic</h2>
+         <div className="traffic-controls">
+          <input
+            type="text"
+            className="domain-search"
+            placeholder="Search domain..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+
+          <select
+            className="sort-dropdown"
+            value={sortOption}
+            onChange={(e) => setSortOption(e.target.value)}
+          >
+            <option value="todayTotal">Today’s Traffic (High → Low)</option>
+            <option value="totalChangePercent">Change (Views %)</option>
+            <option value="uniqueChangePercent">Change (Unique %)</option>
+          </select>
+        </div>
         {loadingDomains ? (
           <div className="spinner-container">
             <div className="spinner"></div>
@@ -54,19 +94,19 @@ const UserTraffic = () => {
                   <th>Domain</th>
                   <th>Change (Views)</th>
                   <th>Change (Unique)</th>
-                  <th>Today Traffic</th>
-                  <th>Today Unique Traffic</th>
+                  <th>Today Traffic({totalTraffic})</th>
+                  <th>Today Unique Traffic({totalUniqueTraffic})</th>
                 </tr>
               </thead>
               <tbody>
-                {domains.length === 0 ? (
+                {sortedDomains.length === 0 ? (
                   <tr>
                     <td colSpan="5" style={{ textAlign: "center", color: "#888" }}>
                       No domain data available
                     </td>
                   </tr>
                 ) : (
-                  domains.map((domain) => (
+                  sortedDomains.map((domain) => (
                     <tr
                       key={domain.domain}
                       onClick={() => handleDomainClick(domain.domain)}
@@ -116,7 +156,6 @@ const UserTraffic = () => {
         {selectedDomain && (
           <div style={{ marginTop: "30px" }}>
             <h2>Traffic for {selectedDomain}</h2>
-
             {loadingStats ? (
               <div className="spinner-container">
                 <div className="spinner"></div>

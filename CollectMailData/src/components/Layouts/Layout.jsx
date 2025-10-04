@@ -6,7 +6,9 @@ import Header from '../Header/Header';
 const Layout = ({ children }) => {
   return (
     <div className="admin-layout">
+      <div className="sidebar-content">
       <Sidebar />
+      </div>
       <div className="main-content">
         <Header/>
         <div className="page-content">

@@ -19,6 +19,8 @@ const Last7DaysTraffic = () => {
   const [last7Days, setLast7Days] = useState([]);
   const [selectedDomain, setSelectedDomain] = useState(null);
   const [loading, setLoading] = useState(true);
+   const [searchTerm, setSearchTerm] = useState("");
+  
 
   useEffect(() => {
     setLoading(true);
@@ -57,8 +59,11 @@ const Last7DaysTraffic = () => {
     }));
   };
 
-  // Sorted domains by total views
-  const sortedDomains = [...domains].sort((a, b) => {
+   const filteredDomains = domains.filter((d) =>
+    d.domain.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const sortedDomains = [...filteredDomains].sort((a, b) => {
     const aVal = last7Days.reduce(
       (sum, day) => sum + (a.daily[day]?.total || 0),
       0
@@ -70,10 +75,29 @@ const Last7DaysTraffic = () => {
     return bVal - aVal;
   });
 
+    const totalTraffic = sortedDomains.reduce(
+    (sum, d) => sum + last7Days.reduce((acc, day) => acc + (d.daily[day]?.total || 0), 0),
+    0
+  );
+
+  const totalUniqueTraffic = sortedDomains.reduce(
+    (sum, d) => sum + last7Days.reduce((acc, day) => acc + (d.daily[day]?.unique || 0), 0),
+    0
+  );
+
   return (
     <Layout>
       <div className="allmail-container">
         <h2>User Traffic</h2>
+         <div className="traffic-controls">
+          <input
+            type="text"
+            className="domain-search"
+            placeholder="Search domain..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
           {loading ? (
           <div className="spinner-container">
             <div className="spinner"></div>
@@ -85,8 +109,8 @@ const Last7DaysTraffic = () => {
             <thead>
               <tr>
                 <th>Domain</th>
-                <th>Total User Traffic</th>
-                <th>Unique User Traffic</th>
+                <th>Total User Traffic({totalTraffic})</th>
+                <th>Unique User Traffic({totalUniqueTraffic})</th>
               </tr>
             </thead>
             <tbody>
