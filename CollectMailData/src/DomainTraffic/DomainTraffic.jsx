@@ -9,9 +9,11 @@ const DomainTraffic = () => {
   const [locationStats, setLocationStats] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const category = localStorage.getItem('selectedCategory') || 'traffic';
+
   useEffect(() => {
     axios
-      .get(`${import.meta.env.VITE_API_URI}/traffic/stats/domain/${domain}`)
+      .get(`${import.meta.env.VITE_API_URI}/${category}/stats/domain/${domain}`)
       .then((res) => {
         console.log("Location stats:", res.data);
         setLocationStats(Array.isArray(res.data) ? res.data : []);

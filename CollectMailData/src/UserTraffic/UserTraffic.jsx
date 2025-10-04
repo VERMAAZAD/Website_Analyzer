@@ -13,23 +13,41 @@ const UserTraffic = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOption, setSortOption] = useState("todayTotal");
 
-  useEffect(() => {
+  const [category, setCategory] = useState(
+    localStorage.getItem("selectedCategory") || "traffic"
+  );
+
+  const fetchDomains = (cat) => {
     setLoadingDomains(true);
     axios
-      .get(`${import.meta.env.VITE_API_URI}/traffic/unique/domains`)
+      .get(`${import.meta.env.VITE_API_URI}/${cat}/unique/domains`)
       .then((res) => {
-        console.log("Fetched domains:", res.data); // debug
+        console.log("Fetched domains:", res.data);
         setDomains(Array.isArray(res.data) ? res.data : []);
       })
       .catch((err) => console.error(err))
       .finally(() => setLoadingDomains(false));
+  };
+
+  useEffect(() => {
+    fetchDomains(category);
+  }, []);
+
+  useEffect(() => {
+    const handleCategoryChange = () => {
+      const newCategory = localStorage.getItem("selectedCategory") || "traffic";
+      setCategory(newCategory);
+      fetchDomains(newCategory); // reload data automatically
+    };
+     window.addEventListener("categoryChange", handleCategoryChange);
+    return () => window.removeEventListener("categoryChange", handleCategoryChange);
   }, []);
 
   const handleDomainClick = (domain) => {
     setSelectedDomain(domain);
     setLoadingStats(true);
     axios
-      .get(`${import.meta.env.VITE_API_URI}/traffic/stats/domain/${domain}`)
+      .get(`${import.meta.env.VITE_API_URI}/${category}/stats/domain/${domain}`)
       .then((res) => {
         console.log("Location stats:", res.data); // debug
         setLocationStats(Array.isArray(res.data) ? res.data : []);
@@ -44,7 +62,7 @@ const UserTraffic = () => {
 
    const sortedDomains = [...filteredDomains].sort((a, b) => {
     if (sortOption === "todayTotal") {
-      return b.todayTotal - a.todayTotal; // High → Low
+      return b.todayTotal - a.todayTotal; 
     } else if (sortOption === "totalChangePercent") {
       return (b.totalChangePercent || 0) - (a.totalChangePercent || 0);
     } else if (sortOption === "uniqueChangePercent") {

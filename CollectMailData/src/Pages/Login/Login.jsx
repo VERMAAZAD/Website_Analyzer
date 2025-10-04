@@ -75,7 +75,7 @@ const Login = () => {
 
         localStorage.setItem('token', jwtToken);
         localStorage.setItem('loggedInUser', JSON.stringify(user?.name));
-        localStorage.setItem('superCategory', 'natural');
+        localStorage.setItem('selectedCategory', 'traffic');
 
         if (user.role === 'admin') {
           navigate('/admin/mail-collection');

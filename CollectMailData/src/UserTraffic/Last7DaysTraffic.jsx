@@ -21,11 +21,14 @@ const Last7DaysTraffic = () => {
   const [loading, setLoading] = useState(true);
    const [searchTerm, setSearchTerm] = useState("");
   
+   const [category, setCategory] = useState(
+    localStorage.getItem("selectedCategory") || "traffic"
+  );
 
-  useEffect(() => {
+  const fetchDomains = (cat) => {
     setLoading(true);
     axios
-      .get(`${import.meta.env.VITE_API_URI}/traffic/unique/domains/last7days`)
+      .get(`${import.meta.env.VITE_API_URI}/${cat}/unique/domains/last7days`)
       .then((res) => {
         setDomains(Array.isArray(res.data) ? res.data : []);
         generateLast7Days();
@@ -33,7 +36,24 @@ const Last7DaysTraffic = () => {
       })
       .catch((err) => console.error(err));
        setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchDomains(category);
   }, []);
+
+
+   useEffect(() => {
+    const handleCategoryChange = () => {
+      const newCategory = localStorage.getItem("selectedCategory") || "traffic";
+      setCategory(newCategory);
+      fetchDomains(newCategory); 
+    };
+
+    window.addEventListener("categoryChange", handleCategoryChange);
+    return () => window.removeEventListener("categoryChange", handleCategoryChange);
+  }, []);
+
 
   const generateLast7Days = () => {
     const days = [];
