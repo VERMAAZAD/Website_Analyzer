@@ -8,24 +8,51 @@ const DomainTraffic = () => {
   const { domain } = useParams();
   const [locationStats, setLocationStats] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filterType, setFilterType] = useState("all");
 
-  const category = localStorage.getItem('selectedCategory') || 'traffic';
+  const category = localStorage.getItem("selectedCategory") || "traffic";
+
+  const fetchTrafficData = async (filter = "all") => {
+    setLoading(true);
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URI}/${category}/stats/domain/${domain}?filter=${filter}`
+      );
+      const sortedData = Array.isArray(res.data)
+        ? [...res.data].sort((a, b) => (b.totalViews || 0) - (a.totalViews || 0))
+        : [];
+      setLocationStats(sortedData);
+      setFilterType(filter);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    axios
-      .get(`${import.meta.env.VITE_API_URI}/${category}/stats/domain/${domain}`)
-      .then((res) => {
-        console.log("Location stats:", res.data);
-        setLocationStats(Array.isArray(res.data) ? res.data : []);
-      })
-      .catch((err) => console.error(err))
-      .finally(() => setLoading(false));
-  }, [domain]);
+    fetchTrafficData(filterType);
+  }, [domain, category]);
 
   return (
     <Layout>
       <div className="allmail-container">
         <h2>Traffic for {domain}</h2>
+
+        <div className="traffic-filter-buttons">
+          <button
+            className={filterType === "all" ? "active" : ""}
+            onClick={() => fetchTrafficData("all")}
+          >
+            All Traffic
+          </button>
+           <button
+            className={filterType === "today" ? "active" : ""}
+            onClick={() => fetchTrafficData("today")}
+          >
+            Today's Traffic
+          </button>
+        </div>
 
         {loading ? (
           <div className="spinner-container">

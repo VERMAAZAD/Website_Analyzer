@@ -148,31 +148,56 @@ exports.GetallUniqueDomains = async (req, res) => {
 exports.domainTraffic = async (req, res) => {
   try {
     const { domain } = req.params;
+    const { filter } = req.query; // "today" or "all"
+
+    const matchQuery = { domain };
+
+    if (filter === "today") {
+      const now = new Date();
+      const startOfDay = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        0, 0, 0, 0
+      );
+      const endOfDay = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        23, 59, 59, 999
+      );
+
+      matchQuery.timestamp = { $gte: startOfDay, $lte: endOfDay };
+    }
 
     const locationStats = await Trafficchecker.aggregate([
-      { $match: { domain } },
+      { $match: matchQuery },
       {
         $group: {
           _id: "$location.country",
-          visitors: { $addToSet: "$visitorId" }, // unique visitors
-          totalViews: { $sum: 1 }
-        }
+          visitors: { $addToSet: "$visitorId" },
+          totalViews: { $sum: 1 },
+        },
       },
       {
         $project: {
           country: "$_id",
           totalViews: 1,
           uniqueVisitors: { $size: "$visitors" },
-          _id: 0
-        }
-      }
+          _id: 0,
+        },
+      },
+      { $sort: { totalViews: -1 } },
     ]);
 
     res.json(locationStats);
   } catch (err) {
+    console.error("Error fetching domain traffic:", err);
     res.status(500).json({ error: "Failed to fetch location stats" });
   }
 };
+
+
 
 
 
