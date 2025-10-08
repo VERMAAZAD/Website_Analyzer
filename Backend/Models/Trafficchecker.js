@@ -8,11 +8,10 @@ const trafficSchema = new mongoose.Schema({
   ip: String,
   userAgent: String,
   location: Object,
-  searchEngine: { type: String, default: "Direct" }, 
   timestamp: { type: Date, default: Date.now },
 });
 
-trafficSchema.index({ timestamp: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 7 });
+// trafficSchema.index({ timestamp: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 7 });
 
 
 module.exports = mongoose.model("Trafficchecker", trafficSchema);

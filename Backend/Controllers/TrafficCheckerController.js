@@ -8,27 +8,14 @@ exports.checkTraffic = async (req, res) => {
     const clientIp = requestIp.getClientIp(req);
     const location = geoip.lookup(clientIp) || {};
 
-    // Get Referer header (e.g. "https://www.google.com/search?q=site")
-    const referer = req.headers.referer || req.headers.referrer || "";
-
-    // Detect search engine
-    let searchEngine = "Direct";
-    if (referer.includes("google.")) searchEngine = "Google";
-    else if (referer.includes("bing.")) searchEngine = "Bing";
-    else if (referer.includes("yahoo.")) searchEngine = "Yahoo";
-    else if (referer.includes("duckduckgo.")) searchEngine = "DuckDuckGo";
-    else if (referer.includes("baidu.")) searchEngine = "Baidu";
-    else if (referer.includes("yandex.")) searchEngine = "Yandex";
-
     const traffic = new Trafficchecker({
       siteId: req.body.siteId,
-      visitorId: req.body.visitorId, // from cookie or uuid
+      visitorId: req.body.visitorId,
       domain: req.body.domain,
       path: req.body.path,
       ip: clientIp,
       userAgent: req.headers["user-agent"],
       location,
-      searchEngine,
     });
 
     await traffic.save();
@@ -79,7 +66,7 @@ exports.GetallUniqueDomains = async (req, res) => {
       }
     ]);
 
-    // ---- 2. Get stats from yesterday midnight UTC onward (yesterday + today) ----
+
     const dailyStats = await Trafficchecker.aggregate([
       {
         $match: {
@@ -156,52 +143,47 @@ exports.GetallUniqueDomains = async (req, res) => {
   }
 };
 
-
 // visitor breakdown by country for that domain.
 exports.domainTraffic = async (req, res) => {
   try {
     const { domain } = req.params;
-    const { filter } = req.query; // "today" or "all"
+    const filter = req.query.filter || "all";
 
-    const matchQuery = { domain };
+    // Base match
+    const match = { domain };
 
+    // If filter is "today", use UTC midnight
     if (filter === "today") {
       const now = new Date();
-      const startOfDay = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate(),
-        0, 0, 0, 0
-      );
-      const endOfDay = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate(),
-        23, 59, 59, 999
-      );
-
-      matchQuery.timestamp = { $gte: startOfDay, $lte: endOfDay };
+      const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+      match.timestamp = { $gte: todayUTC };
     }
 
+    // Aggregate unique visitors per country
     const locationStats = await Trafficchecker.aggregate([
-      { $match: matchQuery },
+      { $match: match },
       {
         $group: {
-          _id: "$location.country",
-          visitors: { $addToSet: "$visitorId" },
-          totalViews: { $sum: 1 },
-        },
+          _id: { country: "$location.country", visitor: "$visitorId" },
+          totalViews: { $sum: 1 }
+        }
+      },
+      {
+        $group: {
+          _id: "$_id.country",
+          totalViews: { $sum: "$totalViews" },
+          uniqueVisitors: { $sum: 1 }
+        }
       },
       {
         $project: {
           country: "$_id",
           totalViews: 1,
-          uniqueVisitors: { $size: "$visitors" },
-          _id: 0,
-        },
-      },
-      { $sort: { totalViews: -1 } },
-    ]);
+          uniqueVisitors: 1,
+          _id: 0
+        }
+      }
+    ], { allowDiskUse: true });
 
     res.json(locationStats);
   } catch (err) {
@@ -213,46 +195,54 @@ exports.domainTraffic = async (req, res) => {
 
 
 
-
 exports.GetLast7DaysTraffic = async (req, res) => {
   try {
+    // Generate last 7 days (YYYY-MM-DD)
+    const last7Days = [];
     const now = new Date();
-    const sevenDaysAgo = new Date(Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate()
-    ));
-    sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate() - 6); // last 7 days
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setUTCDate(now.getUTCDate() - i);
+      last7Days.push(d.toISOString().slice(0, 10));
+    }
 
-    const dailyStats = await Trafficchecker.aggregate([
-      {
-        $match: {
-          domain: { $exists: true, $ne: "" },
-          timestamp: { $gte: sevenDaysAgo }
-        }
+    // Aggregate traffic from last 7 days
+     const dailyStats = await Trafficchecker.aggregate([
+  {
+    $match: {
+      domain: { $exists: true, $ne: "" },
+      timestamp: { $gte: new Date(last7Days[0] + "T00:00:00Z") }
+    }
+  },
+  // Step 1: Get unique visitors per domain/day
+  {
+    $group: {
+      _id: {
+        domain: "$domain",
+        day: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp", timezone: "+00:00" } },
+        visitor: "$visitorId"
       },
-      {
-        $group: {
-          _id: {
-            domain: "$domain",
-            day: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp", timezone: "+00:00" } }
-          },
-          totalViews: { $sum: 1 },
-          uniqueVisitors: { $addToSet: "$visitorId" }
-        }
-      },
-      {
-        $project: {
-          domain: "$_id.domain",
-          day: "$_id.day",
-          totalViews: 1,
-          uniqueVisitors: { $size: "$uniqueVisitors" },
-          _id: 0
-        }
-      }
-    ]);
-
-    // organize by domain → day
+      totalViews: { $sum: 1 } // count each visit of that visitor
+    }
+  },
+  // Step 2: Aggregate again per domain/day
+  {
+    $group: {
+      _id: { domain: "$_id.domain", day: "$_id.day" },
+      totalViews: { $sum: "$totalViews" },
+      uniqueVisitors: { $sum: 1 } // each _id.visitor is unique now
+    }
+  },
+  {
+    $project: {
+      domain: "$_id.domain",
+      day: "$_id.day",
+      totalViews: 1,
+      uniqueVisitors: 1,
+      _id: 0
+    }
+  }
+], { allowDiskUse: true });
     const domainMap = {};
     dailyStats.forEach(s => {
       if (!domainMap[s.domain]) domainMap[s.domain] = {};
@@ -262,11 +252,14 @@ exports.GetLast7DaysTraffic = async (req, res) => {
       };
     });
 
-    // final response
-    const result = Object.keys(domainMap).map(domain => ({
-      domain,
-      daily: domainMap[domain] // { "2025-09-28": {total,unique}, ... }
-    }));
+    // Ensure all last 7 days exist for each domain
+    const result = Object.keys(domainMap).map(domain => {
+      const daily = {};
+      last7Days.forEach(day => {
+        daily[day] = domainMap[domain][day] || { total: 0, unique: 0 };
+      });
+      return { domain, daily };
+    });
 
     res.json(result);
   } catch (err) {
@@ -274,3 +267,4 @@ exports.GetLast7DaysTraffic = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch last 7 days traffic" });
   }
 };
+
