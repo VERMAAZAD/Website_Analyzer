@@ -8,6 +8,18 @@ exports.checkTraffic = async (req, res) => {
     const clientIp = requestIp.getClientIp(req);
     const location = geoip.lookup(clientIp) || {};
 
+    // Get Referer header (e.g. "https://www.google.com/search?q=site")
+    const referer = req.headers.referer || req.headers.referrer || "";
+
+    // Detect search engine
+    let searchEngine = "Direct";
+    if (referer.includes("google.")) searchEngine = "Google";
+    else if (referer.includes("bing.")) searchEngine = "Bing";
+    else if (referer.includes("yahoo.")) searchEngine = "Yahoo";
+    else if (referer.includes("duckduckgo.")) searchEngine = "DuckDuckGo";
+    else if (referer.includes("baidu.")) searchEngine = "Baidu";
+    else if (referer.includes("yandex.")) searchEngine = "Yandex";
+
     const traffic = new Trafficchecker({
       siteId: req.body.siteId,
       visitorId: req.body.visitorId, // from cookie or uuid
@@ -16,6 +28,7 @@ exports.checkTraffic = async (req, res) => {
       ip: clientIp,
       userAgent: req.headers["user-agent"],
       location,
+      searchEngine,
     });
 
     await traffic.save();

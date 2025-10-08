@@ -85,7 +85,7 @@
   };
 
   try {
-    fetch(ENDPOINT, {
+    fetch('https://api.monitorchecker.com/trackweb/clicks', {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),

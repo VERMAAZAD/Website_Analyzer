@@ -8,6 +8,7 @@ const trafficSchema = new mongoose.Schema({
   ip: String,
   userAgent: String,
   location: Object,
+  searchEngine: { type: String, default: "Direct" }, 
   timestamp: { type: Date, default: Date.now },
 });
 

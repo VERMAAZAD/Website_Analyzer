@@ -170,28 +170,6 @@ const totalUniqueTraffic = sortedDomains.reduce((sum, d) => sum + (d.todayUnique
             </table>
           </div>
         )}
-
-        {selectedDomain && (
-          <div style={{ marginTop: "30px" }}>
-            <h2>Traffic for {selectedDomain}</h2>
-            {loadingStats ? (
-              <div className="spinner-container">
-                <div className="spinner"></div>
-                <p>Loading traffic stats...</p>
-              </div>
-            ) : locationStats.length === 0 ? (
-              <p style={{ color: "#888" }}>No location stats available</p>
-            ) : (
-              <ul>
-                {locationStats.map((loc) => (
-                  <li key={loc.country}>
-                    {loc.country}: {loc.count}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
       </div>
     </Layout>
   );
