@@ -18,7 +18,7 @@
   const visitorId = getVisitorId();
   const userId = script.getAttribute("data-user-id");
 
-  fetch(`http://localhost:5000/traffic/traffic-check`, {
+  fetch(`https://api.monitorchecker.com/traffic/traffic-check`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
