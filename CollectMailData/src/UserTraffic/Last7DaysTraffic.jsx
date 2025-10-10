@@ -1,3 +1,4 @@
+import React from 'react'
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
@@ -27,8 +28,12 @@ const Last7DaysTraffic = () => {
 
   const fetchDomains = (cat) => {
     setLoading(true);
-    axios
-      .get(`${import.meta.env.VITE_API_URI}/${cat}/unique/domains/last7days`)
+    const token = localStorage.getItem("token");
+    axios.get(`${import.meta.env.VITE_API_URI}/${cat}/unique/domains/last7days`, {
+      headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
       .then((res) => {
         setDomains(Array.isArray(res.data) ? res.data : []);
         generateLast7Days();
@@ -145,9 +150,8 @@ const Last7DaysTraffic = () => {
                 );
 
                 return (
-                  <>
+                  <React.Fragment key={domain.domain}>
                     <tr
-                      key={domain.domain}
                       onClick={() =>
                         setSelectedDomain(
                           selectedDomain === domain.domain
@@ -197,7 +201,7 @@ const Last7DaysTraffic = () => {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </React.Fragment>
                 );
               })}
             </tbody>

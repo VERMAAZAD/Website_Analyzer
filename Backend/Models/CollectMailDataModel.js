@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const maildataSchema = new mongoose.Schema(
   {
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: false },
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     gender: {type: String },
@@ -20,6 +21,8 @@ const maildataSchema = new mongoose.Schema(
   },
   { timestamps: true } 
 );
+
+maildataSchema.index({ userId: 1, email: 1 }, { unique: true });
 
 module.exports = mongoose.model("CollectEmailData", maildataSchema);
 

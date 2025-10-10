@@ -74,7 +74,7 @@ const Login = () => {
         handleSuccess(message);
 
         localStorage.setItem('token', jwtToken);
-        localStorage.setItem('loggedInUser', JSON.stringify(user?.name));
+        localStorage.setItem('user', JSON.stringify(user));
         localStorage.setItem('selectedCategory', 'traffic');
 
         if (user.role === 'admin') {

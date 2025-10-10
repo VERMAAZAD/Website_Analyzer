@@ -5,10 +5,11 @@ const {
   getAllUsers,
   deleteUser
 } = require("../Controllers/CollectMailDataControllder");
+const ensureAuthenticated = require("../Middlewares/Auth");
 
 // Routes
 router.post("/subscribe", subscribeUser);
-router.get("/users", getAllUsers);
-router.delete("/users/:id", deleteUser);
+router.get("/users", ensureAuthenticated, getAllUsers);
+router.delete("/users/:id", ensureAuthenticated, deleteUser);
 
 module.exports = router;

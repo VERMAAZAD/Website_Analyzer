@@ -10,7 +10,12 @@ const AllmailData = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URI}/collectmail/users`);
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${import.meta.env.VITE_API_URI}/collectmail/users`, {
+          headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        });
         const data = await res.json();
         setUsers(data);
       } catch (err) {
@@ -62,8 +67,14 @@ const AllmailData = () => {
                   <button
                     onClick={async () => {
                       if (confirm("Are you sure you want to delete this user?")) {
-                        await fetch(`${import.meta.env.VITE_API_URI}/collectmail/users/${user._id}`, {
+                         const token = localStorage.getItem("token");
+                         if (!token) {
+                            alert("Not authenticated");
+                            return;
+                          }
+                        await fetch(`${import.meta.env.VITE_API_URI}/collectmail/users/${user._id}`,  {
                           method: "DELETE",
+                          headers: { Authorization: `Bearer ${token}`}
                         });
                         // Refresh table
                         setUsers(users.filter((u) => u._id !== user._id));

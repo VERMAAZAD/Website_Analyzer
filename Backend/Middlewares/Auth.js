@@ -17,8 +17,8 @@ const ensureAuthenticated = async (req, res, next) => {
         if (!user) {
             return res.status(403).json({ message: 'Unauthorized, user not found' });
         }
-
-        req.user = user; // Attach full user object to request
+        req.user = user; 
+        req.userId = user._id; 
         next();
     } catch (err) {
         return res.status(403).json({ message: 'Unauthorized, invalid or expired token' });

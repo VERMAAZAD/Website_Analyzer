@@ -10,18 +10,21 @@ const {
 
 exports.subscribeUser = async (req, res) => {
   try {
-    const { name, email, gender, age, category } = req.body;
+    const {userId, name, email, gender, age, category } = req.body;
     const landingPageUrl = req.headers["referer"] || "unknown";
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized: Missing user ID" });
+    }
 
     if (!name || !email) {
       return res.status(400).json({ success: false, message: "Name and email are required" });
     }
 
-    // Check if email already exists
-    const existingUser = await CollectEmailData.findOne({ email });
+     const existingUser = await CollectEmailData.findOne({ email, userId });
     if (existingUser) {
       return res.status(200).json({ success: true, message: "Welcome back!" });
-    }
+    };
 
     // Validate email
     if (!isValidEmailFormat(email)) {
@@ -43,6 +46,7 @@ exports.subscribeUser = async (req, res) => {
 
     // Save new user
     const newUser = new CollectEmailData({
+      userId,
       name,
       email,
       gender,
@@ -71,7 +75,19 @@ exports.subscribeUser = async (req, res) => {
 
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await CollectEmailData.find().sort({ createdAt: -1 });
+     if (!req.user || !req.user._id) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const userId = req.user._id;
+    const userRole = req.user.role || "user";
+
+    let filter = {};
+    if (userRole === "user") {
+      filter.userId = userId; // only their emails
+    }
+
+    const users = await CollectEmailData.find(filter).sort({ createdAt: -1 });
     res.json(users);
   } catch (err) {
     console.error("getAllUsers error:", err);
@@ -83,12 +99,21 @@ exports.getAllUsers = async (req, res) => {
 // Delete user by ID
 exports.deleteUser = async (req, res) => {
   try {
+     if (!req.user || !req.user._id) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
     const { id } = req.params;
+    const userId = req.user._id;
+    const userRole = req.user.role || "user";
 
     const user = await CollectEmailData.findById(id);
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
+     if (userRole !== "admin" && !user.userId.equals(userId)) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    } 
 
     await CollectEmailData.findByIdAndDelete(id);
 

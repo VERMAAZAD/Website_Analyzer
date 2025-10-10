@@ -17,12 +17,16 @@ const UserTraffic = () => {
     localStorage.getItem("selectedCategory") || "traffic"
   );
 
+
   const fetchDomains = (cat) => {
     setLoadingDomains(true);
-    axios
-      .get(`${import.meta.env.VITE_API_URI}/${cat}/unique/domains`)
+    const token = localStorage.getItem("token");
+    axios.get(`${import.meta.env.VITE_API_URI}/${cat}/unique/domains`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
       .then((res) => {
-        console.log("Fetched domains:", res.data);
         setDomains(Array.isArray(res.data) ? res.data : []);
       })
       .catch((err) => console.error(err))
@@ -46,8 +50,13 @@ const UserTraffic = () => {
   const handleDomainClick = (domain) => {
     setSelectedDomain(domain);
     setLoadingStats(true);
-    axios
-      .get(`${import.meta.env.VITE_API_URI}/${category}/stats/domain/${domain}`)
+    const token = localStorage.getItem("token");
+    axios.get(`${import.meta.env.VITE_API_URI}/${category}/stats/domain/${domain}`,{
+      headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    })
+    
       .then((res) => {
         console.log("Location stats:", res.data); // debug
         setLocationStats(Array.isArray(res.data) ? res.data : []);

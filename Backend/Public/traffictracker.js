@@ -13,14 +13,16 @@
     return newId;
   }
 
-  const siteId = document.currentScript.getAttribute("data-site-id");
+  const script = document.currentScript; 
+  const siteId = script.getAttribute("data-site-id");
   const visitorId = getVisitorId();
+  const userId = script.getAttribute("data-user-id");
 
-  
-  fetch(`https://api.monitorchecker.com/traffic/traffic-check`, {
+  fetch(`http://localhost:5000/traffic/traffic-check`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
+      userId,
       siteId,
       visitorId,
       domain: window.location.hostname,

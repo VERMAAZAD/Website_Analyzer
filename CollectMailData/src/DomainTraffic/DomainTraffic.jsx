@@ -15,8 +15,13 @@ const DomainTraffic = () => {
   const fetchTrafficData = async (filter = "all") => {
     setLoading(true);
     try {
+      const token = localStorage.getItem("token");
       const res = await axios.get(
-        `${import.meta.env.VITE_API_URI}/${category}/stats/domain/${domain}?filter=${filter}`
+        `${import.meta.env.VITE_API_URI}/${category}/stats/domain/${domain}?filter=${filter}`,{
+          headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        }
       );
       const sortedData = Array.isArray(res.data)
         ? [...res.data].sort((a, b) => (b.totalViews || 0) - (a.totalViews || 0))

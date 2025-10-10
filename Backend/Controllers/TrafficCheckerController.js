@@ -1,18 +1,24 @@
 const requestIp = require("request-ip");
 const geoip = require("geoip-lite");
-
+const mongoose = require('mongoose');
 const Trafficchecker = require("../Models/Trafficchecker");
+
 
 exports.checkTraffic = async (req, res) => {
   try {
+    const { userId, siteId, visitorId, domain, path } = req.body;
+     if (!userId || !siteId) {
+      return res.status(400).json({ error: "Missing userId or siteId" });
+    }
     const clientIp = requestIp.getClientIp(req);
     const location = geoip.lookup(clientIp) || {};
 
     const traffic = new Trafficchecker({
-      siteId: req.body.siteId,
-      visitorId: req.body.visitorId,
-      domain: req.body.domain,
-      path: req.body.path,
+      userId,
+      siteId,
+      visitorId,
+      domain,
+      path,
       ip: clientIp,
       userAgent: req.headers["user-agent"],
       location,
@@ -37,7 +43,20 @@ function formatUTCDateString(d) {
 
 exports.GetallUniqueDomains = async (req, res) => {
   try {
-    // compute UTC midnight today & yesterday
+    if (!req.userId || !req.user) {
+      console.error("❌ User not authenticated or req.user missing");
+      return res.status(401).json({ error: "Unauthorized: User not found in request" });
+    }
+
+    const userId = req.userId || req.user._id;
+    const userRole = req.user.role || "user"; 
+
+    let matchCondition = { domain: { $exists: true, $ne: "" } };
+    if (userRole === "user") {
+      matchCondition.userId = new mongoose.Types.ObjectId(userId);
+    }
+    // if role = master/admin, show all users (no userId filter)
+
     const now = new Date();
     const todayUTCmidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     const yesterdayUTCmidnight = new Date(todayUTCmidnight);
@@ -48,42 +67,41 @@ exports.GetallUniqueDomains = async (req, res) => {
 
     // ---- 1. Get all-time totals ----
     const allTime = await Trafficchecker.aggregate([
-      { $match: { domain: { $exists: true, $ne: "" } } },
+      { $match: matchCondition },
       {
         $group: {
           _id: "$domain",
           totalViews: { $sum: 1 },
-          uniqueVisitors: { $addToSet: "$visitorId" }
-        }
+          uniqueVisitors: { $addToSet: "$visitorId" },
+        },
       },
       {
         $project: {
           domain: "$_id",
           totalViews: 1,
           uniqueVisitors: { $size: "$uniqueVisitors" },
-          _id: 0
-        }
-      }
+          _id: 0,
+        },
+      },
     ]);
 
-
+    // ---- 2. Get daily stats (today/yesterday) ----
     const dailyStats = await Trafficchecker.aggregate([
       {
         $match: {
-          domain: { $exists: true, $ne: "" },
-          timestamp: { $gte: yesterdayUTCmidnight } // >= yesterday 00:00 UTC
-        }
+          ...matchCondition,
+          timestamp: { $gte: yesterdayUTCmidnight },
+        },
       },
       {
         $group: {
           _id: {
             domain: "$domain",
-            // force UTC formatting so the day strings match JS UTC strings
-            day: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp", timezone: "+00:00" } }
+            day: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp", timezone: "+00:00" } },
           },
           totalViews: { $sum: 1 },
-          uniqueVisitors: { $addToSet: "$visitorId" }
-        }
+          uniqueVisitors: { $addToSet: "$visitorId" },
+        },
       },
       {
         $project: {
@@ -91,14 +109,14 @@ exports.GetallUniqueDomains = async (req, res) => {
           day: "$_id.day",
           totalViews: 1,
           uniqueVisitors: { $size: "$uniqueVisitors" },
-          _id: 0
-        }
-      }
+          _id: 0,
+        },
+      },
     ]);
 
-    // Organize daily stats into explicit today / yesterday buckets (UTC strings)
+    // ---- 3. Organize daily data ----
     const dailyMap = {};
-    dailyStats.forEach(s => {
+    dailyStats.forEach((s) => {
       if (!dailyMap[s.domain]) {
         dailyMap[s.domain] = { today: { total: 0, unique: 0 }, yesterday: { total: 0, unique: 0 } };
       }
@@ -106,22 +124,22 @@ exports.GetallUniqueDomains = async (req, res) => {
         dailyMap[s.domain].today = { total: s.totalViews, unique: s.uniqueVisitors };
       } else if (s.day === yesterdayStr) {
         dailyMap[s.domain].yesterday = { total: s.totalViews, unique: s.uniqueVisitors };
-      } else {
-        // ignore any older/other days (we only care today/yesterday here)
       }
     });
 
-    // Merge all-time + daily into final result
-    const result = allTime.map(a => {
+    // ---- 4. Merge into final result ----
+    const result = allTime.map((a) => {
       const daily = dailyMap[a.domain] || { today: { total: 0, unique: 0 }, yesterday: { total: 0, unique: 0 } };
 
-      const totalChange = daily.yesterday.total > 0
-        ? (((daily.today.total - daily.yesterday.total) / daily.yesterday.total) * 100).toFixed(2)
-        : "N/A";
+      const totalChange =
+        daily.yesterday.total > 0
+          ? (((daily.today.total - daily.yesterday.total) / daily.yesterday.total) * 100).toFixed(2)
+          : "N/A";
 
-      const uniqueChange = daily.yesterday.unique > 0
-        ? (((daily.today.unique - daily.yesterday.unique) / daily.yesterday.unique) * 100).toFixed(2)
-        : "N/A";
+      const uniqueChange =
+        daily.yesterday.unique > 0
+          ? (((daily.today.unique - daily.yesterday.unique) / daily.yesterday.unique) * 100).toFixed(2)
+          : "N/A";
 
       return {
         domain: a.domain,
@@ -132,7 +150,7 @@ exports.GetallUniqueDomains = async (req, res) => {
         yesterdayTotal: daily.yesterday.total,
         yesterdayUnique: daily.yesterday.unique,
         totalChangePercent: totalChange,
-        uniqueChangePercent: uniqueChange
+        uniqueChangePercent: uniqueChange,
       };
     });
 
@@ -143,25 +161,44 @@ exports.GetallUniqueDomains = async (req, res) => {
   }
 };
 
+
 // visitor breakdown by country for that domain.
 exports.domainTraffic = async (req, res) => {
   try {
-    const { domain } = req.params;
-    const filter = req.query.filter || "all";
 
-    // Base match
-    const match = { domain };
+    const { domain } = req.params;
+    const { filter } = req.query;
+
+     if (!req.user) {
+      console.error("❌ User not authenticated or req.user missing");
+      return res.status(401).json({ error: "Unauthorized: User not found in request" });
+    }
+
+    const userId = req.userId || req.user._id;
+    const userRole = req.user.role || "user"; 
+
+        let matchCondition = { 
+        domain: { $exists: true, $ne: domain ? "" : null }, 
+      };
+      if (domain) matchCondition.domain = domain;
+    if (userRole === "user") {
+      if (mongoose.isValidObjectId(userId)) {
+        matchCondition.userId = new mongoose.Types.ObjectId(userId);
+      } else {
+        matchCondition.userId = userId;
+      }
+    }
 
     // If filter is "today", use UTC midnight
     if (filter === "today") {
       const now = new Date();
       const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-      match.timestamp = { $gte: todayUTC };
+      matchCondition.timestamp = { $gte: todayUTC };
     }
 
     // Aggregate unique visitors per country
     const locationStats = await Trafficchecker.aggregate([
-      { $match: match },
+      { $match: matchCondition },
       {
         $group: {
           _id: { country: "$location.country", visitor: "$visitorId" },
@@ -197,6 +234,19 @@ exports.domainTraffic = async (req, res) => {
 
 exports.GetLast7DaysTraffic = async (req, res) => {
   try {
+
+      if (!req.user) {
+      console.error("❌ User not authenticated or req.user missing");
+      return res.status(401).json({ error: "Unauthorized: User not found in request" });
+    }
+
+    const userId = req.userId || req.user._id;
+    const userRole = req.user.role || "user"; 
+
+     let matchCondition = { domain: { $exists: true, $ne: "" } };
+    if (userRole === "user") {
+      matchCondition.userId = new mongoose.Types.ObjectId(userId);
+    }
     // Generate last 7 days (YYYY-MM-DD)
     const last7Days = [];
     const now = new Date();
@@ -205,11 +255,10 @@ exports.GetLast7DaysTraffic = async (req, res) => {
       d.setUTCDate(now.getUTCDate() - i);
       last7Days.push(d.toISOString().slice(0, 10));
     }
-
-    // Aggregate traffic from last 7 days
      const dailyStats = await Trafficchecker.aggregate([
   {
     $match: {
+      userId: new mongoose.Types.ObjectId(userId),
       domain: { $exists: true, $ne: "" },
       timestamp: { $gte: new Date(last7Days[0] + "T00:00:00Z") }
     }
@@ -243,7 +292,8 @@ exports.GetLast7DaysTraffic = async (req, res) => {
     }
   }
 ], { allowDiskUse: true });
-    const domainMap = {};
+
+  const domainMap = {};
     dailyStats.forEach(s => {
       if (!domainMap[s.domain]) domainMap[s.domain] = {};
       domainMap[s.domain][s.day] = {

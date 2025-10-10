@@ -1,6 +1,7 @@
 const { signup, initiateLogin, requestPasswordReset, resetPassword, verifyLoginCode} = require('../Controllers/AuthController')
 const { signupValidation, loginValidation } = require('../Middlewares/AuthValidation');
-const ensureAuthenticated  = require("../Middlewares/Auth")
+const ensureAuthenticated  = require("../Middlewares/Auth");
+
 
 const router = require('express').Router();
 
