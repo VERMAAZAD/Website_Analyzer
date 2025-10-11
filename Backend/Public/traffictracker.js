@@ -17,18 +17,24 @@
   const siteId = script.getAttribute("data-site-id");
   const visitorId = getVisitorId();
   const userId = script.getAttribute("data-user-id");
+  
+  const domain = script.getAttribute("data-domain") || window.location.hostname;
 
-  fetch(`https://api.monitorchecker.com/traffic/traffic-check`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      userId,
-      siteId,
-      visitorId,
-      domain: window.location.hostname,
-      path: window.location.pathname,
-    }),
-  }).catch(err => console.error("Track error:", err));
-})();
+  if (domain !== window.location.hostname && window.location.hostname.includes("proxy")) {
+    console.warn("Blocked proxy tracking request");
+  } else {
+    fetch(`https://api.monitorchecker.com/traffic/traffic-check`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId,
+        siteId,
+        visitorId,
+        domain: window.location.hostname,
+        path: window.location.pathname,
+      }),
+    }).catch(err => console.error("Track error:", err));
+  }
+  })();
 
 

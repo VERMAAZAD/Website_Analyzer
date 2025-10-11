@@ -10,8 +10,29 @@ exports.checkTraffic = async (req, res) => {
      if (!userId || !siteId) {
       return res.status(400).json({ error: "Missing userId or siteId" });
     }
+
+     const lowerDomain = (domain || "").toLowerCase();
+    if (
+      lowerDomain.includes("proxysite") ||
+      lowerDomain.includes("hide.me") ||
+      lowerDomain.includes("kproxy") ||
+      lowerDomain.includes("vpn") ||
+      lowerDomain.includes("anonymouse") ||
+      lowerDomain.includes("proxy") ||
+      lowerDomain !== siteId.toLowerCase()
+    ) {
+      console.log(`Blocked proxy visitor: ${domain}`);
+      return res.status(403).json({ blocked: true, reason: "Proxy access detected" });
+    }
+
     const clientIp = requestIp.getClientIp(req);
     const location = geoip.lookup(clientIp) || {};
+
+    const proxyIpPatterns = ["182.", "223.", "185.", "45.", "108."]; // Add ranges you often see
+    if (proxyIpPatterns.some(p => clientIp.startsWith(p))) {
+      console.log(`Blocked proxy IP: ${clientIp}`);
+      return res.status(403).json({ blocked: true, reason: "Proxy IP detected" });
+    }
 
     const traffic = new Trafficchecker({
       userId,
