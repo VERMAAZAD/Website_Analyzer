@@ -10,6 +10,7 @@ const Header = () => {
   const categories = [
     { label: "Dating Traffic", value: "traffic" },
     { label: "Ads Website", value: "adswebsite" },
+    { label: "Nautra Website", value: "natural" },
   ];
 
   const handleSelect = (value) => {

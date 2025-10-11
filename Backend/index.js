@@ -17,6 +17,7 @@ const CollectMailDataRouter = require('./Routers/CollectMailDataRouter')
 const ClickTrackRouter = require('./Routers/ClickTrackRouter')
 const TrafficCheckerRouter = require('./Routers/TrafficCheckerRouter')
 const AdsWebsiteRouter = require('./Routers/AdsWebsiteRouter')
+const NautraWebsiteRouter = require('./Routers/NautraWebsiteRouter')
 
 const PORT = process.env.PORT || 5000;
 
@@ -48,6 +49,7 @@ app.use("/collectmail", CollectMailDataRouter)
 app.use("/trackweb", ClickTrackRouter)
 app.use("/traffic", TrafficCheckerRouter)
 app.use("/adswebsite", AdsWebsiteRouter)
+app.use("/natural", NautraWebsiteRouter)
 
 app.listen(PORT, () => {
     console.log('Server is Running');
