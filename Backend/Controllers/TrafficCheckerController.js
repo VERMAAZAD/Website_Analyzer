@@ -66,47 +66,57 @@ exports.GetallUniqueDomains = async (req, res) => {
   try {
     if (!req.userId || !req.user) {
       console.error("❌ User not authenticated or req.user missing");
-      return res.status(401).json({ error: "Unauthorized: User not found in request" });
+      return res
+        .status(401)
+        .json({ error: "Unauthorized: User not found in request" });
     }
 
     const userId = req.userId || req.user._id;
-    const userRole = req.user.role || "user"; 
+    const userRole = req.user.role || "user";
 
+    // Match condition (filter by user if not admin)
     let matchCondition = { domain: { $exists: true, $ne: "" } };
     if (userRole === "user") {
       matchCondition.userId = new mongoose.Types.ObjectId(userId);
     }
-    // if role = master/admin, show all users (no userId filter)
 
+    // ---- Date setup ----
     const now = new Date();
-    const todayUTCmidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const todayUTCmidnight = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+    );
     const yesterdayUTCmidnight = new Date(todayUTCmidnight);
     yesterdayUTCmidnight.setUTCDate(yesterdayUTCmidnight.getUTCDate() - 1);
 
     const todayStr = formatUTCDateString(todayUTCmidnight);
     const yesterdayStr = formatUTCDateString(yesterdayUTCmidnight);
 
-    // ---- 1. Get all-time totals ----
+    // ---- 1. All-time stats (optimized) ----
     const allTime = await Trafficchecker.aggregate([
       { $match: matchCondition },
       {
         $group: {
-          _id: "$domain",
+          _id: { domain: "$domain", visitorId: "$visitorId" },
+        },
+      },
+      {
+        $group: {
+          _id: "$_id.domain",
           totalViews: { $sum: 1 },
-          uniqueVisitors: { $addToSet: "$visitorId" },
+          uniqueVisitors: { $sum: 1 }, // each visitorId counted once per domain
         },
       },
       {
         $project: {
           domain: "$_id",
           totalViews: 1,
-          uniqueVisitors: { $size: "$uniqueVisitors" },
+          uniqueVisitors: 1,
           _id: 0,
         },
       },
-    ]);
+    ]).allowDiskUse(true);
 
-    // ---- 2. Get daily stats (today/yesterday) ----
+    // ---- 2. Daily stats (optimized) ----
     const dailyStats = await Trafficchecker.aggregate([
       {
         $match: {
@@ -118,10 +128,22 @@ exports.GetallUniqueDomains = async (req, res) => {
         $group: {
           _id: {
             domain: "$domain",
-            day: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp", timezone: "+00:00" } },
+            visitorId: "$visitorId",
+            day: {
+              $dateToString: {
+                format: "%Y-%m-%d",
+                date: "$timestamp",
+                timezone: "+00:00",
+              },
+            },
           },
+        },
+      },
+      {
+        $group: {
+          _id: { domain: "$_id.domain", day: "$_id.day" },
           totalViews: { $sum: 1 },
-          uniqueVisitors: { $addToSet: "$visitorId" },
+          uniqueVisitors: { $sum: 1 },
         },
       },
       {
@@ -129,37 +151,58 @@ exports.GetallUniqueDomains = async (req, res) => {
           domain: "$_id.domain",
           day: "$_id.day",
           totalViews: 1,
-          uniqueVisitors: { $size: "$uniqueVisitors" },
+          uniqueVisitors: 1,
           _id: 0,
         },
       },
-    ]);
+    ]).allowDiskUse(true);
 
-    // ---- 3. Organize daily data ----
+    // ---- 3. Organize daily stats ----
     const dailyMap = {};
     dailyStats.forEach((s) => {
       if (!dailyMap[s.domain]) {
-        dailyMap[s.domain] = { today: { total: 0, unique: 0 }, yesterday: { total: 0, unique: 0 } };
+        dailyMap[s.domain] = {
+          today: { total: 0, unique: 0 },
+          yesterday: { total: 0, unique: 0 },
+        };
       }
       if (s.day === todayStr) {
-        dailyMap[s.domain].today = { total: s.totalViews, unique: s.uniqueVisitors };
+        dailyMap[s.domain].today = {
+          total: s.totalViews,
+          unique: s.uniqueVisitors,
+        };
       } else if (s.day === yesterdayStr) {
-        dailyMap[s.domain].yesterday = { total: s.totalViews, unique: s.uniqueVisitors };
+        dailyMap[s.domain].yesterday = {
+          total: s.totalViews,
+          unique: s.uniqueVisitors,
+        };
       }
     });
 
-    // ---- 4. Merge into final result ----
+    // ---- 4. Merge all-time and daily ----
     const result = allTime.map((a) => {
-      const daily = dailyMap[a.domain] || { today: { total: 0, unique: 0 }, yesterday: { total: 0, unique: 0 } };
+      const daily =
+        dailyMap[a.domain] || {
+          today: { total: 0, unique: 0 },
+          yesterday: { total: 0, unique: 0 },
+        };
 
       const totalChange =
         daily.yesterday.total > 0
-          ? (((daily.today.total - daily.yesterday.total) / daily.yesterday.total) * 100).toFixed(2)
+          ? (
+              ((daily.today.total - daily.yesterday.total) /
+                daily.yesterday.total) *
+              100
+            ).toFixed(2)
           : "N/A";
 
       const uniqueChange =
         daily.yesterday.unique > 0
-          ? (((daily.today.unique - daily.yesterday.unique) / daily.yesterday.unique) * 100).toFixed(2)
+          ? (
+              ((daily.today.unique - daily.yesterday.unique) /
+                daily.yesterday.unique) *
+              100
+            ).toFixed(2)
           : "N/A";
 
       return {
@@ -175,9 +218,10 @@ exports.GetallUniqueDomains = async (req, res) => {
       };
     });
 
+    // ---- 5. Send response ----
     res.json(result);
   } catch (err) {
-    console.error("Error fetching domain stats:", err);
+    console.error("❌ Error fetching domain stats:", err);
     res.status(500).json({ error: "Failed to fetch domain stats" });
   }
 };
