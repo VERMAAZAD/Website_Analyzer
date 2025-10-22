@@ -44,8 +44,8 @@
 /* Individual Category Card */
 .brand-card {
   background-color: #ffffff;
-  border-radius: 20px;
-  padding: 1.5rem;
+  border-radius: 10px;
+  padding: 1rem;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   cursor: pointer;
@@ -66,8 +66,9 @@
 }
 
 .brand-header h3 {
-  font-size: 1.25rem;
+  font-size: 1rem;
   color: #2b2e4a;
+  font-weight: 600;
   margin: 0;
 }
 

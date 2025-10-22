@@ -49,7 +49,7 @@ import { handleError, handleSuccess } from "../../toastutils";
     try {
       setIsChecking(true);
        const res = await axios.get(
-          `${import.meta.env.VITE_API_URI}/${apiBase}/bing-check`,
+          `${import.meta.env.VITE_API_URI}/${apiBase}/bing-check?force=true`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
