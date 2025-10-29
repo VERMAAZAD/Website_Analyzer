@@ -963,155 +963,305 @@ exports.updateDomainName = async (req, res) => {
 
 
 
-const puppeteer = require('puppeteer-extra');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-const UserAgent = require('user-agents');
+  const puppeteer = require('puppeteer-extra');
+  const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+  const UserAgent = require('user-agents');
 
-puppeteer.use(StealthPlugin());
+  puppeteer.use(StealthPlugin());
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-exports.checkBingIndex = async (req, res) => {
-  if (!req.user || !req.user._id) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  
+
+/* -----------------------------------------------------
+ * 🧹 Safe page close
+ * --------------------------------------------------- */
+const safeClose = async (page) => {
+  if (!page) return;
+  try {
+    // check if page still valid
+    if (!page.isClosed && typeof page.isClosed === 'function') {
+      if (!(await page.isClosed())) {
+        await page.close({ runBeforeUnload: false });
+      }
+    } else {
+      await page.close({ runBeforeUnload: false });
+    }
+  } catch (err) {
+    const msg = err.message || '';
+    if (!msg.includes('No target with given id') && !msg.includes('Session closed')) {
+      console.warn(`⚠️ safeClose error: ${msg}`);
+    }
+  }
+};
+
+/* -----------------------------------------------------
+ * 🔍 Detect Bing indexing status
+ * --------------------------------------------------- */
+ async function detectBingIndex(page, cleanDomain) {
+  return page.evaluate((domain) => {
+    try {
+      // Dismiss cookie / consent if present
+      const consentBtn = Array.from(document.querySelectorAll('button, input[type="submit"], a'))
+        .find(el => /accept|agree|consent|ok/i.test(el.textContent || ''));
+      if (consentBtn) {
+        try { consentBtn.click(); } catch(e) { /* ignore */ }
+      }
+
+      const bodyText = document.body.innerText.toLowerCase();
+
+      const noResultPhrases = [
+        'there are no results for',
+        'did not match any documents',
+        'no results found for',
+        'we didn’t find any results',
+        'no results containing',
+        'no web pages',
+        'did not match any results',
+        'no results for',
+      ];
+      if (noResultPhrases.some(phrase => bodyText.includes(phrase))) {
+        return { indexed: false, firstResult: null, resultCount: 0 };
+      }
+
+      // Extract organic result links
+      const anchors = Array.from(
+        document.querySelectorAll('li.b_algo h2 a, .b_title a, .b_algoheader h2 a, h2 > a, .b_attribution a')
+      );
+
+      const links = anchors
+        .map(el => el.href)
+        .filter(href => href && !href.includes('bing.com') && !href.includes('/images/') && !href.includes('microsoft.com'))
+        .map(href => {
+          try {
+            return (new URL(href)).hostname + (new URL(href)).pathname;
+          } catch (e) {
+            return href;
+          }
+        });
+
+      const uniqueLinks = Array.from(new Set(links));
+
+      const firstResult = uniqueLinks.length > 0 ? uniqueLinks[0] : null;
+      return { indexed: uniqueLinks.length > 0, firstResult, resultCount: uniqueLinks.length };
+    } catch (e) {
+      return { indexed: false, firstResult: null, resultCount: 0 };
+    }
+  }, cleanDomain);
+}
+
+/* -----------------------------------------------------
+ * ♻️ Retry logic for Bing index check
+ * --------------------------------------------------- */
+const retryCheck = async (fullUrl, browser, retries = 3, delayBetweenRetries = 5000) => {
+  const cleanDomain = fullUrl
+    .replace(/^https?:\/\//i, '')
+    .replace(/\/.*$/, '')
+    .trim();
+
+  if (!cleanDomain || cleanDomain === 'about:blank') {
+    console.warn(`⚠️ Invalid domain skipped: ${fullUrl}`);
+    return { isBlocked: false, isIndexed: false, firstResult: null, resultCount: 0 };
   }
 
-  const startOfToday = new Date();
-  startOfToday.setUTCHours(0, 0, 0, 0);
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    let page = null;
+    try {
+      console.log(`\n🔍 [${cleanDomain}] Checking (Attempt ${attempt}/${retries})`);
+      page = await browser.newPage();
 
-  const baseFilter = req.user.role === 'admin' ? {} : { user: req.user._id };
+      await page.setUserAgent(new UserAgent().toString());
+      await page.setViewport({
+        width: 1000 + Math.floor(Math.random() * 400),
+        height: 700 + Math.floor(Math.random() * 300),
+      });
 
-const forceCheck = req.query.force === 'true';
+      page.on('console', msg => console.log(`🧠 [${cleanDomain}] console: ${msg.text()}`));
+      page.on('pageerror', err => console.error(`❗ [${cleanDomain}] JS error: ${err.message}`));
 
-const filter = forceCheck
-  ? baseFilter
-  : {
-      ...baseFilter,
-      $or: [
-        { lastBingCheck: { $exists: false } },
-        { lastBingCheck: { $lt: startOfToday } },
-      ],
-    };
+      const bingQueryUrl = `https://www.bing.com/search?q=site:${encodeURIComponent(cleanDomain)}`;
+      console.log(`🌐 Navigating to: ${bingQueryUrl}`);
+      await page.setUserAgent(
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
+      );
 
-const domains = await ScrapedSite.find(filter, 'domain');
+      await page.setExtraHTTPHeaders({
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Upgrade-Insecure-Requests': '1',
+        'DNT': '1',
+      });
 
+      const response = await page.goto(bingQueryUrl, {
+        waitUntil: 'domcontentloaded',
+        timeout: 90_000
+      });
 
-  const domainList = domains.map((d) => d.domain);
-  const unindexed = [];
-  const checkedToday = [];
+      if (!response || !response.ok()) {
+        console.warn(`⚠️ [${cleanDomain}] Bing response not OK: ${response ? response.status() : 'no response'}`);
+        await safeClose(page);
+        // maybe wait then retry
+        if (attempt < retries) {
+          await new Promise(r => setTimeout(r, delayBetweenRetries));
+          continue;
+        }
+        return { isBlocked: false, isIndexed: false, firstResult: null, resultCount: 0 };
+      }
 
-  let browser;
+      // Wait for results or no-result indicator
+      try {
+        await Promise.race([
+          page.waitForSelector('li.b_algo h2 a, .b_title a', { timeout: 15000 }),
+          page.waitForFunction(
+            () => document.body.innerText.toLowerCase().includes('no results for') ||
+                  document.body.innerText.toLowerCase().includes('did not match any documents'),
+            { timeout: 15000 }
+          )
+        ]);
+      } catch (e) {
+        console.log(`⏳ [${cleanDomain}] waiting additional time...`);
+        await new Promise(r => setTimeout(r, 7000));
+      }
+
+      // Wait small random to let dynamic content settle
+      await new Promise(r => setTimeout(r, 1500 + Math.random() * 1500));
+
+      // Detect blocking / captcha
+      const isBlocked = await page.evaluate(() => {
+        const txt = document.body.innerText.toLowerCase();
+        return (
+          document.querySelector('#b_captcha') ||
+          document.querySelector("iframe[src*='recaptcha']") ||
+          txt.includes('verify you are human') ||
+          txt.includes('unusual traffic') ||
+          txt.includes('bot detect') ||
+          txt.includes('private access token') ||
+          txt.includes('access denied') ||
+          txt.includes('we’ve detected unusual activity')
+        );
+      });
+
+      if (isBlocked) {
+        console.warn(`🚫 [${cleanDomain}] CAPTCH A / Block detected`);
+        await safeClose(page);
+        return { isBlocked: true, isIndexed: false, firstResult: null, resultCount: 0 };
+      }
+
+      // Detect index status
+      const { indexed, firstResult, resultCount } = await detectBingIndex(page, cleanDomain);
+      if (indexed) {
+        console.log(`✅ [${cleanDomain}] Indexed — first result: ${firstResult}, count: ${resultCount}`);
+      } else {
+        console.log(`ℹ️ [${cleanDomain}] Not indexed — found count: ${resultCount}`);
+      }
+      await safeClose(page);
+      return { isBlocked: false, isIndexed: indexed, firstResult, resultCount };
+
+    } catch (err) {
+      console.warn(`❌ [${cleanDomain}] Error on attempt ${attempt}: ${err.message}`);
+      if (page) {
+        await safeClose(page);
+      }
+      if (attempt < retries) {
+        console.log(`⏳ [${cleanDomain}] Retrying after ${delayBetweenRetries}ms`);
+        await new Promise(r => setTimeout(r, delayBetweenRetries));
+      }
+    }
+  }
+
+  console.error(`❌ [${cleanDomain}] All ${retries} attempts failed`);
+  return { isBlocked: false, isIndexed: false, firstResult: null, resultCount: 0 };
+};
+
+/* -----------------------------------------------------
+ * 🚀 Main Bing Index Checker API
+ * --------------------------------------------------- */
+exports.checkBingIndex = async (req, res) => {
   try {
-    browser = await puppeteer.launch({
-      headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const startOfToday = new Date();
+    startOfToday.setUTCHours(0, 0, 0, 0);
+
+    const baseFilter = req.user.role === 'admin'
+      ? {}
+      : { user: req.user._id };
+
+    const forceCheck = req.query.force === 'true';
+
+    const filter = forceCheck
+      ? baseFilter
+      : {
+        ...baseFilter,
+        $or: [
+          { lastBingCheck: { $exists: false } },
+          { lastBingCheck: { $lt: startOfToday } }
+        ]
+      };
+
+    const domains = await ScrapedSite.find(filter, 'domain');
+    console.log(`🧾 Domains to check: ${domains.length}`);
+
+    if (!domains.length) {
+      return res.json({ message: 'No domains to check today.' });
+    }
+
+    const browser = await puppeteer.launch({
+      headless: false, 
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-blink-features=AutomationControlled',
+        '--lang=en-US,en'
+      ]
     });
 
-    const limit = pLimit(2); // safer concurrency
+    const limit = pLimit(2); // you can raise concurrency to 2 or 3 but be mindful of block
+    const unindexed = [];
+    const checkedToday = [];
 
-    const tasks = domainList.map((fullUrl) =>
+    const tasks = domains.map(d =>
       limit(async () => {
-        let page;
-        let domain;
+        const domain = d.domain;
+        const { isBlocked, isIndexed, firstResult, resultCount } = await retryCheck(domain, browser, 3);
 
-        try {
-          domain = fullUrl.startsWith('http')
-            ? new URL(fullUrl).hostname
-            : fullUrl.replace(/^https?:\/\//, '').split('/')[0];
-
-          page = await browser.newPage();
-
-          await page.setRequestInterception(true);
-          page.on('request', (req) => {
-            if (['image', 'font', 'stylesheet'].includes(req.resourceType())) req.abort();
-            else req.continue();
-          });
-
-          const userAgent = new UserAgent().toString();
-          await page.setUserAgent(userAgent);
-          await page.setViewport({
-            width: 1280,
-            height: 720 + Math.floor(Math.random() * 200),
-          });
-
-          const bingQueryUrl = `https://www.bing.com/search?q=site:${domain}`;
-          await page.goto(bingQueryUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
-          await page.waitForSelector('#b_content, .b_results', { timeout: 15000 }).catch(() => {});
-
-          await sleep(2000 + Math.random() * 3000);
-
-          const isBlocked = await page.evaluate(() => {
-            return (
-              document.querySelector('#b_captcha') ||
-              document.body.innerText.includes('Verify you are human') ||
-              document.querySelector("iframe[src*='recaptcha']")
-            );
-          });
-          if (isBlocked) {
-            console.warn(`🚫 Captcha triggered for ${domain}`);
-            return;
-          }
-
-          // const isIndexed = await page.evaluate(() => {
-          //   const results = document.querySelectorAll('li.b_algo');
-          //   const noResults = document.querySelector('.b_no');
-          //   if (noResults && noResults.innerText.toLowerCase().includes('did not match')) return false;
-          //   return results.length > 0;
-          // });
-
-          // check indexing
-
-          
-          const isIndexed = await page.evaluate(() => {
-            const text = document.body.innerText.toLowerCase();
-
-            // explicit no-result cases
-            if (
-              text.includes('there are no results for site:') ||
-              text.includes('did not match any documents') ||
-              text.includes('no results found for')
-            ) {
-              return false;
-            }
-
-            // look for main organic results
-            const results = Array.from(document.querySelectorAll('li.b_algo, .b_algo, .b_result'));
-            const visibleResults = results.filter((el) => el.offsetParent !== null);
-            const hasMainResults = visibleResults.some((r) => !r.innerText.includes('related search'));
-
-            return hasMainResults && visibleResults.length > 0;
-          });
-
-
-          const site = await ScrapedSite.findOne({ domain: fullUrl });
+        if (!isBlocked) {
+          const site = await ScrapedSite.findOne({ domain });
           if (site) {
             site.isIndexedOnBing = isIndexed;
             site.lastBingCheck = new Date();
+            site.bingFirstResult = firstResult;
+            site.bingResultCount = resultCount;
             await site.save();
           }
-
-          if (!isIndexed) unindexed.push(fullUrl);
-          checkedToday.push(fullUrl);
-        } catch (err) {
-          console.warn(`❌ Error checking ${domain}:`, err.message);
-        } finally {
-          if (page) {
-            await sleep(300 + Math.random() * 500);
-            try {
-              await page.close();
-            } catch {}
-          }
+          if (!isIndexed) unindexed.push(domain);
+          checkedToday.push(domain);
+        } else {
+          console.log(`🛑 [${domain}] Skipped saving due to block`);
         }
       })
     );
 
     await Promise.all(tasks);
 
-    return res.json({ unindexed, checkedToday });
+    try {
+      await browser.close();
+    } catch (e) {
+      console.warn('⚠️ Browser close error:', e.message);
+    }
+
+    console.log(`✅ Done! Checked: ${checkedToday.length}, Unindexed: ${unindexed.length}`);
+    return res.json({
+      success: true,
+      checked: checkedToday.length,
+      unindexedCount: unindexed.length,
+      unindexed
+    });
+
   } catch (err) {
-    console.error('❌ Puppeteer error:', err.message);
-    res.status(500).json({ error: 'Server error' });
-  } finally {
-    if (browser) await browser.close().catch(() => {});
+    console.error('❌ checkBingIndex error:', err);
+    return res.status(500).json({ error: 'Server error', details: err.message });
   }
 };
