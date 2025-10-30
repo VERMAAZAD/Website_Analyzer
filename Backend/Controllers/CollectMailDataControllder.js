@@ -81,10 +81,15 @@ exports.getAllUsers = async (req, res) => {
 
     const userId = req.user._id;
     const userRole = req.user.role || "user";
+    const { category } = req.query;
 
     let filter = {};
     if (userRole === "user") {
-      filter.userId = userId; // only their emails
+      filter.userId = userId;
+    }
+
+      if (category) {
+      filter.category = category;
     }
 
     const users = await CollectEmailData.find(filter).sort({ createdAt: -1 });
