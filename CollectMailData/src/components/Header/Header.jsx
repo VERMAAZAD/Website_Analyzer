@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./Header.css";
 
-const Header = () => {
+const Header = ({ toggleSidebar }) => {
   const [category, setCategory] = useState(
     localStorage.getItem("selectedCategory") || "traffic"
   );
@@ -10,34 +10,35 @@ const Header = () => {
   const categories = [
     { label: "Dating Traffic", value: "traffic" },
     { label: "Ads Website", value: "adswebsite" },
-    { label: "Nautra Website", value: "natural" },
+    { label: "Natural Website", value: "natural" },
   ];
 
   const handleSelect = (value) => {
     setCategory(value);
     localStorage.setItem("selectedCategory", value);
     setDropdownOpen(false);
-
-    // Trigger a storage event manually to notify other components
     window.dispatchEvent(new Event("categoryChange"));
   };
 
   return (
-    <div className="header">
+    <header className="header">
       <div className="header-left">
-        <button className="menu-btn">☰</button>
-        <h2>Dashboard</h2>
+        <button className="menu-btn" onClick={toggleSidebar}>
+          <i className="fas fa-bars"></i>
+        </button>
       </div>
 
       <div className="header-right">
-        <div className="user-name">Welcome, User</div>
+        <div className="user-name">
+          <i className="fas fa-user-circle"></i> Welcome
+        </div>
 
         <div className="dropdown-container">
           <button
             className="dropdown-button"
             onClick={() => setDropdownOpen(!dropdownOpen)}
           >
-            {categories.find((c) => c.value === category)?.label || "Select Category"} ▾
+            {categories.find((c) => c.value === category)?.label || "Select"} ▾
           </button>
 
           {dropdownOpen && (
@@ -55,7 +56,7 @@ const Header = () => {
           )}
         </div>
       </div>
-    </div>
+    </header>
   );
 };
 

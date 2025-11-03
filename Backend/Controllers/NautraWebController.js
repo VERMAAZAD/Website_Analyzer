@@ -363,3 +363,49 @@ exports.GetLast7DaysTraffic = async (req, res) => {
   }
 };
 
+
+
+exports.GetTopCountries = async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const matchCondition = { domain: { $exists: true, $ne: "" } };
+      if (user.role === "user") {
+      matchCondition.userId = new mongoose.Types.ObjectId(user._id);
+    }
+
+    const topCountries = await NautraWebsiteTrack.aggregate([
+      { $match: matchCondition },
+      {
+        $group: {
+          _id: { country: "$location.country", visitor: "$visitorId" },
+          totalViews: { $sum: 1 },
+        },
+      },
+      {
+        $group: {
+          _id: "$_id.country",
+          totalViews: { $sum: "$totalViews" },
+          uniqueVisitors: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          country: "$_id",
+          totalViews: 1,
+          uniqueVisitors: 1,
+          _id: 0,
+        },
+      },
+      { $sort: { totalViews: -1 } },
+      { $limit: 5 },
+    ], { allowDiskUse: true });
+
+    res.json(topCountries);
+  } catch (err) {
+    console.error("Error fetching top countries:", err);
+    res.status(500).json({ error: err.message });
+  }
+};

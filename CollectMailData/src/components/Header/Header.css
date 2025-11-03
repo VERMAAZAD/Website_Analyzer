@@ -2,10 +2,12 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #fff;
-  color: #000;
-  padding: 12px 20px;
-  position: relative;
+  background: #fff;
+  padding: 13px 20px;
+  border-bottom: 1px solid #e7e7e7;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
 .header-left {
@@ -15,22 +17,22 @@
 }
 
 .header-left h2 {
-  margin: 0;
   font-size: 22px;
-  font-weight: 600;
+  color: #333;
+  margin: 0;
 }
 
 .menu-btn {
-  font-size: 24px;
-  color: #000;
+  font-size: 22px;
   background: none;
   border: none;
   cursor: pointer;
-  transition: transform 0.2s;
+  color: #388e3c;
+  transition: transform 0.2s ease;
 }
 
 .menu-btn:hover {
-  transform: scale(1.1);
+  transform: scale(1.2);
 }
 
 .header-right {
@@ -39,66 +41,61 @@
   gap: 20px;
 }
 
-/* User name */
 .user-name {
   font-size: 16px;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-/* Custom Dropdown */
 .dropdown-container {
   position: relative;
 }
 
 .dropdown-button {
-  background-color: #673DE6;
-  color: #fff;
-  padding: 8px 16px;
-  font-size: 16px;
+  background: #388e3c;
+  color: white;
+  padding: 10px 14px;
+  border-radius: 8px;
   border: none;
-  border-radius: 6px;
   cursor: pointer;
+  font-weight: 500;
   transition: background 0.3s;
 }
 
 .dropdown-button:hover {
-  background-color: #673de6e1;
+  background: #388e3cdd;
 }
 
 .dropdown-list {
   position: absolute;
-  top: 48px;
   right: 0;
-  background-color: #fff;
+  top: 45px;
+  background: #fff;
   border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.2);
   list-style: none;
-  padding: 6px 0;
   margin: 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  width: 260px;
-  z-index: 100;
+  padding: 5px 0;
+  width: 220px;
   animation: fadeIn 0.2s ease;
+  z-index: 10;
 }
 
 .dropdown-list li {
-  padding: 10px 16px;
+  padding: 10px 15px;
   cursor: pointer;
-  color: #000;
-  transition: background 0.2s, color 0.2s;
+  transition: background 0.3s;
 }
 
-.dropdown-list li:hover {
-  background-color: #673de6e1;
-  color: #fff;
-}
-
+.dropdown-list li:hover,
 .dropdown-list li.active {
-  background-color: #673DE6;
+  background: #388e3c;
   color: #fff;
   font-weight: 600;
 }
 
-/* Animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -111,18 +108,14 @@
 }
 
 /* Responsive */
-@media screen and (max-width: 576px) {
+@media (max-width: 768px) {
   .header-left h2 {
     font-size: 18px;
   }
   .user-name {
-    font-size: 14px;
+    display: none;
   }
   .dropdown-button {
-    font-size: 12px;
-    padding: 6px 12px;
-  }
-  .dropdown-list {
-    width: 140px;
+    font-size: 13px;
   }
 }

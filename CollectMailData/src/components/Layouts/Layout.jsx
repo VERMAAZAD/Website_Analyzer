@@ -1,20 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import './Layout.css';
-import Sidebar from '../Sidebar/Sidebar';
-import Header from '../Header/Header';
+import React, { useState } from "react";
+import Header from "../Header/Header";
+import Sidebar from "../Sidebar/Sidebar";
+import "./Layout.css";
 
 const Layout = ({ children }) => {
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
+
   return (
-    <div className="admin-layout">
-      <div className="sidebar-content">
-      <Sidebar />
-      </div>
-      <div className="main-content">
-        <Header/>
-        <div className="page-content">
-          {children}
-        </div>
-      </div>
+    <div className="layout">
+      <Header toggleSidebar={() => setSidebarOpen(!isSidebarOpen)} />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className={`content ${isSidebarOpen ? "shifted" : ""}`}>{children}</div>
     </div>
   );
 };

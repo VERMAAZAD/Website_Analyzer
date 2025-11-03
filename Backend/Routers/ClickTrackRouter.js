@@ -1,10 +1,10 @@
 const express = require("express");
 const router = express.Router();
 
-const { clickTracker, trackSummery } = require("../Controllers/ClickTrackController");
+const { clickTracker, trackSummary } = require("../Controllers/ClickTrackController");
 
 // Routes
 router.post("/clicks", clickTracker);
-router.get('/summary', trackSummery);
+router.get('/summary', trackSummary);
 
 module.exports = router;
