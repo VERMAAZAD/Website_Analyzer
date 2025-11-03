@@ -21,7 +21,7 @@ const PagesAnalytics = () => {
     const fetchData = async () => {
       try {
         const res = await axios.get(
-          `http://localhost:5000/trackweb/summary?siteId=${siteId}`
+          `${import.meta.env.VITE_API_URI}/trackweb/summary?siteId=${siteId}`
         );
         if (res.data?.data) setData(res.data.data);
       } catch (err) {

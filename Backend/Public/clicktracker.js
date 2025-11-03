@@ -6,7 +6,7 @@
     })();
 
     var SITE_ID = currentScript?.dataset?.siteId || 'unknown_site';
-    var ENDPOINT = currentScript?.dataset?.endpoint || 'http://localhost:5000/trackweb/clicks';
+    var ENDPOINT = currentScript?.dataset?.endpoint || 'https://api.monitorchecker.com/trackweb/clicks';
     var ANON_KEY = 'clicktrack_anon_v1';
     var ANON = localStorage.getItem(ANON_KEY) || (function() {
       var id = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,9);
