@@ -9,7 +9,7 @@ import ProtectedRoute from './utils/ProtectedRoute';
 import UserTraffic from './UserTraffic/UserTraffic';
 import DomainTraffic from './DomainTraffic/DomainTraffic';
 import Last7DaysTraffic from './UserTraffic/Last7DaysTraffic';
-import Dashboard from './Dashboard/dashboard';
+import Dashboard from './Dashboard/Dashboard';
 import PagesAnalytics from './PagesAnalytics/PagesAnalytics';
 
 function App() {
@@ -19,7 +19,7 @@ function App() {
         <Route path='/' element={<Navigate to="/login"/>}/>
         <Route path='/login' element={<Login/>}/>
         <Route path='/forgot-password' element={<ForgotPassword/>}/>
-        
+
         <Route path='/dashboard' element={<ProtectedRoute allowedRoles={['user', 'admin']}><Dashboard /></ProtectedRoute>}/>
         <Route path='/pages-analytics' element={<ProtectedRoute allowedRoles={['user', 'admin']}><PagesAnalytics /></ProtectedRoute>}/>
         <Route path='/mail-collection' element={<ProtectedRoute allowedRoles={['user', 'admin']}><AllmailData /></ProtectedRoute>}/>
