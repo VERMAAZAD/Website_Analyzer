@@ -18,6 +18,9 @@ const ClickTrackRouter = require('./Routers/ClickTrackRouter')
 const TrafficCheckerRouter = require('./Routers/TrafficCheckerRouter')
 const AdsWebsiteRouter = require('./Routers/AdsWebsiteRouter')
 const NautraWebsiteRouter = require('./Routers/NautraWebsiteRouter')
+const LinkDetectorLinksRouter = require('./Routers/LinkDetectorLinksRouter')
+const LinkDetectorRedirectRouter = require('./Routers/LinkDetectorRedirectRouter')
+const CasinoTrafficRouter = require('./Routers/CasinoTrafficRouter')
 
 const PORT = process.env.PORT || 5000;
 
@@ -34,7 +37,7 @@ app.use(cors(corsOptions));
 
 // app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.text({ type: 'text/plain' }));
+
 
 app.get('/', (req, res) => {
     res.send('🚀 Server is up and running!');
@@ -50,6 +53,11 @@ app.use("/trackweb", ClickTrackRouter)
 app.use("/traffic", TrafficCheckerRouter)
 app.use("/adswebsite", AdsWebsiteRouter)
 app.use("/natural", NautraWebsiteRouter)
+app.use("/casinotraffic", CasinoTrafficRouter)
+
+// LinkDetector
+app.use('/api/links', LinkDetectorLinksRouter);
+app.use('/', LinkDetectorRedirectRouter);
 
 app.listen(PORT, () => {
     console.log('Server is Running');

@@ -11,6 +11,7 @@ const Header = ({ toggleSidebar }) => {
     { label: "Dating Traffic", value: "traffic" },
     { label: "Ads Website", value: "adswebsite" },
     { label: "Natural Website", value: "natural" },
+    { label: "Casino Website", value: "casinotraffic" },
   ];
 
   const handleSelect = (value) => {

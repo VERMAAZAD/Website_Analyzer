@@ -78,9 +78,9 @@ const Login = () => {
         localStorage.setItem('selectedCategory', 'traffic');
 
         if (user.role === 'admin') {
-          navigate('/admin/mail-collection');
+          navigate('/admin/dashboard');
         } else {
-          navigate('/mail-collection');
+          navigate('/dashboard');
         }
       } else {
         handleError(result.message || 'Invalid or expired code');
