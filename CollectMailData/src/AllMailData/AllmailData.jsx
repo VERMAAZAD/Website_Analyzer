@@ -15,6 +15,7 @@ const AllmailData = () => {
     traffic: "dating",
     adswebsite: "adswebsite",
     natural: "natural",
+    casinotraffic: "casino",
   };
 
   const fetchUsers = async (selectedCategory = category) => {
