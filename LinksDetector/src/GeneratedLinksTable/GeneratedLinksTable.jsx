@@ -1,6 +1,7 @@
+// GeneratedLinksTable.jsx
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { Link } from "react-router-dom";
+import { getAllLinks } from "../api"; // Import the API function
 import "./GeneratedLinksTable.css";
 import Layout from "../components/Layouts/Layout";
 
@@ -11,8 +12,8 @@ const GeneratedLinksTable = () => {
   useEffect(() => {
     const fetchLinks = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/clockar/api/getAllLinks");
-        setLinks(res.data);
+        const data = await getAllLinks(); // Call the imported function
+        setLinks(data);
       } catch (err) {
         console.error("Error fetching links:", err);
       } finally {
@@ -42,12 +43,10 @@ const GeneratedLinksTable = () => {
                 <th>Actions</th>
               </tr>
             </thead>
-
             <tbody>
               {links.map((link, index) => (
                 <tr key={link._id}>
                   <td>{index + 1}</td>
-
                   <td>
                     <a
                       href={link.generatedUrl}
@@ -58,10 +57,8 @@ const GeneratedLinksTable = () => {
                       {link.generatedUrl}
                     </a>
                   </td>
-
                   <td className="target">
                     <div className="target-main">{link.target}</div>
-
                     {link.chain && link.chain.length > 0 && (
                       <div className="chain-inline">
                         {link.chain.map((step, i) => (
@@ -82,11 +79,8 @@ const GeneratedLinksTable = () => {
                       </div>
                     )}
                   </td>
-
                   <td>{link.clicks}</td>
                   <td>{new Date(link.createdAt).toLocaleString()}</td>
-
-                  {/* === View Details Button === */}
                   <td>
                     <Link
                       to={`/links/${link.linkId}`}

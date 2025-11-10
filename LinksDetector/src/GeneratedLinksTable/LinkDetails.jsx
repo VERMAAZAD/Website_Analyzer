@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import axios from "axios";
 import Layout from "../components/Layouts/Layout";
 import "./LinkDetails.css";
+import { getLinkStats } from "../api";
 
 const LinkDetails = () => {
   const { id } = useParams();
@@ -11,8 +12,8 @@ const LinkDetails = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/clockar/api/links/${id}/stats`);
-        setData(res.data);
+        const data = await getLinkStats(id);
+        setData(data);
       } catch (err) {
         console.error("Error fetching link stats:", err);
       }

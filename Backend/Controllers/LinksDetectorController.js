@@ -198,7 +198,7 @@ exports.getAllLinks = async (req, res) => {
       linkId: l.linkId,
       target: l.target,
       chain: l.chain || [],
-      generatedUrl: `https://${l.baseDomain || "your-default.com"}/r/${l.linkId}`,
+      generatedUrl: `${l.baseDomain || "your-default.com"}/r/${l.linkId}`,
       clicks: clickMap[l.linkId] || 0,
       createdAt: l.createdAt,
     }));

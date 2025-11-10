@@ -1,5 +1,6 @@
+// LinkForm.jsx
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import { createLink, getBaseDomains } from '../api'; // Import functions from api.js
 import "./LinkForm.css";
 
 const LinkForm = ({ onCreate }) => {
@@ -8,7 +9,7 @@ const LinkForm = ({ onCreate }) => {
   const [isChain, setIsChain] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // 🔹 Domain states
+  // Domain states
   const [domains, setDomains] = useState([]);
   const [selectedDomain, setSelectedDomain] = useState("");
 
@@ -16,10 +17,10 @@ const LinkForm = ({ onCreate }) => {
   useEffect(() => {
     const fetchDomains = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/clockar/api/getBaseDomain");
-        if (res.data.ok && res.data.domains.length > 0) {
-          setDomains(res.data.domains);
-          setSelectedDomain(res.data.domains[0].baseUrl); // default select first
+        const domains = await getBaseDomains();
+        if (domains.length > 0) {
+          setDomains(domains);
+          setSelectedDomain(domains[0].baseUrl); // default select first domain
         }
       } catch (err) {
         console.error("Error loading domains:", err);
@@ -28,7 +29,7 @@ const LinkForm = ({ onCreate }) => {
     fetchDomains();
   }, []);
 
-  // 🔹 Handle link creation
+  // Handle link creation
   const handleCreate = async () => {
     try {
       setLoading(true);
@@ -50,7 +51,9 @@ const LinkForm = ({ onCreate }) => {
         payload = { domain: selectedDomain, target: target.trim() };
       }
 
-      await onCreate(payload);
+      const response = await createLink(payload);
+      if (onCreate) onCreate(response); // Send the created link data to parent component
+
     } catch (e) {
       alert(e.message);
     } finally {
@@ -58,7 +61,7 @@ const LinkForm = ({ onCreate }) => {
     }
   };
 
-  // 🔹 Chain URL change
+  // Handle chain URL change
   const handleChainChange = (i, value) => {
     const updated = [...chain];
     updated[i].url = value;
@@ -69,7 +72,7 @@ const LinkForm = ({ onCreate }) => {
     <div className="card link-form">
       <h2>🔗 Generate Tracking Link</h2>
 
-      {/* ===== DOMAIN SELECTION ===== */}
+      {/* Domain Selection */}
       <div className="domain-section">
         <label htmlFor="domain">Select Domain</label>
         <select
@@ -85,7 +88,7 @@ const LinkForm = ({ onCreate }) => {
         </select>
       </div>
 
-      {/* ===== CHAIN CHECKBOX ===== */}
+      {/* Chain Checkbox */}
       <div className="checkbox-container">
         <input
           id="chain-toggle"
@@ -98,7 +101,7 @@ const LinkForm = ({ onCreate }) => {
         </label>
       </div>
 
-      {/* ===== URL INPUTS ===== */}
+      {/* URL Inputs */}
       {!isChain ? (
         <input
           placeholder="Enter Target URL (https://example.com)"
