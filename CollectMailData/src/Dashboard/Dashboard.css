@@ -131,3 +131,12 @@
     flex-direction: column;
   }
 }
+.domain-dashboard-container {
+  padding: 20px;
+}
+.domain-title {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #222;
+}

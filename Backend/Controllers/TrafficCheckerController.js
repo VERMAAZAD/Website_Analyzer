@@ -428,3 +428,130 @@ exports.GetTopCountries = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+
+exports.GetLast7DaysByDomain = async (req, res) => {
+  try {
+    const { domain } = req.params;
+
+    if (!domain) {
+      return res.status(400).json({ error: "Domain is required" });
+    }
+
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const userId = req.userId || req.user._id;
+    const userRole = req.user.role || "user";
+
+    const matchCondition = { domain };
+    if (userRole === "user") {
+      matchCondition.userId = new mongoose.Types.ObjectId(userId);
+    }
+
+    // 🧠 Aggregate total + unique per day
+    const last7Days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      last7Days.push(d.toISOString().slice(0, 10));
+    }
+
+    const stats = await Trafficchecker.aggregate([
+      { $match: matchCondition },
+      {
+        $group: {
+          _id: {
+            day: {
+              $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
+            },
+            visitor: "$visitorId",
+          },
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $group: {
+          _id: "$_id.day",
+          total: { $sum: "$count" },
+          unique: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
+    // 🔁 Convert to object structure your frontend expects
+    const daily = {};
+    last7Days.forEach((day) => {
+      const record = stats.find((s) => s._id === day);
+      daily[day] = {
+        total: record ? record.total : 0,
+        unique: record ? record.unique : 0,
+      };
+    });
+
+    res.json({ domain, daily });
+  } catch (err) {
+    console.error("❌ Error fetching last 7 days by domain:", err);
+    res.status(500).json({ error: "Failed to fetch domain analytics" });
+  }
+};
+
+
+
+// ======================
+// 📊 Get Country Stats by Domain
+// ======================
+exports.GetCountriesByDomain = async (req, res) => {
+  try {
+    const { domain } = req.params;
+
+    if (!domain) {
+      return res.status(400).json({ error: "Domain is required" });
+    }
+
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const userId = req.userId || req.user._id;
+    const userRole = req.user.role || "user";
+
+    let matchCondition = { domain };
+    if (userRole === "user") {
+      matchCondition.userId = new mongoose.Types.ObjectId(userId);
+    }
+
+    const countryStats = await Trafficchecker.aggregate([
+      { $match: matchCondition },
+      {
+        $group: {
+          _id: { country: "$location.country", visitor: "$visitorId" },
+          totalViews: { $sum: 1 },
+        },
+      },
+      {
+        $group: {
+          _id: "$_id.country",
+          totalViews: { $sum: "$totalViews" },
+          uniqueVisitors: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          country: "$_id",
+          totalViews: 1,
+          uniqueVisitors: 1,
+          _id: 0,
+        },
+      },
+      { $sort: { totalViews: -1 } },
+    ]);
+
+    res.json(countryStats);
+  } catch (err) {
+    console.error("❌ Error fetching country stats by domain:", err);
+    res.status(500).json({ error: "Failed to fetch country stats" });
+  }
+};

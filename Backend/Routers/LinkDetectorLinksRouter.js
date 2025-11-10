@@ -1,11 +1,23 @@
+// routes/linkRoutes.js
 const express = require('express');
 const router = express.Router();
-const { createLink, getLinkStats } = require('../Controllers/LinksDetectorController');
 
-// POST /api/links
-router.post('/', createLink);
+const {
+  createLink,
+  getLinkStats,
+  addBaseUrl,
+  getBaseDomain,
+  deleteBaseDomain,
+  getAllLinks,
+} = require('../Controllers/LinksDetectorController');
 
-// GET /api/links/:linkId/stats
-router.get('/:linkId/stats', getLinkStats);
+router.post('/links', createLink);
+
+router.get('/links/:linkId/stats', getLinkStats);
+router.post('/addBaseUrl', addBaseUrl);
+router.get('/getBaseDomain', getBaseDomain);
+router.delete('/deleteBaseDomain/:id', deleteBaseDomain);
+router.get('/getAllLinks', getAllLinks);
+
 
 module.exports = router;
