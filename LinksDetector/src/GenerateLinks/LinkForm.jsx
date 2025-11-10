@@ -1,33 +1,30 @@
-// LinkForm.jsx
 import React, { useState, useEffect } from "react";
-import { createLink, getBaseDomains } from '../api'; // Import functions from api.js
+import { createLink, getBaseDomains } from "../api";
 import "./LinkForm.css";
 
-const LinkForm = ({ onCreate }) => {
+const LinkForm = ({ selectedDomain, setSelectedDomain, onCreate }) => {
   const [target, setTarget] = useState("");
   const [chain, setChain] = useState([{ url: "" }]);
   const [isChain, setIsChain] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Domain states
-  const [domains, setDomains] = useState([]);
-  const [selectedDomain, setSelectedDomain] = useState("");
-
   // Fetch base domains from backend
+  const [domains, setDomains] = useState([]);
+
   useEffect(() => {
     const fetchDomains = async () => {
       try {
         const domains = await getBaseDomains();
         if (domains.length > 0) {
           setDomains(domains);
-          setSelectedDomain(domains[0].baseUrl); // default select first domain
+          setSelectedDomain(domains[0].baseUrl); // Default to first domain
         }
       } catch (err) {
         console.error("Error loading domains:", err);
       }
     };
     fetchDomains();
-  }, []);
+  }, [setSelectedDomain]); // Ensure setSelectedDomain is available
 
   // Handle link creation
   const handleCreate = async () => {
@@ -53,7 +50,6 @@ const LinkForm = ({ onCreate }) => {
 
       const response = await createLink(payload);
       if (onCreate) onCreate(response); // Send the created link data to parent component
-
     } catch (e) {
       alert(e.message);
     } finally {

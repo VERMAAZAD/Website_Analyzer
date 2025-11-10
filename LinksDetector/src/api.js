@@ -7,6 +7,7 @@ const API_BASE = import.meta.env.VITE_API_URI || 'http://localhost:5000';
 // Function to create a new tracking link (single or multi-step)
 export const createLink = async (payload) => {
   try {
+    console.log("Payload sent to backend:", payload);
     const res = await axios.post(`${API_BASE}/clockar/api/links`, payload);
     return res.data;
   } catch (error) {

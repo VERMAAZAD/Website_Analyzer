@@ -11,7 +11,7 @@ const BaseDomainManager = () => {
     const domains = await getBaseDomains();
      setDomains(domains);
   };
-  
+
   const handleAddDomain = async () => {
     if (!baseUrl.trim()) return alert("Please enter a domain URL");
     setLoading(true);
@@ -35,53 +35,52 @@ const BaseDomainManager = () => {
   }, []);
   return (
     <Layout>
-      {" "}
       <div className="domain-manager">
-        {" "}
-        <h2>🌐 Custom Domains</h2>{" "}
+        
+        <h2>🌐 Custom Domains</h2>
         <div className="domain-form">
-          {" "}
+          
           <input
             type="url"
             placeholder="https://yourdomain.com"
             value={baseUrl}
             onChange={(e) => setBaseUrl(e.target.value)}
-          />{" "}
+          />
           <button onClick={handleAddDomain} disabled={loading}>
-            {" "}
-            {loading ? "Adding..." : "Add Domain"}{" "}
-          </button>{" "}
-        </div>{" "}
+            
+            {loading ? "Adding..." : "Add Domain"}
+          </button>
+        </div>
         <table className="domain-table">
-          {" "}
+          
           <thead>
-            {" "}
+            
             <tr>
-              {" "}
-              <th>Domain</th> <th>Base URL</th> <th>Actions</th>{" "}
-            </tr>{" "}
-          </thead>{" "}
+              
+              <th>Domain</th> <th>Base URL</th> <th>Actions</th>
+            </tr>
+          </thead>
           <tbody>
-            {" "}
+            
             {domains.map((d) => (
               <tr key={d._id}>
-                {" "}
-                <td>{d.name}</td> <td>{d.baseUrl}</td>{" "}
+                
+                <td>{d.name}</td> <td>{d.baseUrl}</td>
                 <td>
-                  {" "}
+                  
                   <button
                     onClick={() => handleDeleteDomain(d._id)}
                     className="delete-btn"
                   >
-                    {" "}
-                    🗑️{" "}
-                  </button>{" "}
-                </td>{" "}
+                    
+                    🗑️
+                  </button>
+                </td>
               </tr>
-            ))}{" "}
-          </tbody>{" "}
-        </table>{" "}
-      </div>{" "}
+            ))}
+          </tbody>
+        </table>
+      </div>
     </Layout>
   );
 };

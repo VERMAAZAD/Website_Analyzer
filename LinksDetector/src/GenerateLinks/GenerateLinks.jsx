@@ -9,9 +9,11 @@ const GenerateLinks = () => {
   const [result, setResult] = useState(null);
   const [stats, setStats] = useState(null);
   const [linkId, setLinkId] = useState("");
+  const [selectedDomain, setSelectedDomain] = useState(""); // Manage selectedDomain here
 
   const handleCreateLink = async (payload) => {
-    const data = await createLink(payload);
+    const domain = selectedDomain || window.location.origin; // Use selectedDomain from state
+    const data = await createLink({ ...payload, domain });
     setResult(data);
     setLinkId(data.linkId);
   };
@@ -26,7 +28,8 @@ const GenerateLinks = () => {
     <Layout>
       <div className="generate-links-wrapper">
         <div className="left-panel">
-          <LinkForm onCreate={handleCreateLink} />
+          {/* Pass the selectedDomain state and setSelectedDomain function to LinkForm */}
+          <LinkForm selectedDomain={selectedDomain} setSelectedDomain={setSelectedDomain} onCreate={handleCreateLink} />
         </div>
         <div className="right-panel">
           <LinkResults result={result} stats={stats} onFetchStats={handleFetchStats} />

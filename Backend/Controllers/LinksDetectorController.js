@@ -44,7 +44,8 @@ exports.createLink = async (req, res) => {
     }
 
     // 🔹 Use selected domain if provided, otherwise fallback
-    const baseDomain = domain?.replace(/\/$/, "") || DEFAULT_BASE_URL;
+    const baseDomain = domain && domain !== "localhost" ? domain.replace(/\/$/, "") : DEFAULT_BASE_URL;
+
 
     const linkId = shortId();
     const isChain = Array.isArray(chain) && chain.length > 0;
