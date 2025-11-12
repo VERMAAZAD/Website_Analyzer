@@ -5,7 +5,7 @@ import axios from 'axios';
 import Layout from '../../components/Layouts/Layout';
 import './SubUserManagement.css';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+const API_BASE = import.meta.env.VITE_API_URI || 'http://localhost:5000';
 
 const SubUserManagement = () => {
   const [subUsers, setSubUsers] = useState([]);
