@@ -92,7 +92,7 @@ const Header = ({ onMenuClick, user }) => {
           )}
         </div>
 
-        <div className="user-name">Welcome, {user || 'User'}</div>
+        <div className="user-name">Welcome, {user?.name || 'User'}</div>
       </div>
     </div>
   );

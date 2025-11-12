@@ -84,6 +84,8 @@ const verifyLoginCode = async (req, res) => {
         // Clear code fields after use
         user.authCode = undefined;
         user.authCodeExpiry = undefined;
+        user.isLoggedIn = true;
+        user.lastLogin = new Date();
         await user.save();
 
         const jwtToken = jwt.sign(
@@ -100,7 +102,8 @@ const verifyLoginCode = async (req, res) => {
                 _id: user._id,
                 name: user.name,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                parentUser: user.parentUser
             }
         });
     } catch (error) {

@@ -65,11 +65,7 @@ const apiBase =
   return (
     <Layout>
       <section className="dashboard">
-        <div className="top-bar">
-          <h2>All Product Category</h2>
-           
-        </div>
-
+        <div className="dashboard-search">
          {lastReloadTime && (
           <p className="reload-info"> {/* ⬅️ Added */}
             Last Reload: {lastReloadTime.toLocaleTimeString()}
@@ -83,7 +79,7 @@ const apiBase =
           onChange={(e) => setSearchTerm(e.target.value)}
           className="search-input"
         />
-
+     </div>
         {/* Loading State */}
         {loading ? (
           <p>Loading...</p>

@@ -33,6 +33,7 @@ import HostingDomainsUser from './Pages/HostingInfo/HostingDomains/HostingDomain
 import HostingDomainsAdmin from './Pages/HostingInfo/HostingDomains/HostingDomainsAdmin';
 import ServerListUser from './Pages/HostingInfo/ServerList/ServerListUser';
 import ServerListAdmin from './Pages/HostingInfo/ServerList/ServerListAdmin';
+import SubUserManagement from './Pages/SubUserManagement/SubUserManagement';
 
 
 function App() {
@@ -44,19 +45,20 @@ function App() {
       <Route path='/forgot-password' element={<ForgotPassword/>}/>
 
         {/* Protected User & Admin Routes */}
-        <Route path='/products/:type' element={<ProtectedRoute allowedRoles={['user', 'admin']}><Home /></ProtectedRoute>}/>
-        <Route path='/urlscan/:type' element={<ProtectedRoute allowedRoles={['user']}><UrlScanUser /></ProtectedRoute>}/>
-        <Route path='/domains/' element={<ProtectedRoute allowedRoles={['user']}><DomainListUser /></ProtectedRoute>}/>
-        <Route path='/domain-errors/:type' element={<ProtectedRoute allowedRoles={['user']}><ErrorDomainUser /></ProtectedRoute>}/>
-        <Route path='/affiliate-errors/:type' element={<ProtectedRoute allowedRoles={['user']}><ErrorAffiliatesUser /></ProtectedRoute>}/>
-        <Route path='/domain-expire/:type' element={<ProtectedRoute allowedRoles={['user']}><DomainExpireUser /></ProtectedRoute>}/>
-        <Route path='/hosting-expire/:type' element={<ProtectedRoute allowedRoles={['user']}><ServerExpireUser /></ProtectedRoute>}/>
-        <Route path='/not-index/:type' element={<ProtectedRoute allowedRoles={['user']}><BingCheckerUser /></ProtectedRoute>}/>
-        <Route path='/hosting-form' element={<ProtectedRoute allowedRoles={['user']}><HostingInfoFormUser /></ProtectedRoute>}/>
-        <Route path='/hosting-data' element={<ProtectedRoute allowedRoles={['user']}><HostingInfoListUser /></ProtectedRoute>}/>
-        <Route path='/hosting/domains/:email/:server' element={<ProtectedRoute allowedRoles={['user']}><HostingDomainsUser /></ProtectedRoute>}/>
-        <Route path='/servers/:email' element={<ProtectedRoute allowedRoles={['user']}><ServerListUser /></ProtectedRoute>}/>
-        
+        <Route path='/products/:type' element={<ProtectedRoute allowedRoles={['user', 'admin', 'sub-user']}><Home /></ProtectedRoute>}/>
+        <Route path='/urlscan/:type' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><UrlScanUser /></ProtectedRoute>}/>
+        <Route path='/domains/' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><DomainListUser /></ProtectedRoute>}/>
+        <Route path='/domain-errors/:type' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><ErrorDomainUser /></ProtectedRoute>}/>
+        <Route path='/affiliate-errors/:type' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><ErrorAffiliatesUser /></ProtectedRoute>}/>
+        <Route path='/domain-expire/:type' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><DomainExpireUser /></ProtectedRoute>}/>
+        <Route path='/hosting-expire/:type' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><ServerExpireUser /></ProtectedRoute>}/>
+        <Route path='/not-index/:type' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><BingCheckerUser /></ProtectedRoute>}/>
+        <Route path='/hosting-form' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><HostingInfoFormUser /></ProtectedRoute>}/>
+        <Route path='/hosting-data' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><HostingInfoListUser /></ProtectedRoute>}/>
+        <Route path='/hosting/domains/:email/:server' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><HostingDomainsUser /></ProtectedRoute>}/>
+        <Route path='/servers/:email' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><ServerListUser /></ProtectedRoute>}/>
+        <Route path='/subusers' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><SubUserManagement /></ProtectedRoute>}/>
+
 
       {/* Admin Routes */}
       <Route path='/admin/signup' element={<ProtectedRoute allowedRoles={['admin']}><Signup /></ProtectedRoute>}/>

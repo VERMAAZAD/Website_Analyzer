@@ -53,6 +53,7 @@ const Login = () => {
   const handleVerifyCode = async (e) => {
     e.preventDefault();
      setLoading(true);
+
     if (!code || !loginInfo.email) {
       handleError('Verification code is required');
       setLoading(false);
@@ -74,14 +75,16 @@ const Login = () => {
         handleSuccess(message);
 
         localStorage.setItem('token', jwtToken);
-        localStorage.setItem('loggedInUser', JSON.stringify(user?.name));
+        localStorage.setItem('loggedInUser', JSON.stringify(user));
         localStorage.setItem('superCategory', 'natural');
 
         if (user.role === 'admin') {
              navigate('/admin/products/natural'); 
-                } else {
-             navigate(`/products/natural`);
-                }
+                } else if (user.role === 'sub-user') {
+            navigate('/products/natural'); // sub-user dashboard
+              } else {
+              navigate(`/products/natural`);
+                  }
       } else {
         handleError(result.message || 'Invalid or expired code');
       }

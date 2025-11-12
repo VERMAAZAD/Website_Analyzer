@@ -35,19 +35,19 @@ exports.scrapeWebsite = async (req, res) => {
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
           'Accept-Language': 'en-US,en;q=0.9',
         },
-        timeout: 5000,
+        timeout: 15000,
         validateStatus: () => true
       }),
       axios.get(`${baseOrigin}/order.html`, {
-        timeout: 3000,
+        timeout: 5000,
         validateStatus: () => true
       }),
       axios.get(`${baseOrigin}/order`, {
-        timeout: 3000,
+        timeout: 5000,
         validateStatus: () => true
       }),
       axios.get(`${baseOrigin}/robots.txt`, {
-        timeout: 2000,
+        timeout: 4000,
         validateStatus: () => true
       })
     ]);
@@ -155,14 +155,20 @@ exports.saveScrapedData = async (req, res) => {
 
   const baseDomain = normalizeDomain(domain);
 
-  // Check for user on request (requires auth middleware)
+     // ✅ Auth check
   if (!req.user || !req.user._id) {
-    console.error('❌ User not authenticated or req.user missing');
-    return res.status(401).json({ error: 'Unauthorized: User not found in request' });
+    console.error("❌ User not authenticated or req.user missing");
+    return res.status(401).json({ error: "Unauthorized: User not found in request" });
   }
+
  try {
-    // Check if domain already exists for the same user
-    const existing = await ScrapedSite.findOne({ domain: baseDomain, user: req.user._id });
+    let ownerId = req.user._id;
+
+    if (req.user.role === "sub-user" && req.user.parentUser) {
+      ownerId = req.user.parentUser;
+    }
+
+    const existing = await ScrapedSite.findOne({ domain: baseDomain, user: ownerId });
     if (existing) {
       return res.status(400).json({ error: 'E11000: Duplicate domain for this user' });
     }
@@ -181,7 +187,7 @@ exports.saveScrapedData = async (req, res) => {
       schemaPresent: data.schemaPresent,
       statusCode: data.statusCode,
       lastChecked: data.lastChecked || new Date(),
-      user: req.user._id, 
+      user: ownerId, 
       brandCategory: brandCategory?.trim() || null,
       affiliateLink: data.affiliateLink || null,
       issueDate: issueDate ? new Date(issueDate) : null,
@@ -221,7 +227,11 @@ exports.getScrapedSiteByDomain = async (req, res) => {
     let query = { domain: baseDomain };
 
     // ✅ If not admin, restrict to only their own domains
-    if (req.user.role !== 'admin') {
+    if (req.user.role === 'admin') {
+      query = { domain: baseDomain };
+    } else if (req.user.parentUser) {
+      query.user = req.user.parentUser;
+    } else {
       query.user = req.user._id;
     }
 
@@ -248,10 +258,17 @@ exports.getAllCategories = async (req, res) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const categories = await ScrapedSite.distinct('brandCategory', {
-      user: req.user._id,
-      brandCategory: { $ne: null },
-    });
+     let query = { brandCategory: { $ne: null } };
+
+    if (req.user.role === 'admin') {
+      query = { brandCategory: { $ne: null } };
+    } else if (req.user.parentUser) {
+      query.user = req.user.parentUser;
+    } else {
+      query.user = req.user._id;
+    }
+
+    const categories = await ScrapedSite.distinct('brandCategory', query);
 
     res.json(categories);
   } catch (err) {
@@ -268,13 +285,21 @@ exports.getCategoryCounts = async (req, res) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
+     let matchQuery = { brandCategory: { $ne: null } };
+
+    if (req.user.role === 'admin') {
+      // Admin → all data
+      matchQuery = { brandCategory: { $ne: null } };
+    } else if (req.user.parentUser) {
+      // Sub-user → use parent user’s data
+      matchQuery.user = req.user.parentUser;
+    } else {
+      // Normal user → their own data
+      matchQuery.user = req.user._id;
+    }
+
     const aggregation = await ScrapedSite.aggregate([
-      {
-        $match: {
-          user: req.user._id,
-          brandCategory: { $ne: null },
-        }
-      },
+      {$match: matchQuery},
       {
         $group: {
           _id: "$brandCategory",
@@ -300,10 +325,20 @@ exports.getDomainsByCategory = async (req, res) => {
   try {
     const { category } = req.params;
 
-    const domains = await ScrapedSite.find({
-      brandCategory: category,
-      user: req.user._id
-    });
+     if (!req.user || !req.user._id) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    let matchQuery = { brandCategory: category };
+
+    if (req.user.role === "admin") {
+      matchQuery = { brandCategory: category };
+    } else if (req.user.parentUser) {
+      matchQuery.user = req.user.parentUser;
+    } else {
+      matchQuery.user = req.user._id;
+    }
+
+    const domains = await ScrapedSite.find(matchQuery);
 
     res.json(domains);
   } catch (error) {
@@ -318,16 +353,23 @@ exports.getDomainsByCategory = async (req, res) => {
 exports.deleteScrapedSite = async (req, res) => {
   const rawDomain = req.params.domain;
   const baseDomain = normalizeDomain(rawDomain);
-
+   
   if (!req.user || !req.user._id) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    return res.status(401).json({ error: "Unauthorized" });
   }
 
   try {
-    const result = await ScrapedSite.findOneAndDelete({
-      domain: baseDomain,
-      user: req.user._id
-    });
+    let deleteQuery = { domain: baseDomain };
+
+    if (req.user.role === "admin") {
+      deleteQuery = { domain: baseDomain };
+    } else if (req.user.parentUser) {
+      deleteQuery.user = req.user.parentUser;
+    } else {
+      deleteQuery.user = req.user._id;
+    }
+
+    const result = await ScrapedSite.findOneAndDelete(deleteQuery);
 
     if (!result) {
       return res.status(404).json({ error: 'Domain not found or already deleted' });
@@ -354,9 +396,16 @@ exports.refreshStatusesAndGetErrors = async (req, res) => {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const query = req.user.role === "admin" ? {} : { user: req.user._id };
-
   try {
+    let query = {};
+    if (req.user.role === "admin") {
+      query = {};
+    } else if (req.user.parentUser) {
+      query = { user: req.user.parentUser };
+    } else {
+      query = { user: req.user._id };
+    }
+
     const domains = await ScrapedSite.find(query);
 
     const checkAndUpdateSite = async (site) => {
@@ -456,11 +505,14 @@ exports.getErrorDomains = async (req, res) => {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const query = req.user.role === "admin"
-    ? { statusCode: { $ne: 200 } }
-    : { user: req.user._id, statusCode: { $ne: 200 } };
-
-  try {
+    try {
+        let query = { statusCode: { $ne: 200 } };
+        if (req.user.role === "admin") {
+        } else if (req.user.parentUser) {
+          query.user = req.user.parentUser;
+        } else {
+          query.user = req.user._id;
+        }
        const errorDomains = await ScrapedSite.find(query)
       .select("domain statusCode failingUrl lastChecked user")
       .lean();
@@ -482,15 +534,33 @@ exports.testAffiliateLinks = async (req, res) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const filter = { 
-      affiliateLink: { $ne: null, $ne: "" }, 
-      statusCode: 200 
+    // ✅ Build filter dynamically
+    const filter = {
+      affiliateLink: { $exists: true, $ne: "" },
+      statusCode: 200,
     };
-    if (req.user.role !== "admin") {
+
+    if (req.user.role === "admin") {
+      // Admin → check all
+    } else if (req.user.parentUser) {
+      // Sub-user → check parent user’s links
+      filter.user = req.user.parentUser;
+    } else {
+      // Normal user → check their own
       filter.user = req.user._id;
     }
 
-    const domains = await ScrapedSite.find(filter);
+    const domains = await ScrapedSite.find(filter).lean();
+
+    if (!domains.length) {
+      return res.json({
+        message: "No affiliate links found to test.",
+        total: 0,
+        failed: 0,
+        errors: [],
+      });
+    }
+
     const failedLinks = [];
 
     const checkLink = async (site) => {
@@ -591,16 +661,20 @@ exports.getAffiliateErrors = async (req, res) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const filter = req.user.role === "admin" ? {statusCode: 200} : { user: req.user._id, statusCode: 200 };
+     let query = { statusCode: 200 };
+    if (req.user.role === "admin") {
+      query = { statusCode: 200 };
+    } else if (req.user.parentUser) {
+      query = { user: req.user.parentUser, statusCode: 200 };
+    } else {
+      query = { user: req.user._id, statusCode: 200 };
+    }
+
     const cutoff = new Date(Date.now() - 1000 * 60 * 10);
 
-    const sites = await ScrapedSite.find(filter, {
-      domain: 1,
-      affiliateLink: 1,
-      affiliateCheckStatus: 1,
-      affiliateErrorMessage: 1,
-      lastAffiliateCheck: 1,
-    }).lean();
+    const sites = await ScrapedSite.find(query)
+    .select("domain affiliateLink affiliateCheckStatus affiliateErrorMessage lastAffiliateCheck user")
+      .lean();
 
     const errors = sites
       .filter((site) => {
@@ -717,9 +791,16 @@ exports.renewDomain = async (req, res) => {
 
     const results = await Promise.all(
       domains.map(async (domain) => {
-        const query = req.user.role === "admin"
-          ? { domain: domain.toLowerCase() }
-          : { user: req.user._id, domain: domain.toLowerCase() };
+        let query;
+
+        // ✅ Role-based logic
+        if (req.user.role === "admin") {
+          query = { domain: domain.toLowerCase() };
+        } else if (req.user.parentUser) {
+          query = { user: req.user.parentUser, domain: domain.toLowerCase() };
+        } else {
+          query = { user: req.user._id, domain: domain.toLowerCase() };
+        }
 
         // Find the domain first
         const existing = await ScrapedSite.findOne(query);
@@ -767,30 +848,33 @@ exports.updateNote = async (req, res) => {
   try {
     const { domain } = req.params;
     const { note } = req.body;
-const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/^www\./, '').trim();
+    const cleanDomain = domain
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .trim()
+      .toLowerCase();
 
+       let query;
+    if (req.user.role === "admin") {
+      query = { domain: cleanDomain };
+    } else if (req.user.parentUser) {
+      query = { domain: cleanDomain, user: req.user.parentUser };
+    } else {
+      query = { domain: cleanDomain, user: req.user._id };
+    }
 
- const filter = req.user.role === 'admin'
-      ? { domain: cleanDomain } 
-      : { domain: cleanDomain, user: req.user._id }; 
-
-
-    const updated = await ScrapedSite.findOneAndUpdate(
-      filter,
-      { note },
-      { new: true }
-    );
+    const updated = await ScrapedSite.findOneAndUpdate(query, { note }, { new: true });
     if (!updated) {
       return res.status(404).json({ error: 'Domain not found' });
     }
-
-    res.json({ message: 'Note saved successfully', note: updated.note });
+    res.json({
+      message: "Note updated successfully",
+      note: updated.note,
+    });
   } catch (err) {
     res.status(500).json({ error: 'Server error while saving note' });
   }
 };
-
-
 
 // DELETE /api/scraper/note/:domain
 exports.deleteNote = async (req, res) => {
@@ -800,15 +884,21 @@ exports.deleteNote = async (req, res) => {
     const cleanDomain = domain
       .replace(/^https?:\/\//, '')
       .replace(/^www\./, '')
-      .trim();
+      .trim()
+      .toLowerCase();
 
     // Admins can delete notes on any domain
-    const filter = req.user.role === 'admin'
-      ? { domain: cleanDomain }
-      : { domain: cleanDomain, user: req.user._id };
+    let query;
+    if (req.user.role === "admin") {
+      query = { domain: cleanDomain };
+    } else if (req.user.parentUser) {
+      query = { domain: cleanDomain, user: req.user.parentUser };
+    } else {
+      query = { domain: cleanDomain, user: req.user._id };
+    }
 
     const updated = await ScrapedSite.findOneAndUpdate(
-      filter,
+      query,
       { note: '' },
       { new: true }
     );
@@ -825,23 +915,41 @@ exports.deleteNote = async (req, res) => {
 };
 
 
-
-
-
 exports.getUnindexedDomains = async (req, res) => {
-  if (!req.user || !req.user._id) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+  try {
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
 
-  const filter = req.user.role === "admin" ? {} : { user: req.user._id };
-  const sites = await ScrapedSite.find({ ...filter, isIndexedOnBing: false });
+    // 🧠 Role-based filter logic
+    let query = { isIndexedOnBing: false };
 
-  const unindexed = sites.map(site =>  ({
+    if (req.user.role === "admin") {
+      // Admin → all users
+    } else if (req.user.parentUser) {
+      // Sub-user → parent’s data
+      query.user = req.user.parentUser;
+    } else {
+      // Normal user → own data
+      query.user = req.user._id;
+    }
+
+    // 🧾 Fetch unindexed domains
+    const sites = await ScrapedSite.find(query)
+      .select("domain lastBingCheck user")
+      .lean();
+
+    // 🧹 Prepare output
+    const unindexed = sites.map(site => ({
       domain: site.domain,
-      lastBingCheck: site.lastBingCheck,
+      lastBingCheck: site.lastBingCheck || null,
     }));
 
-  res.json({ unindexed });
+    res.json({ unindexed });
+  } catch (err) {
+    console.error("❌ Error fetching unindexed domains:", err.message);
+    res.status(500).json({ error: "Failed to fetch unindexed domains" });
+  }
 };
 
 
@@ -859,16 +967,16 @@ exports.saveHostingInfo = async (req, res) => {
   } = req.body;
 
   try {
-    const site = await ScrapedSite.findOne({ domain });
-
-    if (!site) return res.status(404).json({ message: "Domain not found" });
-
-    const userId = req.user._id;
-    const isAdmin = req.user.role === 'admin';
-
-    if (!isAdmin && site.user.toString() !== userId.toString()) {
-      return res.status(403).json({ message: "Unauthorized to modify this domain" });
+     let filter;
+    if (req.user.role === "admin") {
+      filter = { domain: cleanDomain };
+    } else if (req.user.parentUser) {
+      filter = { domain: cleanDomain, user: req.user.parentUser };
+    } else {
+      filter = { domain: cleanDomain, user: req.user._id };
     }
+    const site = await ScrapedSite.findOne({ filter });
+    if (!site) return res.status(404).json({ message: "Domain not found" });
 
     site.hostingInfo = {
       platform,
@@ -891,10 +999,26 @@ exports.saveHostingInfo = async (req, res) => {
 
 
 exports.getHostingInfo = async (req, res) => {
-  const { domain } = req.params;
-
+  
   try {
-    const filter = req.user.role === 'admin' ? { domain } : { domain, user: req.user._id };
+    const { domain } = req.params;
+    const cleanDomain = domain
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .trim();
+
+    let filter;
+    if (req.user.role === "admin") {
+      // Admin can access any domain
+      filter = { domain: cleanDomain };
+    } else if (req.user.parentUser) {
+      // Sub-user can access parent user’s domains
+      filter = { domain: cleanDomain, user: req.user.parentUser };
+    } else {
+      // Normal user can access only their own
+      filter = { domain: cleanDomain, user: req.user._id };
+    }
+
     const site = await ScrapedSite.findOne(filter);
 
     if (!site) {
@@ -911,55 +1035,71 @@ exports.getHostingInfo = async (req, res) => {
 
 
 
-
-
 exports.updateDomainName = async (req, res) => {
-  const { oldDomain, newDomain } = req.body;
-
-  if (!oldDomain || !newDomain) {
-    return res.status(400).json({ message: "Both old and new domain names are required." });
-  }
-
   try {
-    const site = await ScrapedSite.findOne({ domain: oldDomain });
+    const { oldDomain, newDomain } = req.body;
 
+    if (!oldDomain || !newDomain) {
+      return res
+        .status(400)
+        .json({ message: "Both old and new domain names are required." });
+    }
+
+    // 🧹 Normalize domains (remove protocols and www)
+    const cleanOldDomain = oldDomain
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .trim()
+      .toLowerCase();
+
+    const cleanNewDomain = newDomain
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .trim()
+      .toLowerCase();
+
+    // 🧠 Role-based filter
+    let filter;
+    if (req.user.role === "admin") {
+      filter = { domain: cleanOldDomain };
+    } else if (req.user.parentUser) {
+      // Sub-user updates domain under parent
+      filter = { domain: cleanOldDomain, user: req.user.parentUser };
+    } else {
+      filter = { domain: cleanOldDomain, user: req.user._id };
+    }
+
+    // 🔍 Find the existing domain
+    const site = await ScrapedSite.findOne(filter);
     if (!site) {
-      return res.status(404).json({ message: "Old domain not found." });
+      return res
+        .status(404)
+        .json({ message: "Old domain not found or access denied." });
     }
 
-    // Authorization check: only owner or admin can update
-    const isAdmin = req.user.role === "admin";
-    if (!isAdmin && site.user.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "Unauthorized to update this domain." });
-    }
-
-    // Optional: Check if new domain already exists
-    const existing = await ScrapedSite.findOne({ domain: newDomain });
+    // 🚫 Check if new domain already exists (avoid duplicates)
+    const existing = await ScrapedSite.findOne({ domain: cleanNewDomain });
     if (existing) {
-      return res.status(409).json({ message: "New domain already exists." });
+      return res
+        .status(409)
+        .json({ message: "New domain already exists." });
     }
 
-    site.domain = newDomain;
+    // ✅ Update and save
+    site.domain = cleanNewDomain;
     await site.save();
 
-    res.json({ message: "Domain name updated successfully", updatedDomain: newDomain });
+    res.json({
+      message: "✅ Domain name updated successfully",
+      updatedDomain: cleanNewDomain,
+    });
   } catch (err) {
-    console.error("Domain update failed:", err.message);
-    res.status(500).json({ message: "Server error while updating domain name." });
+    console.error("❌ Domain update failed:", err.message);
+    res
+      .status(500)
+      .json({ message: "Server error while updating domain name." });
   }
 };
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1184,9 +1324,15 @@ exports.checkBingIndex = async (req, res) => {
     const startOfToday = new Date();
     startOfToday.setUTCHours(0, 0, 0, 0);
 
-    const baseFilter = req.user.role === 'admin'
-      ? {}
-      : { user: req.user._id };
+      let baseFilter;
+    if (req.user.role === "admin") {
+      baseFilter = {};
+    } else if (req.user.parentUser) {
+      baseFilter = { user: req.user.parentUser };
+    } else {
+      baseFilter = { user: req.user._id };
+    }
+    
 
     const forceCheck = req.query.force === 'true';
 

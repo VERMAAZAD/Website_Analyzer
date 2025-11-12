@@ -8,6 +8,7 @@ require('dotenv').config();
 require('./Models/database');
 
 const AuthRouter = require('./Routers/AuthRouter');
+const SubUserRoutes = require('./Routers/SubUserRoutes');
 const ScraperRouter = require("./Routers/ScraperRouter");
 const AdminRouter = require('./Routers/AdminRouter');
 const ScraperGameRouter = require('./Routers/ScraperGameRouter')
@@ -30,7 +31,7 @@ const corsOptions = {
     callback(null, true);
   },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
 };
 app.use(cors(corsOptions));
@@ -43,6 +44,7 @@ app.get('/', (req, res) => {
     res.send('🚀 Server is up and running!');
 });
 app.use('/auth', AuthRouter)
+app.use('/api/subusers', SubUserRoutes)
 app.use('/api/scraper', ScraperRouter);
 app.use('/admin', AdminRouter);
 app.use('/casino/scraper', ScraperGameRouter);
