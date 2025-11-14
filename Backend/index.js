@@ -65,4 +65,4 @@ app.get("/r/:linkId/:step", handleRedirect);
 app.listen(PORT, () => {
     console.log('Server is Running');
 })
-require('./cron/autoUpdater'); 
+require('./cron/autoUpdater');

@@ -4,19 +4,11 @@ const LinksDetectorClickEvent = require("../Models/LinksDetectorClickEvent");
 const LinksDomain = require("../Models/LinksDomain");
 const { preflightFollow } = require("../Utils/preflight");
 const crypto = require("crypto");
-const geoip = require("geoip-lite");
-
-const shortId = () =>
-  crypto.randomBytes(3).toString("base64").replace(/\W/g, "").slice(0, 6);
+const { nanoid } = require("nanoid");
 
 const PREFLIGHT_ENABLED = (process.env.PREFLIGHT_ENABLED || "true") === "true";
-const DEFAULT_BASE_URL =
-  process.env.BASE_URL?.replace(/\/$/, "") || "http://localhost:5000";
+const DEFAULT_BASE_URL = process.env.BASE_URL?.replace(/\/$/, "") || "http://localhost:5000";
 const ANON_COOKIE_NAME = process.env.ANON_COOKIE_NAME || "anonId";
-const ANON_COOKIE_MAX_AGE = parseInt(
-  process.env.ANON_COOKIE_MAX_AGE || "31536000000",
-  10
-);
 
 function hashIp(ip) {
   if (!ip) return null;
@@ -30,22 +22,22 @@ function detectBot(ua) {
   );
 }
 
+const shortId = () => crypto.randomBytes(3).toString("base64").replace(/\W/g, "").slice(0, 6);
+
+
 /* ============================================================
  * 🧩 CREATE LINK (with custom domain support)
  * ============================================================ */
-exports.createLink = async (req, res) => {
+ exports.createLink = async (req, res) => {
   try {
     const { target, owner, options, chain, domain } = req.body;
 
     if (!target && (!chain || chain.length === 0)) {
-      return res
-        .status(400)
-        .json({ ok: false, error: "target or chain required" });
+      return res.status(400).json({ ok: false, error: "target or chain required" });
     }
 
-    // 🔹 Use selected domain if provided, otherwise fallback
+    // Use selected domain if provided, otherwise fallback
     const baseDomain = domain && domain !== "localhost" ? domain.replace(/\/$/, "") : DEFAULT_BASE_URL;
-
 
     const linkId = shortId();
     const isChain = Array.isArray(chain) && chain.length > 0;
@@ -53,7 +45,7 @@ exports.createLink = async (req, res) => {
     const link = new LinksDetectorLink({
       linkId,
       owner: owner || null,
-      baseDomain, // 👈 store the selected domain
+      baseDomain, // store the domain
       target: isChain ? chain[0].url : target,
       isChain,
       chain: isChain
@@ -66,7 +58,7 @@ exports.createLink = async (req, res) => {
       options: options || {},
     });
 
-    // Run preflight if needed
+    // Optional preflight
     if (PREFLIGHT_ENABLED && !isChain && target) {
       try {
         const pf = await preflightFollow(target);
@@ -78,7 +70,7 @@ exports.createLink = async (req, res) => {
 
     await link.save();
 
-    // ✅ Build tracking URLs (per selected domain)
+    // Build tracking URLs
     let trackingUrls = [];
     if (isChain && link.chain.length > 0) {
       trackingUrls = link.chain.map((step) => ({
@@ -215,34 +207,71 @@ exports.getAllLinks = async (req, res) => {
 /* ============================================================
  * 🚀 HANDLE REDIRECT
  * ============================================================ */
-
 exports.handleRedirect = async (req, res) => {
   try {
-    const { linkId } = req.params;
-    const currentStep = parseInt(req.query.step) || 1;
-    const anonId = req.cookies.anonId || nanoid(10);
+    let requestedHost = req.headers.host || "";
+    requestedHost = requestedHost.split(":")[0]; // remove port
+
+    const httpHost = `http://${requestedHost}`;
+    const httpsHost = `https://${requestedHost}`;
+    const normalizedDefault = DEFAULT_BASE_URL.replace(/\/$/, "");
+
+    const { linkId, step } = req.params;
+    const currentStep = parseInt(step) || 1;
+
+    // Cookies
+    const anonId = req.cookies[ANON_COOKIE_NAME] || nanoid(10);
     const journeyId = req.cookies.journeyId || nanoid(12);
 
-    // Store anon + journey id in cookies for next hops
-    res.cookie("anonId", anonId, { maxAge: 7 * 24 * 3600 * 1000 });
+    res.cookie(ANON_COOKIE_NAME, anonId, { maxAge: 7 * 24 * 3600 * 1000 });
     res.cookie("journeyId", journeyId, { maxAge: 7 * 24 * 3600 * 1000 });
 
-    // Find link
-    const link = await Link.findOne({ linkId });
-    if (!link) return res.status(404).send("Link not found");
+    // IP + BOT detection
+    const ip =
+      req.headers["x-forwarded-for"]?.split(",")[0] ||
+      req.socket.remoteAddress ||
+      null;
+
+    const hashedIp = hashIp(ip);
+    const ua = req.headers["user-agent"] || "";
+    const isBot = detectBot(ua);
+
+    /* =====================================================
+     * FIXED QUERY – correctly match domain variations
+     * ===================================================== */
+    const link = await LinksDetectorLink.findOne({
+      linkId,
+      $or: [
+        { baseDomain: requestedHost },
+        { baseDomain: httpHost },
+        { baseDomain: httpsHost },
+        { baseDomain: normalizedDefault },
+        { baseDomain: normalizedDefault.replace("https://", "") },
+        { baseDomain: normalizedDefault.replace("http://", "") },
+      ],
+    });
+
+    if (!link) {
+      console.log("No matching link found for:", {
+        requestedHost,
+        httpHost,
+        httpsHost,
+        normalizedDefault,
+      });
+      return res.status(404).send("Link not found");
+    }
 
     const isChain = link.isChain && link.chain?.length > 0;
-
-    // Which step are we at?
     let nextUrl;
-    let stepInfo;
 
+    /* =====================================================
+     * CHAIN LINKS
+     * ===================================================== */
     if (isChain) {
-      stepInfo = link.chain.find(c => c.order === currentStep);
+      const stepInfo = link.chain.find(c => c.order === currentStep);
       if (!stepInfo) return res.status(400).send("Invalid chain step");
 
-      // Track this step
-      await ClickEvent.create({
+      await LinksDetectorClickEvent.create({
         linkId,
         chainId: linkId,
         stepOrder: currentStep,
@@ -251,40 +280,53 @@ exports.handleRedirect = async (req, res) => {
         anonId,
         journeyId,
         targetUrl: stepInfo.url,
-        isBot: false,
+        ip: hashedIp,
+        ua,
+        isBot,
       });
 
-      // Determine next hop
       const nextStep = link.chain.find(c => c.order === currentStep + 1);
+
       nextUrl = nextStep
-        ? `${req.protocol}://${req.get("host")}/r/${linkId}?step=${currentStep + 1}`
+        ? `${req.protocol}://${requestedHost}/r/${linkId}/${currentStep + 1}`
         : link.target;
-    } else {
-      // Non-chain direct link
-      await ClickEvent.create({
+    }
+
+    /* =====================================================
+     * NORMAL SINGLE LINK
+     * ===================================================== */
+    else {
+      await LinksDetectorClickEvent.create({
         linkId,
         stepOrder: 1,
         stepUrl: link.target,
+        direction: "forward",
         anonId,
         journeyId,
         targetUrl: link.target,
-        direction: "forward",
+        ip: hashedIp,
+        ua,
+        isBot,
       });
+
       nextUrl = link.target;
     }
 
+    console.log("Redirecting user to:", nextUrl);
     return res.redirect(nextUrl);
+
   } catch (err) {
     console.error("Redirect error:", err);
-    res.status(500).send("Server error");
+    return res.status(500).send("Server error");
   }
 };
 
 
-exports.addBaseUrl = async (req, res) => {
+
+ exports.addBaseUrl = async (req, res) => {
   try {
     const { baseUrl, owner } = req.body;
-    if (!baseUrl) return res.status(400).json({ ok: false, error: 'baseUrl required' });
+    if (!baseUrl) return res.status(400).json({ ok: false, error: "baseUrl required" });
 
     const name = new URL(baseUrl).hostname;
     const domain = new LinksDomain({ name, baseUrl, owner });
@@ -292,26 +334,28 @@ exports.addBaseUrl = async (req, res) => {
     res.json({ ok: true, domain });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ ok: false, error: 'server error' });
+    res.status(500).json({ ok: false, error: "server error" });
   }
 };
 
-// 🟡 Get all domains
-exports.getBaseDomain = async (req, res) => {
+
+ exports.getBaseDomain = async (req, res) => {
   try {
     const domains = await LinksDomain.find().sort({ createdAt: -1 });
     res.json({ ok: true, domains });
   } catch (err) {
-    res.status(500).json({ ok: false, error: 'server error' });
+    console.error(err);
+    res.status(500).json({ ok: false, error: "server error" });
   }
 };
 
-// 🔴 Delete domain
 exports.deleteBaseDomain = async (req, res) => {
   try {
     await LinksDomain.findByIdAndDelete(req.params.id);
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ ok: false, error: 'server error' });
+    console.error(err);
+    res.status(500).json({ ok: false, error: "server error" });
   }
 };
+ 
