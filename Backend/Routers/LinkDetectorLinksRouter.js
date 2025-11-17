@@ -18,6 +18,5 @@
   router.post('/addBaseUrl', addBaseUrl);
   router.get('/getBaseDomain', getBaseDomain);
   router.delete('/deleteBaseDomain/:id', deleteBaseDomain);
-
-
+  
   module.exports = router;

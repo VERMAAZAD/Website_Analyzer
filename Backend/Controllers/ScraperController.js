@@ -206,8 +206,12 @@ exports.getAllScrapedSites = async (req, res) => {
  try {
     let query = {};
     
-    // 👤 Admin gets all users' domains
-    if (req.user.role !== 'admin') {
+       if (req.user.role === 'admin') {
+    } 
+    else if (req.user.parentUser) {
+      query.user = req.user.parentUser;
+    } 
+    else {
       query.user = req.user._id;
     }
 

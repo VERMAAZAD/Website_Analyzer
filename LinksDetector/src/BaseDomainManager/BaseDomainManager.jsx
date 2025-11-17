@@ -52,12 +52,11 @@ const BaseDomainManager = () => {
           </button>
         </div>
         <table className="domain-table">
-          
           <thead>
-            
             <tr>
-              
-              <th>Domain</th> <th>Base URL</th> <th>Actions</th>
+              <th>Domain</th>
+              <th>Base URL</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -65,14 +64,13 @@ const BaseDomainManager = () => {
             {domains.map((d) => (
               <tr key={d._id}>
                 
-                <td>{d.name}</td> <td>{d.baseUrl}</td>
+                <td>{d.name}</td> 
+                <td>{d.baseUrl}</td>
                 <td>
-                  
                   <button
                     onClick={() => handleDeleteDomain(d._id)}
                     className="delete-btn"
                   >
-                    
                     🗑️
                   </button>
                 </td>
