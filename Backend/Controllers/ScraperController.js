@@ -956,9 +956,6 @@ exports.getUnindexedDomains = async (req, res) => {
   }
 };
 
-
-
-
 exports.saveHostingInfo = async (req, res) => {
   const { domain } = req.params;
   const {
@@ -971,7 +968,13 @@ exports.saveHostingInfo = async (req, res) => {
   } = req.body;
 
   try {
-     let filter;
+    // FIXED: clean domain
+    const cleanDomain = domain
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .replace(/\/$/, "");
+
+    let filter;
     if (req.user.role === "admin") {
       filter = { domain: cleanDomain };
     } else if (req.user.parentUser) {
@@ -979,8 +982,12 @@ exports.saveHostingInfo = async (req, res) => {
     } else {
       filter = { domain: cleanDomain, user: req.user._id };
     }
-    const site = await ScrapedSite.findOne({ filter });
-    if (!site) return res.status(404).json({ message: "Domain not found" });
+
+    // FIXED: findOne(filter) not {filter}
+    const site = await ScrapedSite.findOne(filter);
+
+    if (!site)
+      return res.status(404).json({ message: "Domain not found" });
 
     site.hostingInfo = {
       platform,
@@ -993,7 +1000,10 @@ exports.saveHostingInfo = async (req, res) => {
 
     await site.save();
 
-    res.json({ message: "Hosting info saved", hostingInfo: site.hostingInfo });
+    res.json({
+      message: "Hosting info saved",
+      hostingInfo: site.hostingInfo,
+    });
   } catch (err) {
     console.error("Error saving hosting info:", err.message);
     res.status(500).json({ error: "Internal Server Error" });
