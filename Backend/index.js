@@ -19,9 +19,9 @@ const ClickTrackRouter = require('./Routers/ClickTrackRouter')
 const TrafficCheckerRouter = require('./Routers/TrafficCheckerRouter')
 const AdsWebsiteRouter = require('./Routers/AdsWebsiteRouter')
 const NautraWebsiteRouter = require('./Routers/NautraWebsiteRouter')
-const LinkDetectorLinksRouter = require('./Routers/LinkDetectorLinksRouter')
 const CasinoTrafficRouter = require('./Routers/CasinoTrafficRouter');
-const { handleRedirect } = require('./Controllers/LinksDetectorController');
+const UserAnalyticsRouter = require('./Routers/UserAnalyticsRouter');
+const UsertrackRouter = require('./Routers/UsertrackRouter');
 
 const PORT = process.env.PORT || 5000;
 
@@ -57,10 +57,8 @@ app.use("/adswebsite", AdsWebsiteRouter)
 app.use("/natural", NautraWebsiteRouter)
 app.use("/casinotraffic", CasinoTrafficRouter)
 
-// LinkDetector
-app.use('/clockar/api', LinkDetectorLinksRouter);
-app.get("/r/:linkId", handleRedirect);
-app.get("/r/:linkId/:step", handleRedirect); 
+app.use('/api/track', UsertrackRouter);
+app.use('/api/analytics', UserAnalyticsRouter);
 
 app.listen(PORT, () => {
     console.log('Server is Running');

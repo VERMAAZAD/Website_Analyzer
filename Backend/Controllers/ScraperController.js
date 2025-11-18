@@ -997,7 +997,6 @@ exports.saveHostingInfo = async (req, res) => {
       domainEmail,
       cloudflare,
     };
-
     await site.save();
 
     res.json({
@@ -1009,8 +1008,6 @@ exports.saveHostingInfo = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
-
-
 
 exports.getHostingInfo = async (req, res) => {
   
