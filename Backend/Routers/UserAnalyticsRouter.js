@@ -1,11 +1,11 @@
 // routes/analyticsRoutes.js
 const express = require('express');
 const router = express.Router();
-const analyticsController = require('../Controllers/AnalyticsController');
+const { domainStats, flowCount, recentFlows, getUserPath } = require('../Controllers/AnalyticsController');
 
-router.get('/domain-stats', analyticsController.domainStats);
-router.post('/flow-count', analyticsController.flowCount);
-router.get('/recent-flows', analyticsController.recentFlows);
-router.get('/user-path/:uid', analyticsController.getUserPath);
+router.get('/domain-stats', domainStats);
+router.post('/flow-count', flowCount);
+router.get('/recent-flows', recentFlows);
+router.get('/user-path/:uid', getUserPath);
 
 module.exports = router;

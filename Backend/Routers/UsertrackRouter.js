@@ -1,9 +1,10 @@
-// routes/trackRoutes.js
+
 const express = require('express');
 const router = express.Router();
-const trackController = require('../Controllers/trackController');
+const { logVisit, outboundClick } = require('../Controllers/TrackController');
 
-router.post('/log-visit', trackController.logVisit);
-router.post('/outbound', trackController.outboundClick);
+
+router.post('/log-visit', logVisit);
+router.post('/outbound', outboundClick);
 
 module.exports = router;

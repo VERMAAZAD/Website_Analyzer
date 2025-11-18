@@ -9,7 +9,6 @@ exports.domainStats = async (req, res) => {
       { $group: { _id: '$_id.domain', uniqueVisitors: { $sum: 1 } } },
       { $project: { domain: '$_id', uniqueVisitors: 1, _id: 0 } }
     ]);
-    // convert to object map for easier consumption if needed
     res.json(rows);
   } catch (err) {
     console.error('domainStats err', err);
