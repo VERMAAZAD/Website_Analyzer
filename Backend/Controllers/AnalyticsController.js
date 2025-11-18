@@ -1,10 +1,10 @@
 // controllers/analyticsController.js
-const Visit = require('../Models/UserVisit');
+const UserVisit = require('../Models/UserVisit');
 const UserFlow = require('../Models/UserFlow');
 
 exports.domainStats = async (req, res) => {
   try {
-    const rows = await Visit.aggregate([
+    const rows = await UserVisit.aggregate([
       { $group: { _id: { domain: '$domain', uid: '$uid' } } },
       { $group: { _id: '$_id.domain', uniqueVisitors: { $sum: 1 } } },
       { $project: { domain: '$_id', uniqueVisitors: 1, _id: 0 } }

@@ -1,5 +1,5 @@
 // controllers/trackController.js
-const Visit = require('../Models/UserVisit');
+const UserVisit = require('../Models/UserVisit');
 const UserFlow = require('../Models/UserFlow');
 const getClientInfo = require('../Utils/getClientInfo');
 
@@ -8,7 +8,7 @@ exports.logVisit = async (req, res) => {
     const { uid, url, domain, path, referrer, params } = req.body || {};
     const info = getClientInfo(req);
 
-    const visit = await Visit.create({
+    const visit = await UserVisit.create({
       uid: uid || null,
       url: url || (req.body && req.body.url) || '',
       domain: domain || req.hostname || (new URL(req.body?.url || 'http://').hostname),
@@ -43,7 +43,7 @@ exports.outboundClick = async (req, res) => {
     const { uid, fromDomain, toUrl, referrer } = req.body || {};
     const info = getClientInfo(req);
 
-    await Visit.create({
+    await UserVisit.create({
       uid: uid || null,
       url: toUrl,
       domain: fromDomain,
