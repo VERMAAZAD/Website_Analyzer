@@ -186,13 +186,13 @@ const Last7DaysTraffic = () => {
                                 <Line
                                   type="monotone"
                                   dataKey="total"
-                                  stroke="#8884d8"
+                                  stroke="#423d9eff"
                                   name="Total Views"
                                 />
                                 <Line
                                   type="monotone"
                                   dataKey="unique"
-                                  stroke="#82ca9d"
+                                  stroke="#37c76fff"
                                   name="Unique Views"
                                 />
                               </LineChart>

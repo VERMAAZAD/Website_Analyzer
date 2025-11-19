@@ -1,4 +1,4 @@
-// controllers/analyticsController.js
+// Controllers/AnalyticsController.js
 const UserVisit = require('../Models/UserVisit');
 const UserFlow = require('../Models/UserFlow');
 

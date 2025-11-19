@@ -1,4 +1,5 @@
-// routes/analyticsRoutes.js
+// UserAnalyticsRouter.js
+
 const express = require('express');
 const router = express.Router();
 const { domainStats, flowCount, recentFlows, getUserPath } = require('../Controllers/AnalyticsController');

@@ -1,4 +1,4 @@
-// controllers/trackController.js
+// Controllers/TrackController.js
 const UserVisit = require('../Models/UserVisit');
 const UserFlow = require('../Models/UserFlow');
 const getClientInfo = require('../Utils/getClientInfo');

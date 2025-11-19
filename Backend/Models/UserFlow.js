@@ -1,4 +1,4 @@
-// models/UserFlow.js
+// Models/UserFlow.js
 const mongoose = require('mongoose');
 
 const FlowSchema = new mongoose.Schema({
