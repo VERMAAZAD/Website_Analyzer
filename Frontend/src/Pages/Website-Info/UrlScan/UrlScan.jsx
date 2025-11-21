@@ -12,60 +12,56 @@ function UrlScan() {
   const [category, setCategory] = useState('');
   const [customCategory, setCustomCategory] = useState('');
   const [useCustom, setUseCustom] = useState(false);
-  const [categories, setCategories] = useState([]); // ✅ fetched from backend
-    const [affiliateLink, setAffiliateLink] = useState(null);
- const [issueDate, setIssueDate] = useState('');
+  const [categories, setCategories] = useState([]);
+  const [affiliateLink, setAffiliateLink] = useState(null);
+  const [issueDate, setIssueDate] = useState('');
 
- const superCategory = localStorage.getItem("superCategory") || "natural";
-  const apiBase = superCategory === "casino"
-    ? "casino/scraper"
-    : superCategory === "dating"
-    ? "dating/scraper"
-    : "api/scraper";
+  const superCategory = localStorage.getItem("superCategory") || "natural";
+  const apiBase =
+    superCategory === "casino"
+      ? "casino/scraper"
+      : superCategory === "dating"
+      ? "dating/scraper"
+      : "api/scraper";
 
-
-  // ✅ Fetch brand categories from backend
+  // Fetch categories
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchCat = async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_API_URI}/${apiBase}/categories`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`
+        const res = await axios.get(
+          `${import.meta.env.VITE_API_URI}/${apiBase}/categories`,
+          {
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
           }
-        });
+        );
         setCategories(res.data);
       } catch (err) {
-        handleError("❌ Failed to fetch categories", err);
+        handleError("Failed to fetch categories");
       }
     };
-
-    fetchCategories();
+    fetchCat();
   }, []);
 
   const handleScan = async (e) => {
     e.preventDefault();
-
-    if (!domain.trim()) {
-      handleError("❌ Please enter a domain.");
-      return;
-    }
+    if (!domain.trim()) return handleError("Enter a domain");
 
     setLoading(true);
-    setSaved(false);
     setResult(null);
-    setAffiliateLink(null);
+    setSaved(false);
 
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URI}/${apiBase}/scan`, {
-        domain: domain.trim(),
-      });
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URI}/${apiBase}/scan`,
+        { domain }
+      );
       setResult(response.data);
-       if (response.data.affiliateLink) {
-        setAffiliateLink(response.data.affiliateLink);
-      }
-    } catch (error) {
-      setResult(error.response?.data || { error: 'Something went wrong while scraping.' });
 
+      if (response.data.affiliateLink)
+        setAffiliateLink(response.data.affiliateLink);
+
+    } catch (error) {
+      setResult(error.response?.data || { error: "Scraping error" });
     } finally {
       setLoading(false);
     }
@@ -74,118 +70,121 @@ function UrlScan() {
   const handleSave = async () => {
     const brandCategory = useCustom ? customCategory.trim() : category;
 
-    if (!brandCategory) {
-      handleError("❌ Please select or enter a brand category.");
-      return;
-    }
-
-    if (!result) {
-      handleError("❌ No scan result to save.");
-      return;
-    }
+    if (!brandCategory) return handleError("Choose or write a category");
 
     try {
-      await axios.post(`${import.meta.env.VITE_API_URI}/${apiBase}/save`, {
-        domain: domain.trim(),
-        data: result,
-        brandCategory,
-         issueDate: issueDate || null,
-      }, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`
+      await axios.post(
+        `${import.meta.env.VITE_API_URI}/${apiBase}/save`,
+        {
+          domain,
+          data: result,
+          brandCategory,
+          issueDate: issueDate || null,
+        },
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         }
-      });
+      );
 
       setSaved(true);
-      handleSuccess("✅ Saved to database!");
+      handleSuccess("Saved!");
+
     } catch (err) {
-      if (err.response?.data?.error?.includes("E11000")) {
-        handleError("❌ Domain already exists in your saved list.");
-      } else {
-        handleError("Domain already exists in server");
-      }
+      handleError("Domain already exists");
     }
   };
 
   return (
-   <div className="urlscan-container">
-  <h2>Scan Website</h2>
-  <form onSubmit={handleScan}>
-    {/* Domain Input */}
-    <label htmlFor="domain">Domain</label>
-    <input
-      type="text"
-      id="domain"
-      value={domain}
-      onChange={(e) => setDomain(e.target.value)}
-      placeholder="Enter Domain e.g. https://example.com"
-      required
-    />
 
-    {/* Issue Date Input */}
-    <label htmlFor="issueDate">Issue Date</label>
-    <input
-      type="date"
-      id="issueDate"
-      value={issueDate}
-      onChange={(e) => setIssueDate(e.target.value)}
-      placeholder="Select issue date"
-    />
+      <div className="urlscan-wrapper">
 
-    {/* Brand Category Select */}
-    <label htmlFor="category">Brand Category</label>
-    <select
-      id="category"
-      value={category}
-      onChange={(e) => {
-        const val = e.target.value;
-        if (val === '__custom__') {
-          setUseCustom(true);
-          setCategory('');
-        } else {
-          setUseCustom(false);
-          setCategory(val);
-        }
-      }}
-      required={!useCustom}
-    >
-      <option value="">Select Brand Category</option>
-      {categories.map((cat, idx) => (
-        <option key={idx} value={cat}>{cat}</option>
-      ))}
-      <option value="__custom__">Add custom category...</option>
-    </select>
+        {/* LEFT - FORM */}
+        <div className="scan-form-card">
+          <h2>Scan Website</h2>
 
-    {/* Custom Category Input */}
-    {useCustom && (
-      <>
-        <label htmlFor="customCategory">Custom Brand Category</label>
-        <input
-          type="text"
-          id="customCategory"
-          value={customCategory}
-          onChange={(e) => setCustomCategory(e.target.value)}
-          placeholder="Enter custom brand category"
-          required
-        />
-      </>
-    )}
+          <form onSubmit={handleScan}>
 
-    <button type="submit" disabled={loading}>
-      {loading ? 'Scanning...' : 'Scan'}
-    </button>
-  </form>
+            <div className="form-group">
+              <label>Domain</label>
+              <input
+                type="text"
+                value={domain}
+                onChange={(e) => setDomain(e.target.value)}
+                placeholder="https://example.com"
+              />
+            </div>
 
-  {result && (
-    <>
-      <pre className="result-json">{JSON.stringify(result, null, 2)}</pre>
-      <button onClick={handleSave} disabled={saved}>
-        {saved ? 'Saved' : 'Save'}
-      </button>
-    </>
-  )}
-</div>
+            <div className="form-group">
+              <label>Issue Date</label>
+              <input
+                type="date"
+                value={issueDate}
+                onChange={(e) => setIssueDate(e.target.value)}
+              />
+            </div>
 
+            <div className="form-group">
+              <label>Brand Category</label>
+              <select
+                value={category}
+                onChange={(e) => {
+                  if (e.target.value === "__custom__") {
+                    setUseCustom(true);
+                    setCategory('');
+                  } else {
+                    setUseCustom(false);
+                    setCategory(e.target.value);
+                  }
+                }}
+              >
+                <option value="">Select category</option>
+                <option value="__custom__">Add Custom</option>
+                {categories.map((c, i) => (
+                  <option key={i} value={c}>{c}</option>
+                ))}
+                
+              </select>
+            </div>
+
+            {useCustom && (
+              <div className="form-group">
+                <label>Custom Category</label>
+                <input
+                  type="text"
+                  value={customCategory}
+                  onChange={(e) => setCustomCategory(e.target.value)}
+                  placeholder="Enter custom category"
+                />
+              </div>
+            )}
+
+            <button type="submit" className="scan-btn">
+              {loading ? "Scanning..." : "Scan Domain"}
+            </button>
+          </form>
+        </div>
+
+        {/* RIGHT - RESULT */}
+        <div className="result-card">
+          <h3>Scraped Data</h3>
+
+          {!result && (
+            <p className="placeholder-text">⏳ Scan a website to see results...</p>
+          )}
+
+          {result && (
+            <div className="json-container">
+              <pre>{JSON.stringify(result, null, 2)}</pre>
+            </div>
+          )}
+           {result && (
+            <button onClick={handleSave} className="save-btn" disabled={saved}>
+              {saved ? "Saved" : "Save Result"}
+            </button>
+          )}
+        </div>
+
+      </div>
   );
 }
 
