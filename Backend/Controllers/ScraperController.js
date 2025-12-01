@@ -730,8 +730,6 @@ exports.getAffiliateErrors = async (req, res) => {
 
 
 
-
-
 exports.getExpiringDomains = async (req, res) => {
   try {
     const now = new Date();
@@ -739,7 +737,15 @@ exports.getExpiringDomains = async (req, res) => {
     tenDaysFromNow.setDate(now.getDate() + 10);
 
     // Admin can see all; normal users only their own
-    const query = req.user.role === "admin" ? {} : { user: req.user._id };
+    let query = {};
+
+     if (req.user.role === 'admin') {
+      query = {}; // Admin sees all
+    } else if (req.user.parentUser) {
+      query.user = req.user.parentUser; // Sub-user sees parent's domains
+    } else {
+      query.user = req.user._id; // Normal user sees their own domains
+    }
 
     const domains = await ScrapedSite.find(query);
 
