@@ -812,7 +812,6 @@ exports.renewDomain = async (req, res) => {
           query = { user: req.user._id, domain: domain.toLowerCase() };
         }
 
-        // Find the domain first
         const existing = await ScrapedSite.findOne(query);
 
         if (!existing) {

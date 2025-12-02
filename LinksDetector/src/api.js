@@ -1,16 +1,20 @@
-// src/api.js
-import axios from 'axios';
-const API = import.meta.env.VITE_API || 'http://localhost:5000';
+const API_BASE = import.meta.env.VITE_API_URI;
 
-export async function getDomainStats() {
-  return axios.get(`${API}/api/analytics/domain-stats`).then(r => r.data);
-}
-export async function getRecentFlows() {
-  return axios.get(`${API}/api/analytics/recent-flows`).then(r => r.data);
-}
-export async function getFlowCount(sequence) {
-  return axios.post(`${API}/api/analytics/flow-count`, { sequence }).then(r => r.data);
-}
-export async function getUserPath(uid) {
-  return axios.get(`${API}/api/analytics/user-path/${uid}`).then(r => r.data);
-}
+export const createShortLink = async (originalUrl) => {
+  console.log("API Key:", import.meta.env.VITE_API_KEY);
+  const res = await fetch(`${API_BASE}/api/create`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": import.meta.env.VITE_API_KEY
+    },
+    body: JSON.stringify({ url: originalUrl })
+  });
+  
+  return res.json();
+};
+
+export const getLinkStats = async (shortId) => {
+  const res = await fetch(`${API_BASE}/api/stats/${shortId}`);
+  return res.json();
+};

@@ -4,9 +4,6 @@ const geoip = require("geoip-lite");
 const mongoose = require("mongoose");
 const Trafficchecker = require("../Models/Trafficchecker");
 
-/**
- * Constants / Helpers
- */
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // +05:30
 const MS_IN_DAY = 24 * 60 * 60 * 1000;
 const IST_TIMEZONE = "+05:30";

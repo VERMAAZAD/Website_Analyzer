@@ -20,8 +20,11 @@ const TrafficCheckerRouter = require('./Routers/TrafficCheckerRouter')
 const AdsWebsiteRouter = require('./Routers/AdsWebsiteRouter')
 const NautraWebsiteRouter = require('./Routers/NautraWebsiteRouter')
 const CasinoTrafficRouter = require('./Routers/CasinoTrafficRouter');
-const UserAnalyticsRouter = require('./Routers/UserAnalyticsRouter');
-const UsertrackRouter = require('./Routers/UsertrackRouter');
+
+const CreatelinkRoutes = require('./Routers/CreatelinkRoutes');
+const { redirect } = require("./Controllers/LinkController");
+
+
 
 const PORT = process.env.PORT || 5000;
 
@@ -32,11 +35,10 @@ const corsOptions = {
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
+  allowedHeaders: ["Content-Type", "Authorization", "x-api-key"]
 };
 app.use(cors(corsOptions));
 
-// app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
 
@@ -57,8 +59,9 @@ app.use("/adswebsite", AdsWebsiteRouter)
 app.use("/natural", NautraWebsiteRouter)
 app.use("/casinotraffic", CasinoTrafficRouter)
 
-app.use('/api/track', UsertrackRouter);
-app.use('/api/analytics', UserAnalyticsRouter);
+
+app.use("/api", CreatelinkRoutes);
+app.get("/:slug", redirect);
 
 app.listen(PORT, () => {
     console.log('Server is Running');
