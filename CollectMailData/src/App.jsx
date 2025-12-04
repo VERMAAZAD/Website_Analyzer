@@ -11,7 +11,6 @@ import DomainTraffic from './DomainTraffic/DomainTraffic';
 import Last7DaysTraffic from './UserTraffic/Last7DaysTraffic';
 import Dashboard from './Dashboard/Dashboard';
 import PagesAnalytics from './PagesAnalytics/PagesAnalytics';
-// import DomainDashboard from './Dashboard/DomainDashboard';
 
 function App() {
   return (

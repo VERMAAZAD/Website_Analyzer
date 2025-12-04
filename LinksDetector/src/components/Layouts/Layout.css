@@ -1,0 +1,35 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #f6f8fb;
+}
+
+/* Main content */
+.content {
+  flex: 1;
+  transition: margin-left 0.3s ease;
+  overflow-y: auto;
+  height: calc(100vh - 60px);
+}
+
+/* Adjust margin-left for icon-only sidebar */
+@media (min-width: 992px) {
+  .content {
+    margin-left: 70px; /* collapsed width */
+  }
+  .sidebar:hover ~ .content {
+    margin-left: 200px; /* expanded width */
+  }
+}
+
+/* Mobile behavior */
+@media (max-width: 991px) {
+  .content {
+    margin-left: 0;
+  }
+  .content.shifted {
+    filter: blur(2px);
+    pointer-events: none;
+  }
+}

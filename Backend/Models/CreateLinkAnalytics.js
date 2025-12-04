@@ -2,6 +2,8 @@ const mongoose = require("mongoose");
 
 const analyticsSchema = new mongoose.Schema({
   slug: String,
+  sessionId: String,
+  step: Number,
   ip: String,
   country: String,
   device: String,

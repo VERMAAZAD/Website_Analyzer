@@ -1,0 +1,206 @@
+/* === Sidebar Base === */
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  width: 70px; /* Collapsed width */
+  background: #ffffff;
+  color: #333;
+  transition: width 0.3s ease, box-shadow 0.3s ease;
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid #e0e0e0;
+}
+
+/* === Hover Expand === */
+.sidebar:hover {
+  width: 200px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content:center;
+  height: 70px;
+  background: #fff;
+  padding: 0 10px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.sidebar-logo {
+  height: 40px;
+  width: auto;
+  transition: transform 0.3s ease;
+}
+
+.sidebar:hover .sidebar-logo {
+  transform: scale(1.05);
+}
+
+.close-btn {
+  display: none;
+}
+
+/* === Links === */
+.nav-links {
+  list-style: none;
+  padding: 0;
+  margin-top: 10px;
+  flex: 1;
+}
+
+.nav-links li {
+  display: flex;
+  align-items: center;
+  margin: 6px 0;
+  font-size: 15px;
+}
+
+/* === Link Buttons === */
+.nav-links li a {
+  display: flex;
+  align-items: center;
+  color: #333;
+  padding: 10px;
+  text-decoration: none;
+  white-space: nowrap;
+  width: 100%;
+  font-weight: 500;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.nav-links li a i {
+  font-size: 15px;
+  min-width: 48px;
+  text-align: center;
+  color: #388e3c;
+  background: #f1edff;
+  padding: 10px 18px;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  margin-right: 10px;
+}
+
+/* === Collapsed Text Hidden === */
+.link-text {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease;
+}
+
+.sidebar:hover .link-text {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* === Hover & Active States === */
+.nav-links li a:hover {
+  background: linear-gradient(90deg, #388e3c, #09a42a);
+  color: #fff;
+  box-shadow: 0 3px 8px rgba(103, 61, 230, 0.3);
+}
+
+.nav-links li a:hover i {
+  background: #fff;
+  color: #388e3c;
+}
+
+/* Active link styling */
+.nav-links li.active a {
+  background: #ede8ff;
+  color: #388e3c;
+  font-weight: 600;
+}
+
+.nav-links li.active a i {
+  background: #388e3c;
+  color: #fff;
+}
+
+/* === Logout Button === */
+.logout {
+  margin-top: auto;
+  padding: 12px;
+  cursor: pointer;
+  color: #e63946;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.logout i {
+  font-size: 18px;
+  min-width: 48px;
+  text-align: center;
+  background: #ffe5e5;
+  padding: 10px 18px;
+  border-radius: 10px;
+  color: #e63946;
+  transition: all 0.3s ease;
+  margin-right: 10px;
+}
+
+.logout:hover {
+  background: #ffe5e5;
+}
+
+.logout:hover i {
+  background: #e63946;
+  color: #fff;
+}
+
+/* === Overlay (for mobile only) === */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s;
+  z-index: 1100;
+}
+
+.sidebar-overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* === Mobile View === */
+@media (max-width: 991px) {
+  .sidebar {
+    transform: translateX(-100%);
+    width: 230px;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar:hover {
+    width: 260px; /* Prevent hover expand on mobile */
+  }
+
+  .close-btn {
+    display: block;
+    color: #333;
+    font-size: 28px;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+
+  .link-text {
+    opacity: 1;
+    visibility: visible;
+  }
+  .sidebar-header {
+  justify-content:space-between;
+  }
+}

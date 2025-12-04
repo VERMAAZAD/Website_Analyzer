@@ -5,6 +5,10 @@ const linkSchema = new mongoose.Schema({
   slug: { type: String, required: true, unique: true },
   shortUrl: { type: String, required: true },
   clicks: { type: Number, default: 0 },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  chainNextSlug: { type: String, default: null }, 
+  chainNote: { type: String, default: null },
+  chainGroupId: { type: String, default: null },  // 🔥 NEW FIELD
   createdAt: { type: Date, default: Date.now }
 });
 

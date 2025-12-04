@@ -1,0 +1,244 @@
+/* ===============================
+   BRAND COLOR
+================================= */
+:root {
+  --primary: #388e3c;
+  --primary-dark: #2e7030;
+  --bg-light: #f4f9f4;
+  --text-dark: #1b1b1b;
+}
+
+/* ===============================
+   WRAPPER
+================================= */
+.link-wrapper {
+  max-width: 1100px;
+  margin: auto;
+  display: flex;
+  gap: 25px;
+  padding: 25px;
+  flex-wrap: wrap;
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+/* ===============================
+   CARDS
+================================= */
+.form-section,
+.links-section {
+  flex: 1;
+  min-width: 330px;
+  background: #fff;
+  padding: 25px;
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  transition: 0.3s;
+}
+
+.form-section:hover,
+.links-section:hover {
+  box-shadow: 0 9px 22px rgba(0,0,0,0.12);
+}
+
+.form-section h2,
+.links-section h3 {
+  margin-bottom: 15px;
+  color: var(--text-dark);
+  font-weight: 600;
+}
+.form-section h2{
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.domain-input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.domain-input-row input {
+  flex: 1;
+  padding: 8px 15px;
+  border-radius: 8px;
+  border: 1.5px solid #ccc;
+  font-size: 16px;
+  transition: 0.25s;
+}
+
+.domain-input-row input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 6px rgba(56,142,60,0.2);
+  outline: none;
+}
+
+.button-create{
+  display: flex;
+}
+.remove-btn {
+  background: #ff4d4d;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 6px;
+}
+
+.remove-btn:hover {
+  background: #d93636;
+}
+
+.add-btn {
+  width: 48%;
+  margin-top: 10px;
+  font-weight: 500;
+  padding: 10px;
+  text-transform: uppercase;
+  background-color: #388e3c;
+  color: #fff;
+}
+
+.add-btn:hover {
+  background: #388e3cfd;
+}
+
+form button[type="submit"] {
+  width: 48%;
+  margin-top: 10px;
+  font-size: 14px;
+  padding: 10px;
+  text-transform: uppercase;
+  background-color: #388e3c;
+  color: #fff;
+}
+
+form button[type="submit"]:hover {
+  background: #388e3cfd;
+}
+
+/* ===============================
+   GENERATED LINKS
+================================= */
+.links-section ul {
+  list-style: none;
+  padding: 0;
+  margin-top: 10px;
+}
+
+.links-section li {
+  background: var(--bg-light);
+  padding: 15px;
+  border-radius: 12px;
+  border-left: 6px solid var(--primary);
+  margin-bottom: 12px;
+  transition: 0.3s;
+}
+
+.links-section li:hover {
+  background: #e8f3e8;
+}
+
+.links-section li p {
+  margin-bottom: 8px;
+  font-size: 15px;
+  color: #333;
+}
+
+/* SHORT LINK AREA */
+.links-section a {
+  color: #e63946;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.links-section a:hover {
+  text-decoration: underline;
+}
+
+/* COPY BUTTON */
+.links-section button {
+  background: #388e3c;
+  color: white;
+  padding: 6px 14px;
+  border-radius: 6px;
+  margin-left: 10px;
+}
+
+.links-section button:hover {
+  background: #000;
+}
+
+/* NEXT SLUG */
+.chain-arrow {
+  margin-left: 12px;
+  font-size: 14px;
+  color: #333;
+  background: #e5ffe6;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+/* EMPTY TEXT */
+.empty-text {
+  color: #999;
+  text-align: center;
+  margin-top: 20px;
+  font-style: italic;
+}
+
+/* ===============================
+   RESPONSIVE (Mobile First)
+================================= */
+@media (max-width: 768px) {
+  .link-wrapper {
+    padding: 15px;
+    gap: 15px;
+  }
+
+  .domain-input-row input {
+    font-size: 14px;
+  }
+
+}
+
+@media (max-width: 480px) {
+  .links-section li {
+    padding: 12px;
+  }
+
+  .links-section button {
+    margin-top: 10px;
+    width: 100%;
+  }
+
+  .chain-arrow {
+    display: block;
+    margin-left: 0;
+    margin-top: 6px;
+  }
+}
+
+/* ===============================
+   ANIMATION
+================================= */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
+.mode-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  font-size: 16px;
+  user-select: none;
+}
+
+.mode-toggle input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
