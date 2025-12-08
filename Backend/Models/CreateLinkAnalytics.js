@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const analyticsSchema = new mongoose.Schema({
   slug: String,
+  rootSlug: String,
   sessionId: String,
   step: Number,
   ip: String,

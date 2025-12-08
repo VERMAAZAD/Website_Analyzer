@@ -34,8 +34,8 @@ export const getAnalytics = async (slug) => {
 };
 
 // ---------------- FUNNEL ----------------
-export const getFunnelStats = async () => {
-  const res = await fetch(`${API_BASE}/api/funnel`, {
+export const getFunnelStats = async (slug) => {
+  const res = await fetch(`${API_BASE}/api/funnel/${slug}`, {
     headers: authHeaders()
   });
   return res.json();

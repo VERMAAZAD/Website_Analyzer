@@ -223,3 +223,13 @@
   background-color: #007bff;
   color: #fff;
 }
+
+@media(max-width:768px){
+  .traffic-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+    flex-direction: column;
+  }
+}

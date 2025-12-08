@@ -37,14 +37,14 @@
 }
 
 .login-form input:focus {
-  border-color: #673DE6;
+  border-color: #388e3c;
   outline: none;
 }
 
 .login-form button {
   width: 100%;
   padding: 0.80rem 0;
-  background-color: #673DE6;
+  background-color: #388e3c;
   color: white;
   font-size: 1rem;
   font-weight: 700;
@@ -55,7 +55,7 @@
 }
 
 .login-form button:hover {
-  background-color: #673de6e2;
+  background-color: #388e3ce2;
 }
 
 .form-link {
@@ -66,7 +66,7 @@
 }
 
 .form-link a {
-  color: #673DE6;
+  color: #388e3c;
   text-decoration: none;
   font-weight: 600;
 }
@@ -81,13 +81,13 @@
 
 .forgot-password-link {
   font-size: 0.9rem;
-  color: #673DE6;
+  color: #388e3c;
   text-decoration: none;
   transition: color 0.3s ease;
 }
 
 .forgot-password-link:hover {
-  color: #673de6e2;
+  color: #388e3ce2;
   text-decoration: underline;
 }
 
@@ -104,7 +104,7 @@
       width: 4%;
 }
 .login-form .show-password input[type="checkbox"] {
-  accent-color: #673DE6; 
+  accent-color: #388e3c; 
   cursor: pointer;
 }
 

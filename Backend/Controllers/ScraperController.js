@@ -656,8 +656,6 @@ exports.testAffiliateLinks = async (req, res) => {
   }
 };
 
-
-
 // 🔹 GET AFFILIATE ERRORS
 exports.getAffiliateErrors = async (req, res) => {
   try {
@@ -844,9 +842,6 @@ exports.renewDomain = async (req, res) => {
     res.status(500).json({ error: 'Renewal failed', details: err.message });
   }
 };
-
-
-
 
 
 
@@ -1119,23 +1114,17 @@ exports.updateDomainName = async (req, res) => {
 
 
 
-  const puppeteer = require('puppeteer-extra');
-  const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-  const UserAgent = require('user-agents');
+ const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+const UserAgent = require('user-agents');
 
-  puppeteer.use(StealthPlugin());
+puppeteer.use(StealthPlugin());
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  
-
-/* -----------------------------------------------------
- * 🧹 Safe page close
- * --------------------------------------------------- */
 const safeClose = async (page) => {
   if (!page) return;
   try {
-    // check if page still valid
     if (!page.isClosed && typeof page.isClosed === 'function') {
       if (!(await page.isClosed())) {
         await page.close({ runBeforeUnload: false });
@@ -1151,17 +1140,14 @@ const safeClose = async (page) => {
   }
 };
 
-/* -----------------------------------------------------
- * 🔍 Detect Bing indexing status
- * --------------------------------------------------- */
- async function detectBingIndex(page, cleanDomain) {
+async function detectBingIndex(page, cleanDomain) {
   return page.evaluate((domain) => {
     try {
       // Dismiss cookie / consent if present
       const consentBtn = Array.from(document.querySelectorAll('button, input[type="submit"], a'))
         .find(el => /accept|agree|consent|ok/i.test(el.textContent || ''));
       if (consentBtn) {
-        try { consentBtn.click(); } catch(e) { /* ignore */ }
+        try { consentBtn.click(); } catch (e) { /* ignore */ }
       }
 
       const bodyText = document.body.innerText.toLowerCase();
@@ -1206,9 +1192,6 @@ const safeClose = async (page) => {
   }, cleanDomain);
 }
 
-/* -----------------------------------------------------
- * ♻️ Retry logic for Bing index check
- * --------------------------------------------------- */
 const retryCheck = async (fullUrl, browser, retries = 3, delayBetweenRetries = 5000) => {
   const cleanDomain = fullUrl
     .replace(/^https?:\/\//i, '')
@@ -1237,6 +1220,7 @@ const retryCheck = async (fullUrl, browser, retries = 3, delayBetweenRetries = 5
 
       const bingQueryUrl = `https://www.bing.com/search?q=site:${encodeURIComponent(cleanDomain)}`;
       console.log(`🌐 Navigating to: ${bingQueryUrl}`);
+
       await page.setUserAgent(
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
       );
@@ -1255,12 +1239,46 @@ const retryCheck = async (fullUrl, browser, retries = 3, delayBetweenRetries = 5
       if (!response || !response.ok()) {
         console.warn(`⚠️ [${cleanDomain}] Bing response not OK: ${response ? response.status() : 'no response'}`);
         await safeClose(page);
-        // maybe wait then retry
         if (attempt < retries) {
-          await new Promise(r => setTimeout(r, delayBetweenRetries));
+          await sleep(delayBetweenRetries);
           continue;
         }
         return { isBlocked: false, isIndexed: false, firstResult: null, resultCount: 0 };
+      }
+
+      // Detect Turnstile CAPTCHA iframe (Cloudflare)
+      const turnstileCaptcha = await page.$('iframe[src*="challenges.cloudflare.com/turnstile"]');
+      if (turnstileCaptcha) {
+        console.warn(`🚫 [${cleanDomain}] Turnstile CAPTCHA detected`);
+        // Optional: Wait for manual solve or timeout before proceeding
+        // For example, wait up to 60 seconds for user to solve CAPTCHA manually:
+        await page.bringToFront();
+        console.log(`⏳ Waiting up to 60 seconds for manual CAPTCHA solving...`);
+        try {
+          await page.waitForFunction(() => !document.querySelector('iframe[src*="challenges.cloudflare.com/turnstile"]'), { timeout: 60000 });
+          console.log(`[${cleanDomain}] CAPTCHA iframe disappeared, continuing...`);
+        } catch {
+          console.warn(`[${cleanDomain}] CAPTCHA not solved in time, skipping...`);
+          await safeClose(page);
+          return { isBlocked: true, isIndexed: false, firstResult: null, resultCount: 0 };
+        }
+      } else {
+        // Wait for the checkbox CAPTCHA and try to click it if present
+        try {
+          const checkboxSelector = 'input[type="checkbox"][aria-label*="verify you are human"], input[type="checkbox"]';
+          await page.waitForSelector(checkboxSelector, { timeout: 7000 });
+          console.log(`[${cleanDomain}] CAPTCHA checkbox detected, clicking...`);
+          await page.click(checkboxSelector);
+
+          // Wait for either navigation or search results to appear/update
+          await Promise.race([
+            page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => { }),
+            page.waitForSelector('li.b_algo h2 a, .b_title a', { timeout: 15000 })
+          ]);
+          console.log(`[${cleanDomain}] CAPTCHA solved or page updated`);
+        } catch (e) {
+          console.log(`[${cleanDomain}] No CAPTCHA checkbox detected`);
+        }
       }
 
       // Wait for results or no-result indicator
@@ -1269,24 +1287,22 @@ const retryCheck = async (fullUrl, browser, retries = 3, delayBetweenRetries = 5
           page.waitForSelector('li.b_algo h2 a, .b_title a', { timeout: 15000 }),
           page.waitForFunction(
             () => document.body.innerText.toLowerCase().includes('no results for') ||
-                  document.body.innerText.toLowerCase().includes('did not match any documents'),
+              document.body.innerText.toLowerCase().includes('did not match any documents'),
             { timeout: 15000 }
           )
         ]);
       } catch (e) {
         console.log(`⏳ [${cleanDomain}] waiting additional time...`);
-        await new Promise(r => setTimeout(r, 7000));
+        await sleep(7000);
       }
 
-      // Wait small random to let dynamic content settle
-      await new Promise(r => setTimeout(r, 1500 + Math.random() * 1500));
-
-      // Detect blocking / captcha
+      // Detect blocking / captcha still present
       const isBlocked = await page.evaluate(() => {
         const txt = document.body.innerText.toLowerCase();
         return (
           document.querySelector('#b_captcha') ||
           document.querySelector("iframe[src*='recaptcha']") ||
+          document.querySelector("iframe[src*='challenges.cloudflare.com/turnstile']") ||
           txt.includes('verify you are human') ||
           txt.includes('unusual traffic') ||
           txt.includes('bot detect') ||
@@ -1297,7 +1313,7 @@ const retryCheck = async (fullUrl, browser, retries = 3, delayBetweenRetries = 5
       });
 
       if (isBlocked) {
-        console.warn(`🚫 [${cleanDomain}] CAPTCH A / Block detected`);
+        console.warn(`🚫 [${cleanDomain}] CAPTCHA / Block still detected after attempt`);
         await safeClose(page);
         return { isBlocked: true, isIndexed: false, firstResult: null, resultCount: 0 };
       }
@@ -1319,7 +1335,7 @@ const retryCheck = async (fullUrl, browser, retries = 3, delayBetweenRetries = 5
       }
       if (attempt < retries) {
         console.log(`⏳ [${cleanDomain}] Retrying after ${delayBetweenRetries}ms`);
-        await new Promise(r => setTimeout(r, delayBetweenRetries));
+        await sleep(delayBetweenRetries);
       }
     }
   }
@@ -1328,9 +1344,6 @@ const retryCheck = async (fullUrl, browser, retries = 3, delayBetweenRetries = 5
   return { isBlocked: false, isIndexed: false, firstResult: null, resultCount: 0 };
 };
 
-/* -----------------------------------------------------
- * 🚀 Main Bing Index Checker API
- * --------------------------------------------------- */
 exports.checkBingIndex = async (req, res) => {
   try {
     if (!req.user || !req.user._id) {
@@ -1340,7 +1353,7 @@ exports.checkBingIndex = async (req, res) => {
     const startOfToday = new Date();
     startOfToday.setUTCHours(0, 0, 0, 0);
 
-      let baseFilter;
+    let baseFilter;
     if (req.user.role === "admin") {
       baseFilter = {};
     } else if (req.user.parentUser) {
@@ -1348,7 +1361,6 @@ exports.checkBingIndex = async (req, res) => {
     } else {
       baseFilter = { user: req.user._id };
     }
-    
 
     const forceCheck = req.query.force === 'true';
 
@@ -1370,7 +1382,7 @@ exports.checkBingIndex = async (req, res) => {
     }
 
     const browser = await puppeteer.launch({
-      headless: false, 
+      headless: false, // so you can see the browser and manually solve if needed
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -1380,7 +1392,7 @@ exports.checkBingIndex = async (req, res) => {
       ]
     });
 
-    const limit = pLimit(2); // you can raise concurrency to 2 or 3 but be mindful of block
+    const limit = pLimit(2); // concurrency limit
     const unindexed = [];
     const checkedToday = [];
 

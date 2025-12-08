@@ -11,6 +11,7 @@ import {
   LinearScale,
   BarElement,
   LineElement,
+  PointElement, // REQUIRED FOR LINE CHART
   Tooltip,
   Legend
 } from "chart.js";
@@ -23,6 +24,7 @@ ChartJS.register(
   LinearScale,
   BarElement,
   LineElement,
+  PointElement, // REGISTER HERE
   Tooltip,
   Legend
 );
@@ -39,12 +41,12 @@ export default function AnalyticsPage() {
 
   const load = async () => {
     const a = await getAnalytics(slug);
-    const f = await getFunnelStats();
+    const f = await getFunnelStats(slug);
     setAnalytics(a || []);
     setFunnel(f || []);
   };
 
-  // Group values safely
+  // Safe grouping
   const groupBy = (key) =>
     analytics.reduce((acc, cur) => {
       const v = cur[key] || "Unknown";
@@ -57,7 +59,6 @@ export default function AnalyticsPage() {
   const os = groupBy("os");
   const browsers = groupBy("browser");
 
-  // Sort funnel by chain sequence (step 1 -> step 2 -> ...)
   const sortedFunnel = [...funnel].sort((a, b) => a.step - b.step);
 
   return (
@@ -75,23 +76,25 @@ export default function AnalyticsPage() {
             <p>No funnel data available.</p>
           ) : (
             <Line
-              data={{
-                labels: sortedFunnel.map((d) => d.slug),
-                datasets: [
-                  {
-                    label: "Users",
-                    data: sortedFunnel.map((d) => d.clicks),
-                    borderColor: "#4b7bec",
-                    backgroundColor: "rgba(75, 123, 236, 0.3)",
-                    borderWidth: 2
-                  }
-                ]
-              }}
-              options={{
-                responsive: true,
-                plugins: { legend: { display: true } }
-              }}
-            />
+                key={`funnel-${slug}`}
+                data={{
+                  labels: sortedFunnel.map((d) => `Step ${d.step} (${d.slug})`),
+                  datasets: [
+                    {
+                      label: "Users",
+                      data: sortedFunnel.map((d) => d.clicks),
+                      borderWidth: 2,
+                      borderColor: "#4b7bec",
+                      backgroundColor: "rgba(75, 123, 236, 0.3)",
+                      tension: 0.3
+                    }
+                  ]
+                }}
+                options={{
+                  responsive: true,
+                  plugins: { legend: { display: true } }
+                }}
+              />
           )}
         </div>
 
@@ -102,6 +105,7 @@ export default function AnalyticsPage() {
           <div className="chart-card">
             <h4>Country</h4>
             <Bar
+              key="country-chart"
               data={{
                 labels: Object.keys(countries),
                 datasets: [
@@ -119,6 +123,7 @@ export default function AnalyticsPage() {
           <div className="chart-card">
             <h4>Devices</h4>
             <Pie
+              key="device-chart"
               data={{
                 labels: Object.keys(devices),
                 datasets: [
@@ -135,6 +140,7 @@ export default function AnalyticsPage() {
           <div className="chart-card">
             <h4>Operating Systems</h4>
             <Doughnut
+              key="os-chart"
               data={{
                 labels: Object.keys(os),
                 datasets: [
@@ -151,6 +157,7 @@ export default function AnalyticsPage() {
           <div className="chart-card">
             <h4>Browsers</h4>
             <Pie
+              key="browser-chart"
               data={{
                 labels: Object.keys(browsers),
                 datasets: [
@@ -162,7 +169,6 @@ export default function AnalyticsPage() {
               }}
             />
           </div>
-
         </div>
       </div>
     </Layout>

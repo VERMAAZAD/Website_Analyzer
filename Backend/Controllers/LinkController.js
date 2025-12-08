@@ -27,10 +27,9 @@ exports.create = async (req, res) => {
         slug: slugs[i],
         shortUrl: `${BASE}/${slugs[i]}`,
         createdBy: userId,
-
         chainNextSlug: slugs[i + 1] || null,
         chainNote: i === 0 ? chainNote || null : null,
-        chainGroupId: chainGroupId // 🔥 Add group ID to ALL chain links
+        chainGroupId: chainGroupId
       };
 
       const link = await CreateLink.create(payload);
@@ -57,19 +56,42 @@ exports.redirect = async (req, res) => {
     res.cookie("track", sessionId, { httpOnly: true, maxAge: 7 * 86400000 });
 
     const ua = new UAParser(req.headers["user-agent"]);
-    const geo = geoip.lookup(req.ip);
+    let ip =
+      req.headers["x-forwarded-for"]?.split(",")[0] ||
+      req.connection?.remoteAddress ||
+      req.socket?.remoteAddress ||
+      req.ip ||
+      "Unknown";
+
+    ip = ip.replace("::ffff:", "").trim();
+
+    const localIps = ["127.0.0.1", "::1", "localhost"];
+    let country = "Unknown";
+
+     if (localIps.includes(ip)) {
+      country = "Localhost";
+    } else {
+      try {
+        const geo = await axios.get(`https://ipapi.co/${ip}/json/`);
+        country = geo.data?.country_name || "Unknown";
+      } catch (e) {
+        country = "Lookup Failed";
+      }
+    }
 
     const previousSteps = await CreateLinkAnalytics.countDocuments({ sessionId });
 
     await CreateLinkAnalytics.create({
       slug,
+      rootSlug: link.chainGroupId || slug, // important for funnel grouping
       sessionId,
       step: previousSteps + 1,
-      ip: req.ip,
-      country: geo?.country || "Unknown",
+      ip,
+      country,
       device: ua.getDevice().type || "Desktop",
-      browser: ua.getBrowser().name,
-      os: ua.getOS().name
+      browser: ua.getBrowser().name || "Unknown",
+      os: ua.getOS().name || "Unknown",
+      timestamp: new Date()
     });
 
     link.clicks++;
@@ -140,37 +162,45 @@ exports.getAllLinks = async (req, res) => {
 };
 
 
-
-function buildChain(all, slug) {
-  let path = [slug];
-  let current = all.find(l => l.slug === slug);
-
-  while (current?.chainNextSlug) {
-    path.push(current.chainNextSlug);
-    current = all.find(l => l.slug === current.chainNextSlug);
-  }
-
-  return path;
-}
-
 // ---------------------------- ANALYTICS ----------------------------
 exports.analytics = async (req, res) => {
-  const slug = req.params.slug;
-  const data = await CreateLinkAnalytics.find({ slug });
-  res.json(data);
+  try {
+    const slug = req.params.slug;
+    const data = await CreateLinkAnalytics.find({ slug }).sort({ timestamp: -1 });
+    res.json(data);
+  } catch {
+    res.status(500).json({ message: "Error fetching analytics" });
+  }
 };
 
 // --------------------------- FUNNEL ------------------------------
-exports.funnel = async (req, res) => {
-  const data = await CreateLinkAnalytics.aggregate([
-    { $group: { _id: "$step", clicks: { $sum: 1 } } },
-    { $sort: { _id: 1 } }
-  ]);
+    // /api/funnel/:slug
+ exports.funnel = async (req, res) => {
+  try {
+    const slug = req.params.slug;
 
-  res.json(data);
+    const funnelData = await CreateLinkAnalytics.aggregate([
+      { $match: { rootSlug: slug } },
+      {
+        $group: {
+          _id: { step: "$step", slug: "$slug" },
+          clicks: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.step": 1 } }
+    ]);
+
+    res.json(
+      funnelData.map((i) => ({
+        step: i._id.step,
+        slug: i._id.slug,
+        clicks: i.clicks
+      }))
+    );
+  } catch {
+    res.status(500).json({ message: "Error generating funnel" });
+  }
 };
-
-
 
 // ---------------------------- DELETE CHAIN ------------------------------
 exports.deleteChain = async (req, res) => {
