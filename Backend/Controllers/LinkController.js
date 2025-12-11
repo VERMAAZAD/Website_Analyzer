@@ -10,7 +10,7 @@ const BASE = process.env.BASE_URL;
 // ------------------------- CREATE SHORT LINK ----------------------------
 exports.create = async (req, res) => {
   try {
-    const { urls, chainNote } = req.body;
+    const { urls, chainNote, folderName } = req.body;
     const userId = req.user._id;
 
     if (!urls || urls.length < 1) {
@@ -27,9 +27,10 @@ exports.create = async (req, res) => {
         slug: slugs[i],
         shortUrl: `${BASE}/${slugs[i]}`,
         createdBy: userId,
+        folderName: folderName || null,
         chainNextSlug: slugs[i + 1] || null,
         chainNote: i === 0 ? chainNote || null : null,
-        chainGroupId: chainGroupId
+        chainGroupId: chainGroupId,
       };
 
       const link = await CreateLink.create(payload);
@@ -131,11 +132,19 @@ exports.getAllLinks = async (req, res) => {
   try {
     const userId = req.user._id;
     const links = await CreateLink.find({ createdBy: userId });
-
+    
     let singleLinks = [];
     let chainGroups = {};
+    let folderGroups = {};
+    let folders = new Set();
 
     for (let link of links) {
+       if (link.folderName) {
+        folders.add(link.folderName);
+        if (!folderGroups[link.folderName]) folderGroups[link.folderName] = [];
+        folderGroups[link.folderName].push(link);
+      }
+
       if (!link.chainGroupId) {
         singleLinks.push(link);  // real singles
       } else {
@@ -155,9 +164,35 @@ exports.getAllLinks = async (req, res) => {
       });
     }
 
-    res.json({ singleLinks, chainGroups });
+     for (let folderName in folderGroups) {
+      folderGroups[folderName] = folderGroups[folderName].sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      );
+    }
+
+    res.json({
+      singleLinks,
+      chainGroups,
+      folderGroups,
+      folders: Array.from(folders),
+    });
+
   } catch (err) {
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
+exports.getAllFolders = async (req, res) => {
+  try {
+    const folders = await CreateLink.distinct("folderName", {
+      createdBy: req.user._id,
+      folderName: { $ne: null }
+    });
+
+    res.json(folders);
+  } catch (err) {
+    res.status(500).json({ message: "Internal error" });
   }
 };
 
@@ -231,3 +266,4 @@ exports.deleteLink = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+

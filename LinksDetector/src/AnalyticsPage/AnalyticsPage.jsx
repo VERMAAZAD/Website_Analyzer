@@ -68,36 +68,6 @@ export default function AnalyticsPage() {
         <h2>📈 Analytics — <span className="slug">{slug}</span></h2>
         <p>Total Visits: <b>{analytics.length}</b></p>
 
-        {/* Funnel */}
-        <div className="funnel-box">
-          <h3>🔗 Chain Funnel</h3>
-
-          {sortedFunnel.length === 0 ? (
-            <p>No funnel data available.</p>
-          ) : (
-            <Line
-                key={`funnel-${slug}`}
-                data={{
-                  labels: sortedFunnel.map((d) => `Step ${d.step} (${d.slug})`),
-                  datasets: [
-                    {
-                      label: "Users",
-                      data: sortedFunnel.map((d) => d.clicks),
-                      borderWidth: 2,
-                      borderColor: "#4b7bec",
-                      backgroundColor: "rgba(75, 123, 236, 0.3)",
-                      tension: 0.3
-                    }
-                  ]
-                }}
-                options={{
-                  responsive: true,
-                  plugins: { legend: { display: true } }
-                }}
-              />
-          )}
-        </div>
-
         {/* Charts */}
         <div className="charts-grid">
 
@@ -169,6 +139,36 @@ export default function AnalyticsPage() {
               }}
             />
           </div>
+        </div>
+
+           {/* Funnel */}
+        <div className="funnel-box">
+          <h3>🔗 Chain Funnel</h3>
+
+          {sortedFunnel.length === 0 ? (
+            <p>No funnel data available.</p>
+          ) : (
+            <Line
+                key={`funnel-${slug}`}
+                data={{
+                  labels: sortedFunnel.map((d) => `Step ${d.step} (${d.slug})`),
+                  datasets: [
+                    {
+                      label: "Users",
+                      data: sortedFunnel.map((d) => d.clicks),
+                      borderWidth: 2,
+                      borderColor: "#4b7bec",
+                      backgroundColor: "rgba(75, 123, 236, 0.3)",
+                      tension: 0.3
+                    }
+                  ]
+                }}
+                options={{
+                  responsive: true,
+                  plugins: { legend: { display: true } }
+                }}
+              />
+          )}
         </div>
       </div>
     </Layout>

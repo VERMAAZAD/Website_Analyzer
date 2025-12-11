@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./CreateLink.css";
 import Layout from "../components/Layouts/Layout";
-import { createShortLink } from "../api";
+import { createShortLink, getAllFolders } from "../api";
 import { FaRegTrashCan, FaPlus, FaLink } from "react-icons/fa6";
 import { handleError, handleSuccess } from "../utils/toastutils";
 
@@ -9,24 +9,39 @@ export default function CreateLink() {
   const [isChainMode, setIsChainMode] = useState(false);
   const [domains, setDomains] = useState([""]);
   const [singleDomain, setSingleDomain] = useState("");
+
+  const [folders, setFolders] = useState([]);
+  const [selectedFolder, setSelectedFolder] = useState("");
+  const [customFolderVisible, setCustomFolderVisible] = useState(false);
+  const [customFolderName, setCustomFolderName] = useState("");
+
   const [chainNote, setChainNote] = useState("");
   const [generatedLinks, setGeneratedLinks] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // ---------------- Chain Mode Handlers ----------------
-  const addDomainField = () => setDomains([...domains, ""]);
-  const removeDomainField = (index) =>
-    setDomains(domains.filter((_, i) => i !== index));
-  const updateDomainValue = (index, value) => {
-    const updated = [...domains];
-    updated[index] = value;
-    setDomains(updated);
+  useEffect(() => {
+    const loadFolders = async () => {
+      try {
+        const data = await getAllFolders();
+        setFolders(data);
+      } catch (err) {
+        console.log(err);
+      }
+    };
+    loadFolders();
+  }, []);
+
+  const handleFolderSelect = (value) => {
+    setSelectedFolder(value);
+
+    if (value === "__custom__") {
+      setCustomFolderVisible(true);
+    } else {
+      setCustomFolderVisible(false);
+      setCustomFolderName("");
+    }
   };
 
-  // ---------------- Single Mode Handler ----------------
-  const updateSingleDomain = (value) => setSingleDomain(value);
-
-  // ---------------- Create Links ----------------
   const handleCreate = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -43,38 +58,42 @@ export default function CreateLink() {
         }
       } else {
         if (!singleDomain.trim()) {
-          handleError("Please enter a URL to create a short link.");
+          handleError("Please enter a URL.");
           setLoading(false);
           return;
         }
         urls = [singleDomain.trim()];
       }
-
-      // Payload for backend
       const payload = {
         urls,
-        chainNote: isChainMode ? chainNote.trim() || null : null,
+        chainNote: isChainMode ? chainNote.trim() : null,
+        folderName:
+          selectedFolder === "__custom__"
+            ? customFolderName.trim()
+            : selectedFolder || null,
       };
 
       const data = await createShortLink(payload);
       setGeneratedLinks(data);
 
-      // Reset fields
-      if (isChainMode) {
-        setDomains([""]);
-        setChainNote("");
-      } else {
-        setSingleDomain("");
-      }
+      // reset
+      setDomains([""]);
+      setSingleDomain("");
+      setChainNote("");
+      setSelectedFolder("");
+      setCustomFolderName("");
+      setCustomFolderVisible(false);
+
+      handleSuccess("Created successfully!");
+
     } catch (err) {
-      console.error(err);
-      handleError("Error creating link(s).");
+      console.log(err);
+      handleError("Something went wrong.");
     }
 
     setLoading(false);
   };
 
-  // ---------------- Copy Function ----------------
   const copy = (text) => {
     navigator.clipboard.writeText(text);
     handleSuccess("Copied!");
@@ -82,48 +101,89 @@ export default function CreateLink() {
 
   return (
     <Layout>
-      <div className="link-wrapper fade-in">
+      <div className="link-wrapper">
         <div className="form-section">
           <h2>
-            <FaLink /> Create {isChainMode ? "Domain Chain" : "Single Link"}
+            <FaLink />
+            {isChainMode ? " Create Domain Chain" : " Create Single Link"}
           </h2>
 
-          {/* Toggle Mode */}
+          {/* Toggle */}
           <label className="mode-toggle">
             <input
               type="checkbox"
               checked={isChainMode}
               onChange={() => setIsChainMode(!isChainMode)}
             />
-            {" "}Chain Mode
+            Chain Mode
           </label>
 
-          <form onSubmit={handleCreate}>
+          <form onSubmit={handleCreate}>   
+            {!isChainMode && (
+              <>
+                <h4 style={{ margin: "10px 0 5px" }}>Select Folder</h4>
+
+                <select
+                  className="folder-select"
+                  value={selectedFolder}
+                  onChange={(e) => handleFolderSelect(e.target.value)}
+                >
+                  <option value="">Create or Select Folder</option>
+                  <option value="__custom__">➕ Add Custom Folder</option>
+                  {folders.map((name, i) => (
+                    <option key={i} value={name}>
+                      {name}
+                    </option>
+                  ))}
+
+                  
+                </select>
+
+                {/* SHOW CUSTOM FOLDER INPUT */}
+                {customFolderVisible && (
+                  <input
+                    className="folder-input"
+                    type="text"
+                    placeholder="Enter new folder name"
+                    value={customFolderName}
+                    onChange={(e) => setCustomFolderName(e.target.value)}
+                    required
+                  />
+                )}
+              </>
+            )}
+
+            {/* ---------------- Chain Mode ---------------- */}
             {isChainMode ? (
               <>
                 <div className="domain-input-row">
                   <input
                     type="text"
-                    placeholder="Add Main Web Domain for this chain"
+                    placeholder="Main Domain for this Chain"
                     value={chainNote}
                     onChange={(e) => setChainNote(e.target.value)}
-                    required
                   />
                 </div>
+
                 {domains.map((domain, index) => (
-                  <div key={index} className="domain-input-row">
+                  <div className="domain-input-row" key={index}>
                     <input
                       type="url"
                       placeholder={`Domain ${index + 1}`}
                       value={domain}
-                      onChange={(e) => updateDomainValue(index, e.target.value)}
+                      onChange={(e) =>
+                        setDomains(
+                          domains.map((d, i) => (i === index ? e.target.value : d))
+                        )
+                      }
                       required
                     />
+
                     {domains.length > 1 && (
                       <button
                         type="button"
                         className="remove-btn"
-                        onClick={() => removeDomainField(index)}
+                        onClick={() => setDomains(domains.filter((_, i) => i !== index))}
                       >
                         <FaRegTrashCan />
                       </button>
@@ -131,7 +191,11 @@ export default function CreateLink() {
                   </div>
                 ))}
 
-                <button type="button" className="add-btn" onClick={addDomainField}>
+                <button
+                  type="button"
+                  className="add-btn"
+                  onClick={() => setDomains([...domains, ""])}
+                >
                   <FaPlus /> Add Domain
                 </button>
               </>
@@ -141,7 +205,7 @@ export default function CreateLink() {
                   type="url"
                   placeholder="Enter domain URL"
                   value={singleDomain}
-                  onChange={(e) => updateSingleDomain(e.target.value)}
+                  onChange={(e) => setSingleDomain(e.target.value)}
                   required
                 />
               </div>
@@ -159,25 +223,20 @@ export default function CreateLink() {
           </form>
         </div>
 
-        {/* ------------ Generated Links ------------ */}
+        {/* ================= GENERATED LINKS ================= */}
         <div className="links-section">
-          <h3>Generated {isChainMode ? "Chain Links" : "Link"}</h3>
+          <h3>Generated Links</h3>
 
           {!generatedLinks.length ? (
-            <p className="empty-text">
-              No {isChainMode ? "chain created yet." : "link created yet."}
-            </p>
+            <p className="empty-text">No links created yet.</p>
           ) : (
             <ul>
               {generatedLinks.map((item, index) => (
                 <li key={index}>
                   <p>{item.originalUrl}</p>
+
                   <div>
-                    <a
-                      href={item.shortUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
+                    <a href={item.shortUrl} target="_blank">
                       {item.shortUrl}
                     </a>
 

@@ -25,13 +25,24 @@ const Sidebar = ({ isOpen, onClose }) => {
         </div>
 
         <ul className="nav-links">
+          <li className={location.pathname === "/folders" ? "active" : ""}>
+            <Link to="/folders">
+            <i class="fa-solid fa-house"></i>
+              <span className="link-text">All Folder</span>
+            </Link>
+          </li>
           <li className={location.pathname === "/createlink" ? "active" : ""}>
             <Link to="/createlink">
             <i class="fa-solid fa-plus"></i>
               <span className="link-text">Create Link</span>
             </Link>
           </li>
-
+          <li className={location.pathname === "/domain-links" ? "active" : ""}>
+            <Link to="/domain-links">
+              <i class="fa-solid fa-arrow-turn-up"></i>
+              <span className="link-text">Single Links</span>
+            </Link>
+          </li>
           <li className={location.pathname === "/domain-chain-links" ? "active" : ""}>
             <Link to="/domain-chain-links">
               <i class="fa-solid fa-arrows-split-up-and-left"></i>
@@ -39,12 +50,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             </Link>
           </li>
 
-          <li className={location.pathname === "/domain-links" ? "active" : ""}>
-            <Link to="/domain-links">
-              <i class="fa-solid fa-arrow-turn-up"></i>
-              <span className="link-text">Single Links</span>
-            </Link>
-          </li>
+          
 
           <li className="logout" onClick={handleLogout}>
             <i className="fa-solid fa-right-from-bracket"></i>

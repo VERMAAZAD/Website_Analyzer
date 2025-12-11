@@ -68,3 +68,11 @@ export const deleteChain = async (groupId) => {
   });
   return res.json();
 };
+
+export const getAllFolders = async (groupId) => {
+  const res = await fetch(`${API_BASE}/api/folders`, {
+    headers: authHeaders(),
+  });
+  return res.json();
+};
+

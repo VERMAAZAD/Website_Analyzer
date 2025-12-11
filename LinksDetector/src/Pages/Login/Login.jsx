@@ -78,9 +78,9 @@ const Login = () => {
         localStorage.setItem('selectedCategory', 'traffic');
 
         if (user.role === 'admin') {
-          navigate('/admin/createlink');
+          navigate('/admin/folders');
         } else {
-          navigate('/createlink');
+          navigate('/folders');
         }
       } else {
         handleError(result.message || 'Invalid or expired code');

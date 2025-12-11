@@ -39,9 +39,11 @@ const Last7DaysTraffic = () => {
         generateLast7Days();
         setLoading(false);
       })
-      .catch((err) => console.error(err));
-       setLoading(false);
-  };
+        .catch((err) => {
+      console.error(err);
+      setLoading(false); 
+    });
+};
 
   useEffect(() => {
     fetchDomains(category);

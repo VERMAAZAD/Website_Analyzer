@@ -242,3 +242,20 @@ form button[type="submit"]:hover {
   height: 18px;
   cursor: pointer;
 }
+
+.folder-select,
+.folder-input {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1.5px solid #ccc;
+  margin-bottom: 12px;
+  font-size: 15px;
+}
+
+.folder-select:focus,
+.folder-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 6px rgba(56,142,60,0.2);
+  outline: none;
+}
