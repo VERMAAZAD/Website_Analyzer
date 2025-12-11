@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { getAnalytics, getFunnelStats } from "../api";
+import { getAnalytics, getFunnelStats, getDailyAnalytics } from "../api";
 import Layout from "../components/Layouts/Layout";
 
 import { Bar, Pie, Doughnut, Line } from "react-chartjs-2";
@@ -11,7 +11,7 @@ import {
   LinearScale,
   BarElement,
   LineElement,
-  PointElement, // REQUIRED FOR LINE CHART
+  PointElement,
   Tooltip,
   Legend
 } from "chart.js";
@@ -24,7 +24,7 @@ ChartJS.register(
   LinearScale,
   BarElement,
   LineElement,
-  PointElement, // REGISTER HERE
+  PointElement,
   Tooltip,
   Legend
 );
@@ -34,6 +34,7 @@ export default function AnalyticsPage() {
 
   const [analytics, setAnalytics] = useState([]);
   const [funnel, setFunnel] = useState([]);
+  const [daily, setDaily] = useState([]);
 
   useEffect(() => {
     load();
@@ -42,8 +43,11 @@ export default function AnalyticsPage() {
   const load = async () => {
     const a = await getAnalytics(slug);
     const f = await getFunnelStats(slug);
+    const d = await getDailyAnalytics(slug);
+
     setAnalytics(a || []);
     setFunnel(f || []);
+    setDaily(d || []);
   };
 
   // Safe grouping
@@ -70,6 +74,50 @@ export default function AnalyticsPage() {
 
         {/* Charts */}
         <div className="charts-grid">
+
+             {/* Daily Traffic */}
+          <div className="chart-card">
+            <h3>📅 Daily Traffic</h3>
+
+            {daily.length === 0 ? (
+              <p>No daily traffic recorded.</p>
+            ) : (
+              <>
+                <Line
+                  key="daily-traffic"
+                  data={{
+                    labels: daily.map((d) => d.date),
+                    datasets: [
+                      {
+                        label: "Visits Per Day",
+                        data: daily.map((d) => d.clicks),
+                        borderWidth: 1,
+                        borderColor: "#20bf6b",
+                        backgroundColor: "rgba(32,191,107,0.3)",
+                        tension: 0.4
+                      }
+                    ]
+                  }}
+                  options={{
+                    responsive: true,
+                    plugins: { legend: { display: true } }
+                  }}
+                />
+
+                {/* 🔥 DATE + VIEWS LIST */}
+                <div className="daily-list">
+                  <ul>
+                    {daily.map((d, i) => (
+                      <li key={i}>
+                        <span className="date">{d.date}</span>
+                        <span className="views">{d.clicks} Click</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </>
+            )}
+          </div>
 
           {/* Country */}
           <div className="chart-card">
@@ -105,8 +153,6 @@ export default function AnalyticsPage() {
               }}
             />
           </div>
-
-          {/* OS */}
           <div className="chart-card">
             <h4>Operating Systems</h4>
             <Doughnut
@@ -139,36 +185,6 @@ export default function AnalyticsPage() {
               }}
             />
           </div>
-        </div>
-
-           {/* Funnel */}
-        <div className="funnel-box">
-          <h3>🔗 Chain Funnel</h3>
-
-          {sortedFunnel.length === 0 ? (
-            <p>No funnel data available.</p>
-          ) : (
-            <Line
-                key={`funnel-${slug}`}
-                data={{
-                  labels: sortedFunnel.map((d) => `Step ${d.step} (${d.slug})`),
-                  datasets: [
-                    {
-                      label: "Users",
-                      data: sortedFunnel.map((d) => d.clicks),
-                      borderWidth: 2,
-                      borderColor: "#4b7bec",
-                      backgroundColor: "rgba(75, 123, 236, 0.3)",
-                      tension: 0.3
-                    }
-                  ]
-                }}
-                options={{
-                  responsive: true,
-                  plugins: { legend: { display: true } }
-                }}
-              />
-          )}
         </div>
       </div>
     </Layout>

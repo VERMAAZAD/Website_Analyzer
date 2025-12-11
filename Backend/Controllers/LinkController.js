@@ -73,8 +73,8 @@ exports.redirect = async (req, res) => {
       country = "Localhost";
     } else {
       try {
-        const geo = await axios.get(`https://ipapi.co/${ip}/json/`);
-        country = geo.data?.country_name || "Unknown";
+        const geo = geoip.lookup(ip);
+        country = geo?.country || "Unknown"; 
       } catch (e) {
         country = "Lookup Failed";
       }
@@ -207,6 +207,38 @@ exports.analytics = async (req, res) => {
     res.status(500).json({ message: "Error fetching analytics" });
   }
 };
+
+// DAILY ANALYTICS
+exports.dailyAnalytics = async (req, res) => {
+  try {
+    const slug = req.params.slug;
+
+    const daily = await CreateLinkAnalytics.aggregate([
+      { $match: { slug } },
+
+      // Convert timestamp → YYYY-MM-DD
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: "%Y-%m-%d", date: "$timestamp" }
+          },
+          clicks: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    res.json(
+      daily.map(d => ({
+        date: d._id,
+        clicks: d.clicks
+      }))
+    );
+  } catch {
+    res.status(500).json({ message: "Error fetching daily analytics" });
+  }
+};
+
 
 // --------------------------- FUNNEL ------------------------------
     // /api/funnel/:slug

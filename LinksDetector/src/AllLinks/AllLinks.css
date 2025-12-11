@@ -76,7 +76,7 @@ a:hover {
 }
 
 .truncate {
-  max-width: 260px;
+  max-width: 460px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -69,10 +69,16 @@ export const deleteChain = async (groupId) => {
   return res.json();
 };
 
-export const getAllFolders = async (groupId) => {
+export const getAllFolders = async () => {
   const res = await fetch(`${API_BASE}/api/folders`, {
     headers: authHeaders(),
   });
   return res.json();
 };
 
+export const getDailyAnalytics = async (slug) => {
+  const res = await fetch(`${API_BASE}/api/analytics/daily/${slug}`,{
+      headers: authHeaders(),
+  });
+   return res.json();
+};
