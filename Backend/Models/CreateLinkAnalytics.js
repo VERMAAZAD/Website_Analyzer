@@ -13,4 +13,6 @@ const analyticsSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now }
 });
 
+analyticsSchema.index({ timestamp: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 7 });
+
 module.exports = mongoose.model("CreateLinkAnalytics", analyticsSchema);
