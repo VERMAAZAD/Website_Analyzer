@@ -139,7 +139,7 @@ export default function CreateLink() {
                   
                 </select>
 
-                {/* SHOW CUSTOM FOLDER INPUT */}
+                <h4 style={{ margin: "10px 0 5px" }}>Enter Domain</h4>
                 {customFolderVisible && (
                   <input
                     className="folder-input"

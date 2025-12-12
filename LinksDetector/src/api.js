@@ -82,3 +82,12 @@ export const getDailyAnalytics = async (slug) => {
   });
    return res.json();
 };
+
+
+
+export const getLinkBySlug = async (slug) => {
+  const res = await fetch(`${API_BASE}/api/link/${slug}`, {
+    headers: authHeaders(),
+  });
+  return res.json();
+};

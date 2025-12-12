@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { getAnalytics, getFunnelStats, getDailyAnalytics } from "../api";
+import { getAnalytics, getFunnelStats, getDailyAnalytics, getLinkBySlug } from "../api";
 import Layout from "../components/Layouts/Layout";
 
 import { Bar, Pie, Doughnut, Line } from "react-chartjs-2";
@@ -35,19 +35,29 @@ export default function AnalyticsPage() {
   const [analytics, setAnalytics] = useState([]);
   const [funnel, setFunnel] = useState([]);
   const [daily, setDaily] = useState([]);
+  const [originalUrl, setOriginalUrl] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     load();
   }, []);
 
   const load = async () => {
-    const a = await getAnalytics(slug);
+    setLoading(true);
+    try{
+      const a = await getAnalytics(slug);
     const f = await getFunnelStats(slug);
     const d = await getDailyAnalytics(slug);
+    const linkData = await getLinkBySlug(slug)
 
     setAnalytics(a || []);
     setFunnel(f || []);
     setDaily(d || []);
+    setOriginalUrl(linkData?.originalUrl || "");
+    }catch(err){
+        console.error("Error loading analytics:", err);
+    }
+     setLoading(false);
   };
 
   // Safe grouping
@@ -64,77 +74,129 @@ export default function AnalyticsPage() {
   const browsers = groupBy("browser");
 
   const sortedFunnel = [...funnel].sort((a, b) => a.step - b.step);
-
+  if (loading) {
+    return (
+      <Layout>
+        <div className="spinner-container">
+          <div className="spinner"></div>
+        </div>
+      </Layout>
+    );
+  }
   return (
     <Layout>
       <div className="analytics-container fade-in">
 
-        <h2>📈 Analytics — <span className="slug">{slug}</span></h2>
+        <p className="original_url">
+          Original URL:{" "}
+          <a href={originalUrl} target="_blank" rel="noopener noreferrer">
+            {originalUrl}
+          </a>
+        </p>
         <p>Total Visits: <b>{analytics.length}</b></p>
 
         {/* Charts */}
         <div className="charts-grid">
 
              {/* Daily Traffic */}
-          <div className="chart-card">
-            <h3>📅 Daily Traffic</h3>
+        <div className="chart-card">
+          <h3>📅 Daily Traffic</h3>
 
-            {daily.length === 0 ? (
-              <p>No daily traffic recorded.</p>
+          {daily.length === 0 ? (
+            <p>No daily traffic recorded.</p>
+          ) : (
+            <>
+              {/** Filter last 7 days */}
+              {(() => {
+                const last7Days = daily
+                  .sort((a, b) => new Date(a.date) - new Date(b.date)) // ensure sorted by date
+                  .slice(-7); // take last 7 days
+
+                return (
+                  <>
+                    <Line
+                      key="daily-traffic"
+                      data={{
+                        labels: last7Days.map((d) => d.date),
+                        datasets: [
+                          {
+                            label: "Visits Per Day",
+                            data: last7Days.map((d) => d.clicks),
+                            borderWidth: 1,
+                            borderColor: "#20bf6b",
+                            backgroundColor: "rgba(32,191,107,0.3)",
+                            tension: 0.4
+                          }
+                        ]
+                      }}
+                      options={{
+                        responsive: true,
+                        plugins: { legend: { display: true } }
+                      }}
+                    />
+
+                    {/* DATE + VIEWS LIST */}
+                    <div className="daily-list">
+                      <ul>
+                        {last7Days.map((d, i) => (
+                          <li key={i}>
+                            <span className="date">{d.date}</span>
+                            <span className="views">{d.clicks} Click</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </>
+                );
+              })()}
+            </>
+          )}
+        </div>
+
+           {/* Country */}
+          <div className="chart-card">
+            <h4>Country</h4>
+
+            {Object.keys(countries).length === 0 ? (
+              <p>No country data available.</p>
             ) : (
               <>
-                <Line
-                  key="daily-traffic"
-                  data={{
-                    labels: daily.map((d) => d.date),
-                    datasets: [
-                      {
-                        label: "Visits Per Day",
-                        data: daily.map((d) => d.clicks),
-                        borderWidth: 1,
-                        borderColor: "#20bf6b",
-                        backgroundColor: "rgba(32,191,107,0.3)",
-                        tension: 0.4
-                      }
-                    ]
-                  }}
-                  options={{
-                    responsive: true,
-                    plugins: { legend: { display: true } }
-                  }}
-                />
+                {/* Prepare top 5 countries for chart */}
+                {(() => {
+                  const sorted = Object.entries(countries).sort(([, a], [, b]) => b - a);
+                  const top5 = sorted.slice(0, 5);
+                  return (
+                    <Bar
+                      key="country-chart"
+                      data={{
+                        labels: top5.map(([country]) => country),
+                        datasets: [
+                          {
+                            label: "Visits",
+                            backgroundColor: "#20bf6b",
+                            data: top5.map(([, count]) => count)
+                          }
+                        ]
+                      }}
+                    />
+                  );
+                })()}
 
-                {/* 🔥 DATE + VIEWS LIST */}
-                <div className="daily-list">
+                {/* COUNTRY LIST WITH VIEWS */}
+                <div className="country-list">
                   <ul>
-                    {daily.map((d, i) => (
-                      <li key={i}>
-                        <span className="date">{d.date}</span>
-                        <span className="views">{d.clicks} Click</span>
-                      </li>
-                    ))}
+                    {Object.entries(countries)
+                      .sort(([, a], [, b]) => b - a) // sort descending
+                      .map(([country, count], i) => (
+                        <li key={i}>
+                          <span className="country">{country}</span>
+                          <span className="views">{count} Views</span>
+                        </li>
+                      ))}
                   </ul>
                 </div>
               </>
             )}
-          </div>
-
-          {/* Country */}
-          <div className="chart-card">
-            <h4>Country</h4>
-            <Bar
-              key="country-chart"
-              data={{
-                labels: Object.keys(countries),
-                datasets: [
-                  {
-                    label: "Visits",
-                    backgroundColor: "#20bf6b",
-                    data: Object.values(countries)
-                  }
-                ]
-              }}
-            />
           </div>
 
           {/* Device */}

@@ -42,7 +42,7 @@ export default function SingleLinks() {
       }
     }
   };
-
+  const sortedLinks = [...links].sort((a, b) => b.clicks - a.clicks);
   return (
     <Layout>
       <div className="links-container fade-in">
@@ -68,7 +68,7 @@ export default function SingleLinks() {
               </thead>
 
               <tbody>
-                {links.map((item) => (
+                {sortedLinks.map((item) => (
                   <tr key={item._id}>
                     <td className="truncate">{item.originalUrl}</td>
 

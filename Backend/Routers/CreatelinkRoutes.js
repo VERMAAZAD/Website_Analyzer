@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const ensureAuthenticated = require("../Middlewares/Auth");
 const ChickLinkKey = require("../Middlewares/ChickLinkKey");
-const { create, analytics, getAllLinks, funnel, updateChain, deleteLink, deleteChain, getAllFolders, dailyAnalytics } = require("../Controllers/LinkController");
+const { create, analytics, getAllLinks, funnel, updateChain, deleteLink, deleteChain, getAllFolders, dailyAnalytics, getLinkBySlug } = require("../Controllers/LinkController");
 
 
 router.post("/create", ensureAuthenticated, ChickLinkKey, create);
@@ -14,5 +14,6 @@ router.delete("/delete/link/:slug", ensureAuthenticated, ChickLinkKey, deleteLin
 router.delete("/delete/chain/:groupId", ensureAuthenticated, ChickLinkKey, deleteChain);
 router.get("/folders", ensureAuthenticated, getAllFolders);
 router.get("/analytics/daily/:slug", ensureAuthenticated, dailyAnalytics);
+router.get("/link/:slug", ensureAuthenticated, ChickLinkKey, getLinkBySlug);
 
 module.exports = router;

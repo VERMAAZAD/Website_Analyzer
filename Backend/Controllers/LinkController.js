@@ -299,3 +299,20 @@ exports.deleteLink = async (req, res) => {
   }
 };
 
+
+
+exports.getLinkBySlug = async (req, res) => {
+  try {
+    const slug = req.params.slug;
+
+    const link = await CreateLink.findOne({ slug });
+
+    if (!link) {
+      return res.status(404).json({ message: "Link not found" });
+    }
+
+    res.json(link);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};

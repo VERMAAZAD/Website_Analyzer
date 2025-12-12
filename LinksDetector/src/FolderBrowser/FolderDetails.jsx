@@ -43,6 +43,7 @@ export default function FolderDetails() {
     }
   };
 
+  const sortedLinks = [...links].sort((a, b) => b.clicks - a.clicks);
   return (
     <Layout>
       <div className="links-container fade-in">
@@ -52,7 +53,7 @@ export default function FolderDetails() {
           <div className="spinner-container">
             <div className="spinner"></div>
           </div>
-        ) : links.length === 0 ? (
+        ) : sortedLinks.length === 0 ? (
           <p className="empty-msg">No links in this folder.</p>
         ) : (
           <div className="table-wrapper">
@@ -69,7 +70,7 @@ export default function FolderDetails() {
               </thead>
 
               <tbody>
-                {links.map((item, index) => (
+                {sortedLinks.map((item, index) => (
                   <tr key={item.slug}>
                     <td>{index + 1}</td>
 
