@@ -1,121 +1,187 @@
+/* ===============================
+   HEADER
+================================ */
+*{
+  margin: 0;
+  padding: 0;
+}
 .header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   background: #fff;
-  padding: 14px 20px;
-  border-bottom: 1px solid #e7e7e7;
+  padding: 15px 18px;
+  height: 70px;
   position: sticky;
   top: 0;
   z-index: 1000;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.header-left h2 {
-  font-size: 22px;
-  color: #333;
-  margin: 0;
+  box-sizing: border-box;
+  border-bottom: 1px solid #e0e0e0;;
 }
 
 .menu-btn {
   font-size: 22px;
   background: none;
   border: none;
+  color: #000;
   cursor: pointer;
-  color: #388e3c;
-  transition: transform 0.2s ease;
 }
 
-.menu-btn:hover {
-  transform: scale(1.2);
+.user-name {
+  font-size: 15px;
+  font-weight: 500;
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
-.user-name {
-  font-size: 16px;
-  font-weight: 500;
+
+/* ===============================
+   PROFILE ICON
+================================ */
+.profile-icon {
+  width: 36px;
+  height: 36px;
+  background: #fff;
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.dropdown-container {
-  position: relative;
-}
-
-.dropdown-button {
-  background: #388e3c;
-  color: white;
-  padding: 10px 14px;
-  border-radius: 8px;
-  border: none;
+  justify-content: center;
   cursor: pointer;
-  font-weight: 500;
-  transition: background 0.3s;
+  font-size: 18px;
+  border: 1px solid #388e3c;
 }
 
-.dropdown-button:hover {
-  background: #388e3cdd;
+/* ===============================
+   PROFILE OVERLAY
+================================ */
+.profile-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 999;
 }
 
-.dropdown-list {
-  position: absolute;
-  right: 0;
-  top: 45px;
+/* ===============================
+   PROFILE SIDEBAR
+================================ */
+.profile-sidebar {
+  position: fixed;
+  top: 0;
+  right: -280px;
+  width: 280px;
+  height: 100vh;
   background: #fff;
-  border-radius: 6px;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.2);
-  list-style: none;
+  z-index: 1000;
+  transition: right 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-sidebar.open {
+  right: 0;
+}
+
+/* SIDEBAR HEADER */
+.sidebar-header-right {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px;
+  margin-top: 20px;
+  border-bottom: 1px solid #1e293b;
+}
+
+.sidebar-header-right h3 {
   margin: 0;
-  padding: 5px 0;
-  width: 220px;
-  animation: fadeIn 0.2s ease;
-  z-index: 10;
+  font-size: 16px;
 }
 
-.dropdown-list li {
-  padding: 10px 15px;
+.sidebar-email {
+  font-size: 14px;
+  color: #373f4a;
+}
+.close-btn-rightbar {
   cursor: pointer;
-  transition: background 0.3s;
+  font-size: 20px;
 }
 
-.dropdown-list li:hover,
-.dropdown-list li.active {
-  background: #388e3c;
-  color: #fff;
-  font-weight: 600;
+/* SIDEBAR LINKS */
+.sidebar-links li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  cursor: pointer;
+  font-size: 14px;
+  border-bottom: 1px solid #1e293b;
+  transition: background 0.25s, padding-left 0.25s;
 }
 
+.sidebar-links li i {
+  font-size: 20px;
+  text-align: center;
+  color: #388e3c;
+}
+
+.sidebar-links li span {
+  flex: 1;
+}
+
+.sidebar-links li:hover {
+  background: linear-gradient(to right, rgba(99, 102, 241, 0.15), transparent);
+  padding-left: 26px;
+}
+
+
+/* ===============================
+   ANIMATIONS
+================================ */
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(-5px);
+    transform: translateY(-4px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-/* Responsive */
+/* ===============================
+   RESPONSIVE
+================================ */
 @media (max-width: 768px) {
-  .header-left h2 {
-    font-size: 18px;
+  .header {
+    left: 0;
+    width: 100%;
   }
+
   .user-name {
     display: none;
   }
-  .dropdown-button {
-    font-size: 13px;
+
+
+  .profile-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+
+  .header-right {
+    gap: 10px;
+  }
+
+  .profile-sidebar {
+    width: 260px;
+  }
+
+  .modal {
+    width: 90%;
   }
 }

@@ -62,7 +62,7 @@ const initiateLogin = async (req, res) => {
 
             user.isLoggedIn = true;
             user.lastLogin = new Date();
-            user.ssoExpiry = Date.now() + 30 * 24 * 60 * 60 * 1000; // extend session
+            user.ssoExpiry = Date.now() + 24 * 60 * 60 * 1000; // extend session
             await user.save();
 
         const jwtToken = jwt.sign(
@@ -125,7 +125,7 @@ const verifyLoginCode = async (req, res) => {
 
         const ssoToken = createSSOSessionToken();
         user.ssoSessionToken = ssoToken;
-        user.ssoExpiry = Date.now() + 30 * 24 * 60 * 60 * 1000;
+        user.ssoExpiry = Date.now() + 24 * 60 * 60 * 1000;
 
 
         await user.save();
@@ -141,7 +141,7 @@ const verifyLoginCode = async (req, res) => {
             secure: process.env.NODE_ENV === "production",
             sameSite: "None",
             domain: process.env.NODE_ENV === "production" ? ".monitorchecker.com" : undefined,
-            maxAge: 30 * 24 * 60 * 60 * 1000
+            maxAge: 24 * 60 * 60 * 1000
         });
 
         res.status(200).json({

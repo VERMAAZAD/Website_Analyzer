@@ -49,13 +49,6 @@ const Sidebar = ({ isOpen, onClose }) => {
               <span className="link-text">Chain Links</span>
             </Link>
           </li>
-
-          
-
-          <li className="logout" onClick={handleLogout}>
-            <i className="fa-solid fa-right-from-bracket"></i>
-            <span className="link-text">Logout</span>
-          </li>
         </ul>
       </aside>
     </>

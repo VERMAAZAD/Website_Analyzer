@@ -11,6 +11,7 @@
   z-index: 1000;
   display: flex;
   flex-direction: column;
+  
 }
 
 .sidebar.open {
@@ -50,6 +51,13 @@
   display: flex;
   flex-direction: column;
   flex: 1;
+  overflow-y: auto;
+}
+.nav-links::-webkit-scrollbar {
+  width: 0;
+}
+.nav-links {
+  scrollbar-width: none;
 }
 
 .nav-links li {
@@ -58,7 +66,7 @@
 
 /* LINK STYLE */
 .nav-links a,
-.nav-links li.logout {
+.nav-links li.logout-btn {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -72,14 +80,14 @@
 }
 
 .nav-links a i,
-.nav-links li.logout i {
+.nav-links li.logout-btn i {
   width: 18px;
   text-align: center;
 }
 
 /* HOVER */
 .nav-links a:hover,
-.nav-links li.logout:hover {
+.nav-links li.logout-btn:hover {
   background: linear-gradient(
     to right,
     rgba(99, 102, 241, 0.18),
@@ -94,14 +102,20 @@
   color: #fff;
 }
 
-/* LOGOUT */
-.nav-links li.logout {
+/* LOGOUT-btn */
+.nav-links li.logout-btn {
   margin-top: auto;
   color: #f87171;
+  border-top: 1px solid #1e293b;
+  padding-top: 16px;
+  color: #fff;
+  margin-bottom: 30px;
+  margin-top: 20%;
 }
 
-.nav-links li.logout i {
+.nav-links li.logout-btn i {
   color: #f87171;
+  color: #fff;
 }
 
 /* RESPONSIVE */

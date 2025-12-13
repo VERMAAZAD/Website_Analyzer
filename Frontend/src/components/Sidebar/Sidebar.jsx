@@ -1,10 +1,22 @@
+import { handleSuccess } from '../../toastutils';
 import './Sidebar.css';
 import { NavLink, useNavigate } from 'react-router-dom';
 
 const Sidebar = ({ isOpen, onClose }) => {
+  const navigate = useNavigate();
+
   const superCategory = localStorage.getItem("superCategory") || "natural";
   const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
-  const role = loggedInUser?.role || "user"; // e.g., 'user', 'sub-user'
+  const role = loggedInUser?.role || "user";
+
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('loggedInUser');
+    handleSuccess('User Logged Out');
+    setTimeout(() => navigate('/login'), 1500);
+  };
+
 
   return (
     <div className={`sidebar ${isOpen ? 'open' : ''}`}>
@@ -61,10 +73,17 @@ const Sidebar = ({ isOpen, onClose }) => {
               <span>Manage SubUsers</span>
             </NavLink></li>
         )}
-
-        <li className="logout">
-         
-        </li>
+        {role === "sub-user" && !loggedInUser.parentUser && (
+         <li className="logout-btn" onClick={handleLogout}>
+                <i className="fa-solid fa-right-from-bracket"></i>
+            <span>Logout</span>
+          </li>
+        )}
+        {role === "user" && !loggedInUser.parentUser && (
+         <li className="logout" onClick={handleLogout}>
+                
+          </li>
+        )}
       </ul>
     </div>
   );

@@ -73,7 +73,6 @@ const Header = ({ onMenuClick, user }) => {
       navigate("/login");
       return;
     }
-
     window.location.href = `${url}?ssoToken=${ssoToken}`;
   };
 

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { handleError, handleSuccess } from '../../utils/toastutils';
 
 const Login = () => {
-  const [step, setStep] = useState(1); // Step 1: login, Step 2: verify code
+  const [step, setStep] = useState(1); 
   const [loginInfo, setLoginInfo] = useState({ email: '', password: '' });
   const [code, setCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -37,6 +37,20 @@ const Login = () => {
 
       const result = await response.json();
 
+       if (result.skipOTP) {
+        handleSuccess('Logged in via SSO');
+
+        localStorage.setItem('token', result.jwtToken);
+        localStorage.setItem('ssoToken', result.ssoToken);
+        localStorage.setItem('loggedInUser', JSON.stringify(result.user));
+        localStorage.setItem('superCategory', 'natural');
+
+        if (result.user.role === 'admin') navigate('/admin/dashboard');
+        else navigate('/dashboard');
+
+        return;
+      }
+
       if (result.success) {
         handleSuccess('Verification code sent to your email.');
         setStep(2); // Move to code verification step
@@ -46,13 +60,14 @@ const Login = () => {
     } catch (err) {
       handleError('Something went wrong. Try again.');
     } finally {
-       setLoading(false);
+    setLoading(false);
   }
   };
 
   const handleVerifyCode = async (e) => {
     e.preventDefault();
      setLoading(true);
+
     if (!code || !loginInfo.email) {
       handleError('Verification code is required');
       setLoading(false);
@@ -68,20 +83,23 @@ const Login = () => {
       });
 
       const result = await response.json();
-      const { success, message, jwtToken, user } = result;
+      const { success, message, jwtToken, user, ssoToken } = result;
 
       if (success) {
         handleSuccess(message);
 
         localStorage.setItem('token', jwtToken);
-        localStorage.setItem('user', JSON.stringify(user));
-        localStorage.setItem('selectedCategory', 'traffic');
+          localStorage.setItem('ssoToken', ssoToken); 
+        localStorage.setItem('loggedInUser', JSON.stringify(user));
+        localStorage.setItem('superCategory', 'natural');
 
         if (user.role === 'admin') {
-          navigate('/admin/dashboard');
-        } else {
-          navigate('/dashboard');
-        }
+             navigate('/admin/dashboard'); 
+                } else if (user.role === 'sub-user') {
+            navigate('/dashboard'); // sub-user dashboard
+              } else {
+              navigate(`/dashboard`);
+                  }
       } else {
         handleError(result.message || 'Invalid or expired code');
       }
@@ -151,7 +169,7 @@ const Login = () => {
 
         <button type="submit" disabled={loading}>
           {loading ? (
-            <div className="spinner-login"></div>
+            <div className="spinner-login"></div> // show spinner inside button
           ) : step === 1 ? (
             'Login Now'
           ) : (
