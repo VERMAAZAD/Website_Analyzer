@@ -73,12 +73,14 @@ const Header = ({ onMenuClick, user }) => {
       navigate("/login");
       return;
     }
-    window.location.href = `${url}?ssoToken=${ssoToken}`;
+    window.location.href = url;
   };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('loggedInUser');
+    localStorage.removeItem("ssoToken");
+    localStorage.removeItem("ssoExpiry");
     handleSuccess('User Logged Out');
     setTimeout(() => navigate('/login'), 1500);
   };

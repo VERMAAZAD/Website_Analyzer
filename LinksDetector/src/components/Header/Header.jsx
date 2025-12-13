@@ -1,15 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./Header.css";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { handleError, handleSuccess } from "../../utils/toastutils";
-import { FaRegCopy, FaXmark } from "react-icons/fa6";
 
 const Header = ({ toggleSidebar }) => {
   // ---- User & SSO
   const [user, setUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
      const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
@@ -25,7 +23,7 @@ const Header = ({ toggleSidebar }) => {
       navigate("/login");
       return;
     }
-    window.location.href = `${url}?ssoToken=${ssoToken}`;
+    window.location.href = url;
   };
 
   const handleLogout = () => {
@@ -37,62 +35,6 @@ const Header = ({ toggleSidebar }) => {
     setUser(null);
     setSidebarOpen(false);
     setTimeout(() => navigate("/login"), 1500);
-  };
-
-  // ---- Category & Dropdown
-  const categories = [
-    { label: "Dating Traffic", value: "dating" },
-    { label: "Ads Website", value: "adswebsite" },
-    { label: "Natural Website", value: "natural" },
-    { label: "Casino Website", value: "casino" },
-  ];
-  const [currentCategory, setCurrentCategory] = useState("Category");
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef = useRef(null);
-
-  const handleSelect = (value) => {
-    if (value === "dating") {
-      const password = prompt("Enter password to access Dating category:");
-      if (password !== "Dating@Web") return alert("Incorrect password.");
-    }
-    localStorage.setItem("superCategory", value);
-    setCurrentCategory(
-      categories.find((c) => c.value === value)?.label || "Category"
-    );
-    setDropdownOpen(false);
-    navigate(`/products/${value}`);
-  };
-
-  useEffect(() => {
-    const lastSegment = location.pathname.split("/").pop();
-    if (["natural", "casino", "dating"].includes(lastSegment)) {
-      setCurrentCategory(
-        categories.find((c) => c.value === lastSegment)?.label || "Category"
-      );
-    } else {
-      const saved = localStorage.getItem("superCategory");
-      if (saved) setCurrentCategory(saved);
-    }
-  }, [location.pathname]);
-
-  // ---- API Modal
-  const [showApiModal, setShowApiModal] = useState(false);
-  const [copied, setCopied] = useState(false);
-
-  const scriptMap = {
-    dating: "traffictracker.js",
-    adswebsite: "adswebtraffic.js",
-    natural: "nautratraffic.js",
-    casino: "casinowebtraffic.js",
-  };
-  const selectedScript = scriptMap[currentCategory.toLowerCase()] || "traffictracker.js";
-  const userId = user?._id || "missing-user-id";
-  const userTrackingCode = `<script src="https://api.monitorchecker.com/${selectedScript}" data-site-id="https://yourdomain.com" data-user-id="${userId}"></script>`;
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(userTrackingCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -126,17 +68,17 @@ const Header = ({ toggleSidebar }) => {
           </span>
         </div>
         <ul className="sidebar-links">
-          <li onClick={() => handleSwitch("https://monitorchecker.com")}>
+          <li onClick={() => handleSwitch("https://clicker.monitorchecker.com")}>
             <i className="fa-solid fa-house"></i>
             <span>Main Dashboard</span>
-          </li>
-          <li onClick={() => handleSwitch("https://clicker.monitorchecker.com")}>
-            <i className="fa-solid fa-link"></i>
-            <span>Links Detector</span>
           </li>
           <li onClick={() => handleSwitch("https://analytics.monitorchecker.com")}>
             <i className="fa-solid fa-chart-line"></i>
             <span>Traffic Checker</span>
+          </li>
+          <li onClick={() => handleSwitch("https://monitorchecker.com")}>
+            <i class="fa-solid fa-passport"></i>
+            <span>Monitor Checker</span>
           </li>
           <li className="logout" onClick={handleLogout}>
             <i className="fa-solid fa-right-from-bracket"></i>

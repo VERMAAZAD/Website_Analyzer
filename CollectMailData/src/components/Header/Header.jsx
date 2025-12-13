@@ -25,7 +25,7 @@ const Header = ({ toggleSidebar }) => {
       navigate("/login");
       return;
     }
-    window.location.href = `${url}?ssoToken=${ssoToken}`;
+    window.location.href = url;
   };
 
   const handleLogout = () => {
@@ -169,7 +169,7 @@ const Header = ({ toggleSidebar }) => {
           </span>
         </div>
         <ul className="sidebar-links">
-          <li onClick={() => handleSwitch("https://monitorchecker.com")}>
+          <li onClick={() => handleSwitch("https://analytics.monitorchecker.com")}>
             <i className="fa-solid fa-house"></i>
             <span>Main Dashboard</span>
           </li>
@@ -177,9 +177,9 @@ const Header = ({ toggleSidebar }) => {
             <i className="fa-solid fa-link"></i>
             <span>Links Detector</span>
           </li>
-          <li onClick={() => handleSwitch("https://analytics.monitorchecker.com")}>
-            <i className="fa-solid fa-chart-line"></i>
-            <span>Traffic Checker</span>
+          <li onClick={() => handleSwitch("https://monitorchecker.com")}>
+            <i class="fa-solid fa-passport"></i>
+            <span>Monitor Checker</span>
           </li>
           <li className="logout" onClick={handleLogout}>
             <i className="fa-solid fa-right-from-bracket"></i>
