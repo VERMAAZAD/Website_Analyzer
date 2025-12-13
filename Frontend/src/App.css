@@ -1,3 +1,21 @@
 body{
     font-family: "Roboto", sans-serif;
 }
+
+/* 🚀 FORCE Toast above EVERYTHING */
+.custom-toast-container {
+  position: fixed !important;
+  z-index: 2147483647 !important; /* max safe z-index */
+  top: 70px; /* below header */
+  right: 16px;
+}
+
+/* Optional styling */
+.custom-toast {
+  border-radius: 10px;
+}
+
+.custom-toast-body {
+  font-size: 14px;
+  font-weight: 500;
+}

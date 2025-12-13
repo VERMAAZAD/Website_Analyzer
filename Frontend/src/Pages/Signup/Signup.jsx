@@ -2,7 +2,6 @@
 import "./Signup.css"
 import { Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
-import {ToastContainer} from 'react-toastify';
 import { handleError, handleSuccess } from "../../toastutils";
 import Layout from "../AdminPanel/AdminComponents/Layouts/Layout";
 
@@ -89,7 +88,6 @@ const Signup = () => {
       <button type="submit">Sign Up</button>
     
     </form>
-    <ToastContainer/>
   </div>
   </Layout>
   )

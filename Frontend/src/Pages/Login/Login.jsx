@@ -37,6 +37,20 @@ const Login = () => {
 
       const result = await response.json();
 
+       if (result.skipOTP) {
+        handleSuccess('Logged in via SSO');
+
+        localStorage.setItem('token', result.jwtToken);
+        localStorage.setItem('ssoToken', result.ssoToken);
+        localStorage.setItem('loggedInUser', JSON.stringify(result.user));
+        localStorage.setItem('superCategory', 'natural');
+
+        if (result.user.role === 'admin') navigate('/admin/products/natural');
+        else navigate('/products/natural');
+
+        return;
+      }
+
       if (result.success) {
         handleSuccess('Verification code sent to your email.');
         setStep(2); // Move to code verification step
@@ -69,12 +83,13 @@ const Login = () => {
       });
 
       const result = await response.json();
-      const { success, message, jwtToken, user } = result;
+      const { success, message, jwtToken, user, ssoToken } = result;
 
       if (success) {
         handleSuccess(message);
 
         localStorage.setItem('token', jwtToken);
+          localStorage.setItem('ssoToken', ssoToken); 
         localStorage.setItem('loggedInUser', JSON.stringify(user));
         localStorage.setItem('superCategory', 'natural');
 

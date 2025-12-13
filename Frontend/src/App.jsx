@@ -78,7 +78,19 @@ function App() {
       <Route path='/admin/servers/:email' element={<ProtectedRoute allowedRoles={['admin']}><ServerListAdmin /></ProtectedRoute>}/>
 
       </Routes>
-      <ToastContainer/>
+      <ToastContainer
+        position="top-right"
+        autoClose={2000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        pauseOnHover
+        draggable
+        toastClassName="custom-toast"
+        bodyClassName="custom-toast-body"
+        containerClassName="custom-toast-container"
+      />
+
   </>
   )
 }

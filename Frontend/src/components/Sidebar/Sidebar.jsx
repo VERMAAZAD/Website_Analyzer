@@ -1,52 +1,71 @@
-// Sidebar.jsx
-import React from 'react';
 import './Sidebar.css';
-import { Link, useNavigate } from 'react-router-dom';
-import { ToastContainer } from 'react-toastify';
-import { handleSuccess } from '../../toastutils';
+import { NavLink, useNavigate } from 'react-router-dom';
 
 const Sidebar = ({ isOpen, onClose }) => {
-  const navigate = useNavigate();
   const superCategory = localStorage.getItem("superCategory") || "natural";
   const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
   const role = loggedInUser?.role || "user"; // e.g., 'user', 'sub-user'
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('loggedInUser');
-    handleSuccess('User Logged Out');
-    setTimeout(() => navigate('/login'), 1500);
-  };
-
   return (
     <div className={`sidebar ${isOpen ? 'open' : ''}`}>
-      <div className="sidebar-header">
+      <div className="sidebar-head">
         <h2 className="logo">{role === 'sub-user' ? 'Sub User' : 'User'}</h2>
         <button className="close-btn" onClick={onClose}>×</button>
       </div>
 
       <ul className="nav-links">
-        <li><Link to={`/products/${superCategory}`}>User Dashboard</Link></li>
-        <li><Link to={`/urlscan/${superCategory}`}>Url Scan</Link></li>
-        <li><Link to={`/domains/`}>Domain List</Link></li>
-        <li><Link to={`/domain-errors/${superCategory}`}>Error Domains</Link></li>
-        <li><Link to={`/affiliate-errors/${superCategory}`}>Error Affiliate</Link></li>
-        <li><Link to={`/domain-expire/${superCategory}`}>Expire Domain</Link></li>
-        <li><Link to={`/not-index/${superCategory}`}>Not Bing Indexing</Link></li>
-        <li><Link to={`/hosting-form`}>Add Hosting</Link></li>
-        <li><Link to={`/hosting-data`}>Hosting Data</Link></li>
-        <li><Link to={`/hosting-expire/${superCategory}`}>Expire Server</Link></li>
+        <li><NavLink to={`/products/${superCategory}`}>
+          <i className="fa-solid fa-gauge-high"></i>
+            <span>User Dashboard</span>
+        </NavLink></li>
+        <li><NavLink to={`/urlscan/${superCategory}`}>
+            <i className="fa-solid fa-link"></i>
+            <span>URL Scan</span>
+        </NavLink></li>
+        <li><NavLink to={`/domains/`}>
+            <i className="fa-solid fa-globe"></i>
+            <span>Domain List</span>
+        </NavLink></li>
+        <li><NavLink to={`/domain-errors/${superCategory}`}>
+          <i className="fa-solid fa-triangle-exclamation"></i>
+            <span>Error Domains</span>
+        </NavLink></li>
+        <li><NavLink to={`/affiliate-errors/${superCategory}`}><i className="fa-solid fa-bug"></i>
+            <span>Error Affiliate</span>
+          </NavLink></li>
+        <li><NavLink to={`/domain-expire/${superCategory}`}>
+          <i className="fa-solid fa-clock"></i>
+            <span>Expire Domain</span>
+        </NavLink></li>
+        <li><NavLink to={`/not-index/${superCategory}`}>
+           <i className="fa-solid fa-ban"></i>
+            <span>Not Bing Indexed</span>
+         </NavLink></li>
+        <li><NavLink to={`/hosting-form`}>
+            <i className="fa-solid fa-server"></i>
+            <span>Add Hosting</span>
+        </NavLink></li>
+        <li><NavLink to={`/hosting-data`}>
+          <i className="fa-solid fa-database"></i>
+            <span>Hosting Data</span>
+        </NavLink></li>
+        <li><NavLink to={`/hosting-expire/${superCategory}`}>
+          <i className="fa-solid fa-hourglass-end"></i>
+            <span>Expire Server</span>
+        </NavLink></li>
 
         {/* Show only for main users */}
          {role === "user" && !loggedInUser.parentUser && (
-          <li><Link to="/subusers">Manage SubUsers</Link></li>
+          <li><NavLink to="/subusers">
+            <i className="fa-solid fa-users-gear"></i>
+              <span>Manage SubUsers</span>
+            </NavLink></li>
         )}
 
-        <li className="logout" onClick={handleLogout}>
-          <Link>Logout</Link>
+        <li className="logout">
+         
         </li>
       </ul>
-      <ToastContainer />
     </div>
   );
 };

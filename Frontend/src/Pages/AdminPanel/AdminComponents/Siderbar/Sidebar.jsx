@@ -1,7 +1,6 @@
 import React from 'react';
 import './Sidebar.css';
 import { Link, useNavigate } from 'react-router-dom';
-import { ToastContainer } from 'react-toastify';
 import { handleSuccess } from '../../../../toastutils';
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -28,7 +27,7 @@ const apiBase =
 
   return (
     <div className={`sidebar ${isOpen ? 'open' : ''}`}>
-      <div className="sidebar-header">
+      <div className="sidebar-head">
         <h2 className="logo">Admin</h2>
         <button className="close-btn" onClick={onClose}>×</button>
       </div>
@@ -45,7 +44,6 @@ const apiBase =
         <li><Link to={`/admin/hosting-expire/${superCategory}`}>Server Expire</Link></li>
         <li onClick={handleLogout}><Link to="/login">Logout</Link></li>
       </ul>
-      <ToastContainer/>
     </div>
     
   );
