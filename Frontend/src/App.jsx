@@ -50,7 +50,7 @@ function App() {
       const res = await fetch(
         `${import.meta.env.VITE_API_URI}/ssoauth/sso-login`,
         {
-          method: "POST",
+          method: "GET",
           credentials: "include",
         }
       );
