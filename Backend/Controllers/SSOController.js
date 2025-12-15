@@ -3,7 +3,7 @@ const User = require("../Models/User");
 
 exports.ssoroute = async (req, res) => {
     try {
-        const ssoToken = req.body.ssoToken || req.cookies?.ssoToken;
+        const ssoToken = req.cookies?.ssoToken;
 
         if (!ssoToken) {
             return res.status(401).json({
@@ -15,7 +15,7 @@ exports.ssoroute = async (req, res) => {
         const user = await User.findOne({
             ssoSessionToken: ssoToken,
             ssoExpiry: { $gt: Date.now() }
-        });
+        }).lean();
 
         if (!user) {
             return res.status(403).json({
@@ -23,7 +23,9 @@ exports.ssoroute = async (req, res) => {
                 message: "SSO session expired"
             });
         }
-
+        if (!process.env.JWT_SECRET) {
+            throw new Error("JWT_SECRET missing");
+        }
         const jwtToken = jwt.sign(
             {
                 _id: user._id,
