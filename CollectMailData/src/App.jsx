@@ -1,4 +1,4 @@
-import {Navigate, Route, Routes} from 'react-router-dom';
+import {Navigate, Route, Routes, useNavigate} from 'react-router-dom';
 import { ToastContainer } from 'react-toastify'
 
 import './App.css'
@@ -11,12 +11,48 @@ import DomainTraffic from './DomainTraffic/DomainTraffic';
 import Last7DaysTraffic from './UserTraffic/Last7DaysTraffic';
 import Dashboard from './Dashboard/Dashboard';
 import PagesAnalytics from './PagesAnalytics/PagesAnalytics';
+import { useEffect } from 'react';
 
 function App() {
+ const navigate = useNavigate();
+
+ const DEFAULT_ROUTE = "/dashboard";
+
+  useEffect(() => {
+     if (localStorage.getItem("token")) return;
+     
+  const ssoLogin = async () => {
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URI}/ssoauth/sso-login`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
+
+      const data = await res.json();
+      if (!data.success) return;
+      localStorage.setItem("token", data.jwtToken);
+      localStorage.setItem("loggedInUser", JSON.stringify(data.user));
+      navigate(DEFAULT_ROUTE, { replace: true });
+    } catch {
+      // navigate("/login");
+      console.error("SSO check failed");
+    }
+  };
+
+  ssoLogin();
+}, []);
+
   return (
     <>
-     <Routes>
-        <Route path='/' element={<Navigate to="/login"/>}/>
+        <Routes>
+            <Route path="/" element={ localStorage.getItem("token")
+          ? <Navigate to={DEFAULT_ROUTE} />
+          : <Navigate to="/login" />
+            }
+        />
         <Route path='/login' element={<Login/>}/>
         <Route path='/forgot-password' element={<ForgotPassword/>}/>
 

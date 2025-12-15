@@ -6,7 +6,7 @@ exports.ssoroute = async (req, res) => {
         const ssoToken = req.body.ssoToken || req.cookies?.ssoToken;
 
         if (!ssoToken) {
-            return res.status(400).json({
+            return res.status(401).json({
                 success: false,
                 message: "SSO token missing"
             });
@@ -34,6 +34,14 @@ exports.ssoroute = async (req, res) => {
             process.env.JWT_SECRET,
             { expiresIn: "24h" }
         );
+
+        res.cookie("ssoToken", user.ssoSessionToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "None",
+            domain: process.env.NODE_ENV === "production" ? ".monitorchecker.com" : undefined,
+            maxAge: 24 * 60 * 60 * 1000
+        });
 
         res.json({
             success: true,

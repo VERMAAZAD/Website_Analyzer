@@ -17,14 +17,8 @@ const Header = ({ toggleSidebar }) => {
   }, []);
 
   const handleSwitch = (url) => {
-    const ssoToken = localStorage.getItem("ssoToken");
-    if (!ssoToken) {
-      handleError("Session expired. Please login again.");
-      navigate("/login");
-      return;
-    }
-    window.location.href = url;
-  };
+  window.location.href = url;
+};
 
   const handleLogout = () => {
     localStorage.removeItem("token");

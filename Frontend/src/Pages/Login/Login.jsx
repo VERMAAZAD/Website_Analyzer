@@ -32,6 +32,7 @@ const Login = () => {
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
 
@@ -41,7 +42,6 @@ const Login = () => {
         handleSuccess('Logged in via SSO');
 
         localStorage.setItem('token', result.jwtToken);
-        localStorage.setItem('ssoToken', result.ssoToken);
         localStorage.setItem('loggedInUser', JSON.stringify(result.user));
         localStorage.setItem('superCategory', 'natural');
 
@@ -79,17 +79,17 @@ const Login = () => {
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+         credentials: "include",
         body: JSON.stringify({ email: loginInfo.email, code }),
       });
 
       const result = await response.json();
-      const { success, message, jwtToken, user, ssoToken } = result;
+      const { success, message, jwtToken, user } = result;
 
       if (success) {
         handleSuccess(message);
 
         localStorage.setItem('token', jwtToken);
-          localStorage.setItem('ssoToken', ssoToken); 
         localStorage.setItem('loggedInUser', JSON.stringify(user));
         localStorage.setItem('superCategory', 'natural');
 
@@ -169,7 +169,9 @@ const Login = () => {
 
         <button type="submit" disabled={loading}>
           {loading ? (
-            <div className="spinner-login"></div> // show spinner inside button
+            <>
+            <div className="spinner-login"></div> 
+            </>
           ) : step === 1 ? (
             'Login Now'
           ) : (
