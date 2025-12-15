@@ -1,15 +1,24 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import "./Header.css";
 import { useNavigate, useLocation } from "react-router-dom";
 import { handleError, handleSuccess } from "../../utils/toastutils";
 import { FaRegCopy, FaXmark } from "react-icons/fa6";
 
 const Header = ({ toggleSidebar }) => {
+  const [category, setCategory] = useState(
+    localStorage.getItem("selectedCategory") || "traffic"
+  );
+
+  const [currentCategory, setCurrentCategory] = useState("Category");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  
   // ---- User & SSO
   const [user, setUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showApiModal, setShowApiModal] = useState(false);
+  const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
      const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
@@ -17,6 +26,30 @@ const Header = ({ toggleSidebar }) => {
         setUser(loggedInUser);
       } 
   }, []);
+
+  const userId = user?._id || "missing-user-id";
+  
+  // ---- Category & Dropdown
+  const categories = [
+    { label: "Dating Traffic", value: "traffic" },
+    { label: "Ads Website", value: "adswebsite" },
+    { label: "Natural Website", value: "natural" },
+    { label: "Casino Website", value: "casinotraffic" },
+  ];
+
+  const scriptMap = {
+    traffic: "traffictracker.js",
+    adswebsite: "adswebtraffic.js",
+    natural: "nautratraffic.js",
+    casinotraffic: "casinowebtraffic.js",
+  };
+
+    const selectedScript = scriptMap[category] || "traffictracker.js";
+
+  
+  const userTrackingCode = `<script src="https://api.monitorchecker.com/${selectedScript}" data-site-id="https://yourdomain.com" data-user-id="${userId}"></script>`;
+
+
 
   const handleSwitch = (url) => {
     window.location.href = url;
@@ -30,58 +63,15 @@ const Header = ({ toggleSidebar }) => {
     handleSuccess("User Logged Out");
     setUser(null);
     setSidebarOpen(false);
-    setTimeout(() => navigate("/login"), 1500);
+    setTimeout(() => navigate("/login"), 500);
   };
-
-  // ---- Category & Dropdown
-  const categories = [
-    { label: "Dating Traffic", value: "dating" },
-    { label: "Ads Website", value: "adswebsite" },
-    { label: "Natural Website", value: "natural" },
-    { label: "Casino Website", value: "casino" },
-  ];
-  const [currentCategory, setCurrentCategory] = useState("Category");
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef = useRef(null);
 
   const handleSelect = (value) => {
-    if (value === "dating") {
-      const password = prompt("Enter password to access Dating category:");
-      if (password !== "Dating@Web") return alert("Incorrect password.");
-    }
-    localStorage.setItem("superCategory", value);
-    setCurrentCategory(
-      categories.find((c) => c.value === value)?.label || "Category"
-    );
+    setCategory(value);
+    localStorage.setItem("selectedCategory", value);
     setDropdownOpen(false);
-    navigate(`/products/${value}`);
+    window.dispatchEvent(new Event("categoryChange"));
   };
-
-  useEffect(() => {
-    const lastSegment = location.pathname.split("/").pop();
-    if (["natural", "casino", "dating"].includes(lastSegment)) {
-      setCurrentCategory(
-        categories.find((c) => c.value === lastSegment)?.label || "Category"
-      );
-    } else {
-      const saved = localStorage.getItem("superCategory");
-      if (saved) setCurrentCategory(saved);
-    }
-  }, [location.pathname]);
-
-  // ---- API Modal
-  const [showApiModal, setShowApiModal] = useState(false);
-  const [copied, setCopied] = useState(false);
-
-  const scriptMap = {
-    dating: "traffictracker.js",
-    adswebsite: "adswebtraffic.js",
-    natural: "nautratraffic.js",
-    casino: "casinowebtraffic.js",
-  };
-  const selectedScript = scriptMap[currentCategory.toLowerCase()] || "traffictracker.js";
-  const userId = user?._id || "missing-user-id";
-  const userTrackingCode = `<script src="https://api.monitorchecker.com/${selectedScript}" data-site-id="https://yourdomain.com" data-user-id="${userId}"></script>`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(userTrackingCode);
@@ -104,7 +94,7 @@ const Header = ({ toggleSidebar }) => {
               className="dropdown-button"
               onClick={() => setDropdownOpen(!dropdownOpen)}
             >
-              {currentCategory} <span className="caret">▼</span>
+              {categories.find((c) => c.value === category)?.label || "Select"} <span className="caret">▼</span>
             </button>
             {dropdownOpen && (
               <ul className="dropdown-list">
