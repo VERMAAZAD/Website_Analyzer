@@ -35,6 +35,7 @@ const Header = ({ toggleSidebar }) => {
     { label: "Ads Website", value: "adswebsite" },
     { label: "Natural Website", value: "natural" },
     { label: "Casino Website", value: "casinotraffic" },
+    { label: "PBN's Website", value: "pbntraffic" },
   ];
 
   const scriptMap = {
@@ -42,6 +43,7 @@ const Header = ({ toggleSidebar }) => {
     adswebsite: "adswebtraffic.js",
     natural: "nautratraffic.js",
     casinotraffic: "casinowebtraffic.js",
+    pbntraffic: "pbnwebtraffic.js",
   };
 
     const selectedScript = scriptMap[category] || "traffictracker.js";

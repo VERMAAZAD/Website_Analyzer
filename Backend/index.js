@@ -21,12 +21,11 @@ const TrafficCheckerRouter = require('./Routers/TrafficCheckerRouter')
 const AdsWebsiteRouter = require('./Routers/AdsWebsiteRouter')
 const NautraWebsiteRouter = require('./Routers/NautraWebsiteRouter')
 const CasinoTrafficRouter = require('./Routers/CasinoTrafficRouter');
+const PbnWebsiteRouter = require('./Routers/PbnWebsiteRouter');
 const SSORouter = require('./Routers/SSORouter');
 
 const CreatelinkRoutes = require('./Routers/CreatelinkRoutes');
 const { redirect } = require("./Controllers/LinkController");
-
-
 
 const PORT = process.env.PORT || 5000;
 
@@ -64,6 +63,7 @@ app.use("/traffic", TrafficCheckerRouter)
 app.use("/adswebsite", AdsWebsiteRouter)
 app.use("/natural", NautraWebsiteRouter)
 app.use("/casinotraffic", CasinoTrafficRouter)
+app.use("/pbntraffic", PbnWebsiteRouter)
 
 app.use("/ssoauth", SSORouter)
 
