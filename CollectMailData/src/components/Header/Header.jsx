@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import "./Header.css";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { handleSuccess } from "../../utils/toastutils";
 import { FaRegCopy, FaXmark } from "react-icons/fa6";
 
