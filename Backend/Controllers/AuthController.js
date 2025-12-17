@@ -1,6 +1,8 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const UserModel = require('../Models/User');
+const { generateResetEmailHTML, generateEmailHTML } = require('../Utils/emailTemplates');
+const sendEmail = require('../Utils/sendEmail');
 
 const signup = async (req, res) => {
     try {
@@ -58,10 +60,10 @@ const initiateLogin = async (req, res) => {
         await user.save();
 
         await sendEmail(
-            email,
-            'Your Login Verification Code',
-            `Your login code is: ${authCode}`,
-            `<p>Your login code is: <strong>${authCode}</strong></p>`
+            email,                             
+            "Your Login Verification Code",
+            `Your login code is ${authCode}`,
+            generateEmailHTML(authCode)
         );
 
         res.status(200).json({ success: true, message: 'Verification code sent to your email' });
@@ -108,9 +110,8 @@ const verifyLoginCode = async (req, res) => {
     }
 };
 
-// Controllers/AuthController.js
-const sendEmail = require('../Utils/sendEmail');
-const { generateResetEmailHTML } = require('../Utils/emailTemplates');
+
+
 
 const requestPasswordReset = async (req, res) => {
     try {
