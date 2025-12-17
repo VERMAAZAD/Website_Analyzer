@@ -2,7 +2,6 @@ const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const cookieParser = require("cookie-parser");
 const path = require('path');
 require('dotenv').config();
 
@@ -27,9 +26,6 @@ const CreatelinkRoutes = require('./Routers/CreatelinkRoutes');
 const { redirect } = require("./Controllers/LinkController");
 
 const PORT = process.env.PORT || 5000;
-
-app.use(cookieParser());
-app.set("trust proxy", 1);
 
 app.use(bodyParser.json());
 
