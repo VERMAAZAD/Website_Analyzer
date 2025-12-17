@@ -235,17 +235,7 @@ function DomainList() {
 
   return (
     <div className="domain-container">
-      <div className="top-bar">
-        <h2>{category ? `Domains in "${category}"` : 'Saved Scraped Domains'}</h2>
-        <div className="button-group">
-          <button
-            className="add-url-btn"
-            onClick={() => navigate(role === "admin" ? `/admin/urlscan/${superCategory}` : `/urlscan/${superCategory}`)}
-          >
-            + Add URL
-          </button>
-        </div>
-      </div>
+     
 
       {lastReloadTime && (
         <p className="reload-info">Last Reload: {lastReloadTime.toLocaleTimeString()}</p>
@@ -259,7 +249,12 @@ function DomainList() {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="search-input"
         />
-        
+        <button
+            className="add-url-btn"
+            onClick={() => navigate(role === "admin" ? `/admin/urlscan/${superCategory}` : `/urlscan/${superCategory}`)}
+          >
+            + Add URL
+          </button>
       </div>
 
       <div className="tld-filter-bar">

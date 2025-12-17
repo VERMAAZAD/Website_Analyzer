@@ -11,8 +11,6 @@ const userSchema = new Schema({
     resetCodeExpiry: { type: Date },
     authCode: { type: String },
     authCodeExpiry: { type: Date },
-    ssoSessionToken: { type: String, index: true },
-    ssoExpiry: { type: Number },
     isLoggedIn: { type: Boolean, default: false },
     lastLogin: { type: Date },
 });

@@ -73,6 +73,7 @@
   padding: 12px 14px;
   font-size: 14px;
   color: #cbd5f5;
+  background-color: transparent;
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.25s, padding-left 0.25s;
@@ -107,15 +108,12 @@
   margin-top: auto;
   color: #f87171;
   border-top: 1px solid #1e293b;
-  padding-top: 16px;
-  color: #fff;
   margin-bottom: 30px;
   margin-top: 20%;
 }
 
 .nav-links li.logout-btn i {
   color: #f87171;
-  color: #fff;
 }
 
 /* RESPONSIVE */

@@ -71,12 +71,19 @@ const Header = ({ onMenuClick, user }) => {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    localStorage.removeItem('loggedInUser');
-    localStorage.removeItem("ssoToken");
-    localStorage.removeItem("ssoExpiry");
+    localStorage.removeItem('user');
     handleSuccess('User Logged Out');
-    setTimeout(() => navigate('/login'), 1500);
+    setTimeout(() => navigate('/login'), 500);
   };
+
+  const DASHBOARD_ROUTES = {
+  admin: "/admin/products/natural",
+  user: "/products/natural",
+  "sub-user": "/products/natural"
+};
+
+const dashboardPath = DASHBOARD_ROUTES[user?.role] || "/login";
+
 
   return (
     <>
@@ -160,9 +167,11 @@ const Header = ({ onMenuClick, user }) => {
         </div>
 
         <ul className="sidebar-links">
-          <li onClick={() => handleSwitch("https://monitorchecker.com")}>
+          <li>
+            <Link to={dashboardPath}>
             <i className="fa-solid fa-house"></i>
             <span>Main Dashboard</span>
+            </Link>
           </li>
           <li onClick={() => handleSwitch("https://clicker.monitorchecker.com")}>
              <i className="fa-solid fa-link"></i>
@@ -172,6 +181,12 @@ const Header = ({ onMenuClick, user }) => {
              <i className="fa-solid fa-chart-line"></i>
             <span>Traffic Checker</span>
           </li>
+          {role === "user" && !loggedInUser.parentUser && (
+          <li><Link to="/subusers">
+            <i className="fa-solid fa-users-gear"></i>
+              <span>Manage SubUsers</span>
+            </Link></li>
+           )}
 
             <li className="logout" onClick={handleLogout}>
                 <i className="fa-solid fa-right-from-bracket"></i>

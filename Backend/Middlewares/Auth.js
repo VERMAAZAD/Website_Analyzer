@@ -1,54 +1,28 @@
-const jwt = require("jsonwebtoken");
-const User = require("../Models/User");
+const jwt = require('jsonwebtoken');
+const User = require('../Models/User');
 
 const ensureAuthenticated = async (req, res, next) => {
-  try {
-    let user = null;
-    let authSource = null;
+    const authHeader = req.headers['authorization'];
 
-    const authHeader = req.headers.authorization;
-    if (authHeader?.startsWith("Bearer ")) {
-      try {
-        const token = authHeader.split(" ")[1];
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(403).json({ message: 'Unauthorized, JWT token is required' });
+    }
+
+    const token = authHeader.split(' ')[1]; // Extract the token part
+
+    try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        user = await User.findById(decoded._id);
-
-        if (!user) throw new Error("User not found");
-
-        if (!user.ssoExpiry || user.ssoExpiry < Date.now()) {
-          throw new Error("SSO expired");
+        const user = await User.findById(decoded._id);
+        if (!user) {
+            return res.status(403).json({ message: 'Unauthorized, user not found' });
         }
-        authSource = "jwt";
-
-      } catch (err) {
-        user = null;
-      }
+        req.user = user; 
+        req.userId = user._id; 
+        next();
+    } catch (err) {
+        return res.status(403).json({ message: 'Unauthorized, invalid or expired token' });
     }
-
-    /* =========================
-       2️⃣ SSO COOKIE FALLBACK
-    ========================== */
-    if (!user && req.cookies?.ssoToken) {
-      user = await User.findOne({
-        ssoSessionToken: req.cookies.ssoToken,
-        ssoExpiry: { $gt: Date.now() },
-      });
-       if (user) authSource = "sso";
-    }
-
-    if (!user) {
-      return res.status(403).json({ message: "Unauthorized" });
-    }
-
-    req.user = user;
-    req.userId = user._id;
-    req.authSource = authSource;
-    
-    next();
-  } catch (err) {
-    return res.status(403).json({ message: "Unauthorized" });
-  }
 };
 
 module.exports = ensureAuthenticated;

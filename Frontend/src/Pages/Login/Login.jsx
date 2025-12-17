@@ -32,24 +32,10 @@ const Login = () => {
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
 
       const result = await response.json();
-
-       if (result.skipOTP) {
-        handleSuccess('Logged in via SSO');
-
-        localStorage.setItem('token', result.jwtToken);
-        localStorage.setItem('loggedInUser', JSON.stringify(result.user));
-        localStorage.setItem('superCategory', 'natural');
-
-        if (result.user.role === 'admin') navigate('/admin/products/natural');
-        else navigate('/products/natural');
-
-        return;
-      }
 
       if (result.success) {
         handleSuccess('Verification code sent to your email.');
@@ -79,7 +65,6 @@ const Login = () => {
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-         credentials: "include",
         body: JSON.stringify({ email: loginInfo.email, code }),
       });
 
@@ -96,10 +81,10 @@ const Login = () => {
         if (user.role === 'admin') {
              navigate('/admin/products/natural'); 
                 } else if (user.role === 'sub-user') {
-            navigate('/products/natural'); // sub-user dashboard
+            navigate('/products/natural');
               } else {
               navigate(`/products/natural`);
-                  }
+              }
       } else {
         handleError(result.message || 'Invalid or expired code');
       }
@@ -169,9 +154,7 @@ const Login = () => {
 
         <button type="submit" disabled={loading}>
           {loading ? (
-            <>
-            <div className="spinner-login"></div> 
-            </>
+            <div className="spinner-login"></div> // show spinner inside button
           ) : step === 1 ? (
             'Login Now'
           ) : (

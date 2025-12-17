@@ -5,7 +5,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #0f172a;
+  background: #020617;
   color: #fff;
   padding: 12px 18px;
   height: 60px;
@@ -173,6 +173,16 @@
   cursor: pointer;
   font-size: 14px;
   border-bottom: 1px solid #1e293b;
+  transition: background 0.25s, padding-left 0.25s;
+}
+.sidebar-links li a{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  text-decoration: none;
+  color: #fff;
   transition: background 0.25s, padding-left 0.25s;
 }
 

@@ -22,7 +22,6 @@ const AdsWebsiteRouter = require('./Routers/AdsWebsiteRouter')
 const NautraWebsiteRouter = require('./Routers/NautraWebsiteRouter')
 const CasinoTrafficRouter = require('./Routers/CasinoTrafficRouter');
 const PbnWebsiteRouter = require('./Routers/PbnWebsiteRouter');
-const SSORouter = require('./Routers/SSORouter');
 
 const CreatelinkRoutes = require('./Routers/CreatelinkRoutes');
 const { redirect } = require("./Controllers/LinkController");
@@ -65,7 +64,6 @@ app.use("/natural", NautraWebsiteRouter)
 app.use("/casinotraffic", CasinoTrafficRouter)
 app.use("/pbntraffic", PbnWebsiteRouter)
 
-app.use("/ssoauth", SSORouter)
 
 app.use("/api", CreatelinkRoutes);
 app.get("/:slug", redirect);

@@ -310,6 +310,16 @@
   transition: background 0.25s, padding-left 0.25s;
 }
 
+.sidebar-links li a{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #000;
+  transition: background 0.25s, padding-left 0.25s;
+}
+
 .sidebar-links li i {
   font-size: 20px;
   text-align: center;

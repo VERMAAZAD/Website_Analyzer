@@ -1,14 +1,6 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const UserModel = require('../Models/User');
-const sendEmail = require('../Utils/sendEmail');
-const { generateResetEmailHTML } = require('../Utils/emailTemplates');
-const crypto = require("crypto");
-
-
-const createSSOSessionToken = () => {
-    return crypto.randomBytes(32).toString("hex");
-};
 
 const signup = async (req, res) => {
     try {
@@ -58,35 +50,6 @@ const initiateLogin = async (req, res) => {
             return res.status(403).json({ message: 'Auth failed: password is incorrect', success: false });
         }
 
-        if (user.ssoSessionToken && user.ssoExpiry > Date.now()) {
-
-            user.isLoggedIn = true;
-            user.lastLogin = new Date();
-            user.ssoExpiry = Date.now() + 24 * 60 * 60 * 1000; // extend session
-            await user.save();
-
-        const jwtToken = jwt.sign(
-            { email: user.email, _id: user._id, role: user.role, sso: true },
-            process.env.JWT_SECRET,
-            { expiresIn: '24h' }
-        );
-
-        return res.status(200).json({
-            success: true,
-            skipOTP: true,
-            jwtToken,
-            ssoToken: user.ssoSessionToken,
-            user: {
-                _id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                parentUser: user.parentUser
-            }
-        });
-    }
-
-
         const authCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
         const expiry = new Date(Date.now() + 10 * 60 * 1000); // expires in 10 minutes
 
@@ -103,6 +66,7 @@ const initiateLogin = async (req, res) => {
 
         res.status(200).json({ success: true, message: 'Verification code sent to your email' });
     } catch (error) {
+        console.error(error);
         res.status(500).json({ message: "Internal Server Error", success: false });
     }
 };
@@ -120,41 +84,23 @@ const verifyLoginCode = async (req, res) => {
         // Clear code fields after use
         user.authCode = undefined;
         user.authCodeExpiry = undefined;
-        user.isLoggedIn = true;
-        user.lastLogin = new Date();
-
-        const ssoToken = createSSOSessionToken();
-        user.ssoSessionToken = ssoToken;
-        user.ssoExpiry = Date.now() + 24 * 60 * 60 * 1000;
-
-
         await user.save();
 
         const jwtToken = jwt.sign(
-            { email: user.email, _id: user._id, role: user.role, sso: true },
+            { email: user.email, _id: user._id, role: user.role },
             process.env.JWT_SECRET,
             { expiresIn: '24h' }
         );
-
-        res.cookie("ssoToken", ssoToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "None",
-            domain: process.env.NODE_ENV === "production" ? ".monitorchecker.com" : undefined,
-            maxAge: 24 * 60 * 60 * 1000
-        });
 
         res.status(200).json({
             message: "Login successful",
             success: true,
             jwtToken,
-            ssoToken,
             user: {
                 _id: user._id,
                 name: user.name,
                 email: user.email,
-                role: user.role,
-                parentUser: user.parentUser
+                role: user.role
             }
         });
     } catch (error) {
@@ -162,7 +108,9 @@ const verifyLoginCode = async (req, res) => {
     }
 };
 
-
+// Controllers/AuthController.js
+const sendEmail = require('../Utils/sendEmail');
+const { generateResetEmailHTML } = require('../Utils/emailTemplates');
 
 const requestPasswordReset = async (req, res) => {
     try {

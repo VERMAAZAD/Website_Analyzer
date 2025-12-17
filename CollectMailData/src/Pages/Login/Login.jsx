@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { handleError, handleSuccess } from '../../utils/toastutils';
 
 const Login = () => {
-  const [step, setStep] = useState(1); 
+  const [step, setStep] = useState(1); // Step 1: login, Step 2: verify code
   const [loginInfo, setLoginInfo] = useState({ email: '', password: '' });
   const [code, setCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -19,7 +19,6 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
       setLoading(true);
-      
     const { email, password } = loginInfo;
 
     if (!email || !password) {
@@ -33,24 +32,10 @@ const Login = () => {
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-         credentials: "include",
         body: JSON.stringify({ email, password }),
       });
 
       const result = await response.json();
-
-       if (result.skipOTP) {
-        handleSuccess('Logged in via SSO');
-
-        localStorage.setItem('token', result.jwtToken);
-        localStorage.setItem('loggedInUser', JSON.stringify(result.user));
-        localStorage.setItem('superCategory', 'natural');
-
-        if (result.user.role === 'admin') navigate('/admin/dashboard');
-        else navigate('/dashboard');
-
-        return;
-      }
 
       if (result.success) {
         handleSuccess('Verification code sent to your email.');
@@ -61,14 +46,13 @@ const Login = () => {
     } catch (err) {
       handleError('Something went wrong. Try again.');
     } finally {
-    setLoading(false);
+       setLoading(false);
   }
   };
 
   const handleVerifyCode = async (e) => {
     e.preventDefault();
      setLoading(true);
-
     if (!code || !loginInfo.email) {
       handleError('Verification code is required');
       setLoading(false);
@@ -80,7 +64,6 @@ const Login = () => {
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-         credentials: "include",
         body: JSON.stringify({ email: loginInfo.email, code }),
       });
 
@@ -91,16 +74,14 @@ const Login = () => {
         handleSuccess(message);
 
         localStorage.setItem('token', jwtToken);
-        localStorage.setItem('loggedInUser', JSON.stringify(user));
-        localStorage.setItem('superCategory', 'natural');
+        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('selectedCategory', 'traffic');
 
         if (user.role === 'admin') {
-             navigate('/admin/dashboard'); 
-                } else if (user.role === 'sub-user') {
-            navigate('/dashboard'); // sub-user dashboard
-              } else {
-              navigate(`/dashboard`);
-                  }
+          navigate('/admin/dashboard');
+        } else {
+          navigate('/dashboard');
+        }
       } else {
         handleError(result.message || 'Invalid or expired code');
       }
@@ -170,9 +151,7 @@ const Login = () => {
 
         <button type="submit" disabled={loading}>
           {loading ? (
-            <>
             <div className="spinner-login"></div>
-            </>
           ) : step === 1 ? (
             'Login Now'
           ) : (

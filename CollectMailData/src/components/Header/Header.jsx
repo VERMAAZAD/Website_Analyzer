@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import "./Header.css";
-import { useNavigate, useLocation } from "react-router-dom";
-import { handleError, handleSuccess } from "../../utils/toastutils";
+import { useNavigate } from "react-router-dom";
+import { handleSuccess } from "../../utils/toastutils";
 import { FaRegCopy, FaXmark } from "react-icons/fa6";
 
 const Header = ({ toggleSidebar }) => {
@@ -13,7 +13,6 @@ const Header = ({ toggleSidebar }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   
-  // ---- User & SSO
   const [user, setUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showApiModal, setShowApiModal] = useState(false);
@@ -21,7 +20,7 @@ const Header = ({ toggleSidebar }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-     const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
+     const loggedInUser = JSON.parse(localStorage.getItem("user"));
       if (loggedInUser) {
         setUser(loggedInUser);
       } 
@@ -46,11 +45,9 @@ const Header = ({ toggleSidebar }) => {
     pbntraffic: "pbnwebtraffic.js",
   };
 
-    const selectedScript = scriptMap[category] || "traffictracker.js";
-
+  const selectedScript = scriptMap[category] || "traffictracker.js";
   
   const userTrackingCode = `<script src="https://api.monitorchecker.com/${selectedScript}" data-site-id="https://yourdomain.com" data-user-id="${userId}"></script>`;
-
 
 
   const handleSwitch = (url) => {
@@ -59,14 +56,13 @@ const Header = ({ toggleSidebar }) => {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    localStorage.removeItem("loggedInUser");
-    localStorage.removeItem("ssoToken");
-    localStorage.removeItem("ssoExpiry");
+    localStorage.removeItem("user");
     handleSuccess("User Logged Out");
     setUser(null);
     setSidebarOpen(false);
     setTimeout(() => navigate("/login"), 500);
   };
+
 
   const handleSelect = (value) => {
     setCategory(value);
@@ -155,16 +151,18 @@ const Header = ({ toggleSidebar }) => {
           </span>
         </div>
         <ul className="sidebar-links">
-          <li onClick={() => handleSwitch("https://analytics.monitorchecker.com")}>
+          <li>
+            <Link to={user?.role === "admin" ? "/admin/dashboard" : "/dashboard"}>
             <i className="fa-solid fa-house"></i>
             <span>Main Dashboard</span>
+            </Link>
           </li>
           <li onClick={() => handleSwitch("https://clicker.monitorchecker.com")}>
             <i className="fa-solid fa-link"></i>
             <span>Links Detector</span>
           </li>
           <li onClick={() => handleSwitch("https://monitorchecker.com")}>
-            <i class="fa-solid fa-passport"></i>
+            <i className="fa-solid fa-passport"></i>
             <span>Monitor Checker</span>
           </li>
           <li className="logout" onClick={handleLogout}>

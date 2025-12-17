@@ -1,17 +1,9 @@
-import React from "react";
 import "./Sidebar.css";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const Sidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("loggedInUser");
-    alert("User Logged Out");
-    setTimeout(() => navigate("/login"), 1000);
-  };
 
   return (
     <>
@@ -26,7 +18,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         <ul className="nav-links">
           <li className={location.pathname === "/dashboard" ? "active" : ""}>
             <Link to="/dashboard">
-             <i class="fa-solid fa-house-user"></i>
+             <i className="fa-solid fa-house-user"></i>
               <span className="link-text">Home</span>
             </Link>
           </li>

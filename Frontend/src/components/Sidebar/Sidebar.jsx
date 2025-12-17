@@ -65,15 +65,8 @@ const Sidebar = ({ isOpen, onClose }) => {
           <i className="fa-solid fa-hourglass-end"></i>
             <span>Expire Server</span>
         </NavLink></li>
-
-        {/* Show only for main users */}
-         {role === "user" && !loggedInUser.parentUser && (
-          <li><NavLink to="/subusers">
-            <i className="fa-solid fa-users-gear"></i>
-              <span>Manage SubUsers</span>
-            </NavLink></li>
-        )}
-        {role === "sub-user" && !loggedInUser.parentUser && (
+        
+        {role === "sub-user" && (
          <li className="logout-btn" onClick={handleLogout}>
                 <i className="fa-solid fa-right-from-bracket"></i>
             <span>Logout</span>
