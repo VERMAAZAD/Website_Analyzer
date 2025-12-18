@@ -1,40 +1,65 @@
 (function () {
-  function getVisitorId() {
-    const cookieName = "visitorId=";
-    const cookies = document.cookie.split(";");
-    for (let c of cookies) {
-      while (c.charAt(0) === " ") c = c.substring(1);
-      if (c.indexOf(cookieName) === 0) {
-        return c.substring(cookieName.length, c.length);
+  try {
+    /** ---------------- VISITOR ID (COOKIE + LOCALSTORAGE) ---------------- */
+    function getVisitorId() {
+      try {
+        const key = "mc_vid";
+
+        // localStorage first (more reliable on WP)
+        let id = localStorage.getItem(key);
+        if (id) return id;
+
+        // fallback to cookie
+        const match = document.cookie.match(new RegExp("(^| )" + key + "=([^;]+)"));
+        if (match) {
+          localStorage.setItem(key, match[2]);
+          return match[2];
+        }
+
+        // generate new
+        id = crypto.randomUUID
+          ? crypto.randomUUID()
+          : Math.random().toString(36).substring(2);
+
+        localStorage.setItem(key, id);
+        document.cookie = `${key}=${id};path=/;max-age=${60 * 60 * 24 * 365}`;
+
+        return id;
+      } catch {
+        return Math.random().toString(36).substring(2);
       }
     }
-    const newId = self.crypto?.randomUUID?.() || Math.random().toString(36).substring(2);
-    document.cookie = "visitorId=" + newId + ";path=/;max-age=" + 60 * 60 * 24 * 365;
-    return newId;
-  }
 
-  const script = document.currentScript; 
-  const siteId = script.getAttribute("data-site-id");
-  const visitorId = getVisitorId();
-  const userId = script.getAttribute("data-user-id");
-  
-  const domain = script.getAttribute("data-domain") || window.location.hostname;
+    /** ---------------- SCRIPT TAG SAFE ACCESS ---------------- */
+    const script =
+      document.currentScript ||
+      document.querySelector("script[data-site-id][data-user-id]");
 
-  if (domain !== window.location.hostname && window.location.hostname.includes("proxy")) {
-    console.warn("Blocked proxy tracking request");
-  } else {
-    fetch(`https://api.monitorchecker.com/pbntraffic/traffic-check`, {
+    if (!script) return;
+
+    const siteId = script.getAttribute("data-site-id");
+    const userId = script.getAttribute("data-user-id");
+
+    if (!siteId || !userId) return;
+
+    const visitorId = getVisitorId();
+
+    /** ---------------- SEND ---------------- */
+    fetch("https://api.monitorchecker.com/pbntraffic/traffic-check", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+      },
+      keepalive: true, // important for page unload
       body: JSON.stringify({
         userId,
         siteId,
         visitorId,
-        domain: window.location.hostname,
-        path: window.location.pathname,
+        domain: location.hostname,
+        path: location.pathname,
       }),
-    }).catch(err => console.error("Track error:", err));
+    }).catch(() => {});
+  } catch (e) {
+    // fail silently
   }
-  })();
-
-
+})();
