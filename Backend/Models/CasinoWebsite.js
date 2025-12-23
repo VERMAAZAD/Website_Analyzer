@@ -1,15 +1,60 @@
 const mongoose = require("mongoose");
 
 const CasinoWebsiteSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: false },
-  siteId: { type: String, required: true },   
-  domain: String,
-  path: String,
-  visitorId: String,                          
-  ip: String,
-  userAgent: String,
-  location: Object,
-  timestamp: { type: Date, default: Date.now },
+  userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          index: true,
+        },
+    
+        siteId: {
+          type: String,
+          required: true,
+          index: true,
+        },
+    
+        domain: {
+          type: String,
+          index: true,
+        },
+    
+        path: {
+          type: String,
+          index: true,
+        },
+    
+        visitorId: {
+          type: String,
+          index: true,
+        },
+    
+        ip: {
+          type: String,
+          index: true,
+        },
+    
+        userAgent: {
+          type: String,
+        },
+    
+        location: {
+          country: String,
+          region: String,
+          city: String,
+          ll: [Number],
+        },
+    
+        isProxyLikely: {
+          type: Boolean,
+          default: false,
+          index: true,
+        },
+    
+        timestamp: {
+          type: Date,
+          default: Date.now,
+          index: true,
+        },
 });
 
 CasinoWebsiteSchema.index({ timestamp: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 7 });
