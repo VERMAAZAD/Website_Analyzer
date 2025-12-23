@@ -4,14 +4,56 @@ const mongoose = require('mongoose');
 const NautraWebsiteTrack = require("../Models/NautraWebsiteTrack");
 
 
+const normalizeDomain = (d = "") =>
+  d
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .split(":")[0]
+    .toLowerCase();
+
 exports.checkTraffic = async (req, res) => {
   try {
     const { userId, siteId, visitorId, domain, path } = req.body;
-     if (!userId || !siteId) {
-      return res.status(400).json({ error: "Missing userId or siteId" });
+     if (!userId || !siteId || !domain) {
+      return res.status(400).json({
+        success: false,
+        error: "Missing required fields",
+      });
     }
-    const clientIp = requestIp.getClientIp(req);
+
+    const cleanDomain = normalizeDomain(domain);
+    const cleanSiteId = normalizeDomain(siteId);
+
+    if (cleanDomain !== cleanSiteId) {
+      console.log(`❌ Domain mismatch: ${cleanDomain} !== ${cleanSiteId}`);
+      return res.status(403).json({
+        blocked: true,
+        reason: "Domain mismatch",
+      });
+    }
+
+    const clientIp =
+      req.headers["cf-connecting-ip"] ||
+      req.headers["x-forwarded-for"]?.split(",")[0] ||
+      requestIp.getClientIp(req);
+
+    if (!clientIp) {
+      return res.status(403).json({
+        blocked: true,
+        reason: "IP not detected",
+      });
+    }
+
     const location = geoip.lookup(clientIp) || {};
+
+     const proxyHeaders = [
+      "via",
+      "x-forwarded-for",
+      "forwarded",
+      "x-real-ip",
+    ];
+
+    const isProxyLikely = proxyHeaders.some(h => req.headers[h]);
 
     const traffic = new NautraWebsiteTrack({
       userId,
@@ -22,6 +64,8 @@ exports.checkTraffic = async (req, res) => {
       ip: clientIp,
       userAgent: req.headers["user-agent"],
       location,
+      isProxyLikely,
+      timestamp: new Date(),
     });
 
     await traffic.save();
