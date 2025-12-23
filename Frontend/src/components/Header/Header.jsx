@@ -64,7 +64,6 @@ const Header = ({ onMenuClick, user }) => {
   const isActive = (type) =>
     location.pathname.includes(`/products/${type}`);
 
-  // 🔹 SSO App Switch
   const handleSwitch = (url) => {
     window.location.href = url;
   };

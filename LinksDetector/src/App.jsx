@@ -11,39 +11,10 @@ import ChainLinks from './AllLinks/ChainLinks';
 import SingleLinks from './AllLinks/SingleLinks';
 import FolderList from './FolderBrowser/FolderList';
 import FolderDetails from './FolderBrowser/FolderDetails';
-import { useEffect } from 'react';
 
 function App() {
-  const navigate = useNavigate();
 
  const DEFAULT_ROUTE = "/folders";
-
-  useEffect(() => {
-     if (localStorage.getItem("token")) return;
-     
-  const ssoLogin = async () => {
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URI}/ssoauth/sso-login`,
-        {
-          method: "GET",
-          credentials: "include",
-        }
-      );
-
-      const data = await res.json();
-      if (!data.success) return;
-      localStorage.setItem("token", data.jwtToken);
-      localStorage.setItem("loggedInUser", JSON.stringify(data.user));
-      navigate(DEFAULT_ROUTE, { replace: true });
-    } catch {
-      // navigate("/login");
-      console.error("SSO check failed");
-    }
-  };
-
-  ssoLogin();
-}, []);
 
   return (
     <>

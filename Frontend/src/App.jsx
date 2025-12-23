@@ -34,46 +34,11 @@ import HostingDomainsAdmin from './Pages/HostingInfo/HostingDomains/HostingDomai
 import ServerListUser from './Pages/HostingInfo/ServerList/ServerListUser';
 import ServerListAdmin from './Pages/HostingInfo/ServerList/ServerListAdmin';
 import SubUserManagement from './Pages/SubUserManagement/SubUserManagement';
-import { useEffect } from 'react';
 
 function App() {
 
-  const navigate = useNavigate();
-
-    const DEFAULT_USER_ROUTE = "/products/natural";
+  const DEFAULT_USER_ROUTE = "/products/natural";
   const DEFAULT_ADMIN_ROUTE = "/admin/products/natural";
-
-  useEffect(() => {
-     if (localStorage.getItem("token")) return;
-  const ssoLogin = async () => {
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URI}/ssoauth/sso-login`,
-        {
-          method: "GET",
-          credentials: "include",
-        }
-      );
-
-      const data = await res.json();
-      if (!data.success) return;
-      localStorage.setItem("token", data.jwtToken);
-      localStorage.setItem("loggedInUser", JSON.stringify(data.user));
-      
-      if (data.user.role === "admin") {
-          navigate(DEFAULT_ADMIN_ROUTE, { replace: true });
-        } else {
-          navigate(DEFAULT_USER_ROUTE, { replace: true });
-      }
-      
-    } catch {
-      // navigate("/login");
-      console.error("SSO check failed");
-    }
-  };
-
-  ssoLogin();
-}, []);
 
   const user = JSON.parse(localStorage.getItem("loggedInUser"));
   const isAdmin = user?.role === "admin";
