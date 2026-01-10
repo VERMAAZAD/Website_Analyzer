@@ -316,3 +316,44 @@ exports.getLinkBySlug = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+
+
+
+exports.updateOriginalUrl = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { originalUrl } = req.body;
+
+    if (!originalUrl) {
+      return res.status(400).json({ message: "Original URL is required" });
+    }
+
+    // Normalize URL
+    let updatedUrl = originalUrl.trim();
+    if (!/^https?:\/\//i.test(updatedUrl)) {
+      updatedUrl = "https://" + updatedUrl;
+    }
+
+    const link = await CreateLink.findOne({ slug });
+
+    if (!link) {
+      return res.status(404).json({ message: "Link not found" });
+    }
+
+    // Security: ensure only owner can update
+    if (link.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    link.originalUrl = updatedUrl;
+    await link.save();
+
+    res.json({
+      message: "Original URL updated successfully",
+      link
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+};

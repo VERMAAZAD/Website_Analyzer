@@ -49,7 +49,7 @@ a:hover {
 .links-table {
   min-width: 1300px;  
   font-size: 14px;
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 .links-table th {
@@ -225,4 +225,31 @@ button:active {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+
+/* =========================
+   Edit URL Mode Fix
+========================= */
+
+.edit-cell {
+  padding: 6px 14px;
+}
+
+.edit-url-input {
+  width: 100%;
+  min-width: 320px;
+  max-width: 100%;
+  padding: 8px 10px;
+  border: 1.6px solid #0070f3;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  background: #fff;
+}
+
+/* Allow wrapping while editing */
+.edit-cell {
+  white-space: normal;
+  overflow: visible;
 }

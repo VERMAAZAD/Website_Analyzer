@@ -1,10 +1,8 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
+const https = require("https");
 const ScrapedSite = require('../Models/ScrapedSite');
 
-
-
-// Utility to normalize domain (removes protocol, www, and trailing slash)
 const normalizeDomain = (url) => {
   try {
     const parsed = new URL(url);
@@ -17,131 +15,106 @@ const normalizeDomain = (url) => {
   }
 };
 
+const axiosInstance = axios.create({
+  timeout: 12000,
+  validateStatus: () => true,
+  headers: {
+    "User-Agent": "Mozilla/5.0",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9",
+    "Accept-Language": "en-US,en;q=0.9"
+  },
+  httpsAgent: new https.Agent({
+    keepAlive: true,
+    maxSockets: 50
+  })
+});
+
 // [1] Scrape website data
 exports.scrapeWebsite = async (req, res) => {
-  const { domain } = req.body;
-
-  if (!domain) return res.status(400).json({ error: 'Domain is required' });
+  let { domain } = req.body;
+  if (!domain) return res.status(400).json({ error: "Domain is required" });
 
   try {
+    domain = domain.trim();
+    if (!/^https?:\/\//i.test(domain)) {
+      domain = "https://" + domain;
+    }
+
     const baseUrl = new URL(domain);
     const baseOrigin = baseUrl.origin;
 
-    // Start all other requests in parallel with reduced timeouts
-    const [mainRes, orderHtmlRes, orderRes, robotsRes] = await Promise.allSettled([
-      axios.get(domain, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
-          'Accept-Language': 'en-US,en;q=0.9',
-        },
-        timeout: 15000,
-        validateStatus: () => true
-      }),
-      axios.get(`${baseOrigin}/order.html`, {
-        timeout: 5000,
-        validateStatus: () => true
-      }),
-      axios.get(`${baseOrigin}/order`, {
-        timeout: 5000,
-        validateStatus: () => true
-      }),
-      axios.get(`${baseOrigin}/robots.txt`, {
-        timeout: 4000,
-        validateStatus: () => true
-      })
+    const requests = await Promise.allSettled([
+      axiosInstance.get(domain),
+      axiosInstance.get(`${baseOrigin}/order.html`),
+      axiosInstance.get(`${baseOrigin}/order`),
+      axiosInstance.get(`${baseOrigin}/robots.txt`)
     ]);
 
-    // Handle main HTML response first
-    let h1 = [], h2 = [], images = [], altTags = [], canonicals = [],
-        title = '', description = '', wordCount = 0,
-        schemaPresent = false, statusCode = 0;
+    const [mainRes, orderHtmlRes, orderRes, robotsRes] = requests;
 
-    if (mainRes.status !== 'fulfilled' || mainRes.value.status >= 500) {
-      return res.status(400).json({ error: 'Main site is unreachable or returned error.' });
+    let h1=[], h2=[], images=[], altTags=[], canonicals=[];
+    let title="", description="", wordCount=0;
+    let schemaPresent=false, statusCode=0, affiliateLink=null;
+
+    if (mainRes.status === "fulfilled") {
+      statusCode = mainRes.value.status;
+      const html = mainRes.value.data || "";
+
+      if (html) {
+        const $ = cheerio.load(html);
+        h1 = $("h1").map((_,e)=>$(e).text().trim()).get();
+        h2 = $("h2").map((_,e)=>$(e).text().trim()).get();
+        images = $("img").map((_,e)=>$(e).attr("src")).get();
+        altTags = $("img").map((_,e)=>$(e).attr("alt")||"").get();
+        canonicals = $('link[rel="canonical"]').map((_,e)=>$(e).attr("href")).get();
+        title = $("title").text().trim();
+        description = $('meta[name="description"]').attr("content") || "";
+        wordCount = $("body").text().split(/\s+/).filter(Boolean).length;
+        schemaPresent = $('script[type="application/ld+json"]').length > 0;
+      }
     }
 
-    const html = mainRes.value.data;
-    const $ = cheerio.load(html);
-    h1 = $('h1').map((_, el) => $(el).text().trim()).get();
-    h2 = $('h2').map((_, el) => $(el).text().trim()).get();
-    images = $('img').map((_, el) => $(el).attr('src')).get();
-    altTags = $('img').map((_, el) => $(el).attr('alt') || '').get();
-    canonicals = $('link[rel="canonical"]').map((_, el) => $(el).attr('href')).get();
-    title = $('title').text().trim();
-    description = $('meta[name="description"]').attr('content') || '';
-    const titleCharCount = title.length;
-    const descriptionCharCount = description.length;
-    wordCount = $('body').text().split(/\s+/).filter(Boolean).length;
-    schemaPresent = $('script[type="application/ld+json"]').length > 0;
-    statusCode = mainRes.value.status;
+    for (const result of [orderHtmlRes, orderRes]) {
+      if (result.status === "fulfilled" && result.value.data) {
+        const $o = cheerio.load(result.value.data);
 
-    // Attempt to extract affiliate link
-    let affiliateLink = null;
-    const affiliateCandidates = [orderHtmlRes, orderRes];
+        const meta = $o('meta[http-equiv="refresh"]').attr("content");
+        const match = meta?.match(/url=["']?(https?:\/\/[^"']+)/i);
+        if (match) { affiliateLink = match[1]; break; }
 
-    for (const result of affiliateCandidates) {
-      if (result.status === 'fulfilled' && result.value.status < 400) {
-        const $order = cheerio.load(result.value.data);
-
-        // Meta redirect
-        const metaTag = $order('meta[http-equiv="refresh"]').attr('content');
-        const metaMatch = metaTag?.match(/url=["']?(https?:\/\/[^"']+)/i);
-        if (metaMatch) {
-          affiliateLink = metaMatch[1];
-          break;
-        }
-
-        // JS redirect
-        const scripts = $order('script').toArray();
-        for (const script of scripts) {
-          const jsText = $order(script).html();
-          const jsMatch = jsText?.match(/window\.location\.href\s*=\s*["'](https?:\/\/[^"']+)["']/i);
-          if (jsMatch) {
-            affiliateLink = jsMatch[1];
-            break;
-          }
-        }
+        $o("script").each((_,s)=>{
+          const js = $o(s).html();
+          const m = js?.match(/location\.href\s*=\s*["'](https?:\/\/[^"']+)/i);
+          if (m) affiliateLink = m[1];
+        });
 
         if (affiliateLink) break;
       }
     }
 
-    // Robots.txt
-    let robotsTxt = 'Not Found or Inaccessible';
-    if (robotsRes.status === 'fulfilled' && robotsRes.value.status < 400) {
-      robotsTxt = robotsRes.value.data;
+    let robotsTxt = "Not Found";
+    if (robotsRes.status === "fulfilled") {
+      robotsTxt = robotsRes.value.data || robotsTxt;
     }
 
-   
     res.json({
-      h1,
-      h2,
-      images,
-      altTags,
-      canonicals,
-      title,
-      titleCharCount,
-      description,
-      descriptionCharCount,
-      wordCount,
-      schemaPresent,
-      robotsTxt,
-      statusCode,
-      lastChecked: new Date(),
-      affiliateLink
+      h1, h2, images, altTags, canonicals,
+      title, titleCharCount: title.length,
+      description, descriptionCharCount: description.length,
+      wordCount, schemaPresent, robotsTxt,
+      statusCode, affiliateLink,
+      lastChecked: new Date()
     });
 
-  } catch (error) {
-    console.error('Scraping error:', error);
-    res.status(500).json({
-      error: 'Something went wrong while scraping.',
-      details: error.message,
-      status: error.response?.status || 500
+  } catch (err) {
+    console.error("Scrape error:", err.message);
+    res.status(200).json({
+      statusCode: 0,
+      error: "Partial failure",
+      lastChecked: new Date()
     });
   }
 };
-
 
 
 
@@ -389,7 +362,7 @@ exports.deleteScrapedSite = async (req, res) => {
 
 
 // [9] Refresh all domain status codes and return error domains
-const https = require("https");
+
 const pLimit = require("p-limit").default;
 
 exports.refreshStatusesAndGetErrors = async (req, res) => {

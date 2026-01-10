@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
 import Layout from "../components/Layouts/Layout";
-import { getAllCreatedLinks, deleteLink } from "../api"; // Make sure delete function is imported
+import { getAllCreatedLinks, deleteLink, updateOriginalUrl } from "../api"; // Make sure delete function is imported
 import "./AllLinks.css";
 import { useNavigate } from "react-router-dom";
-import { handleSuccess } from "../utils/toastutils";
-import { FaRegCopy, FaRegTrashCan } from "react-icons/fa6";
+import { handleSuccess, handleError } from "../utils/toastutils";
+import { FaRegCopy, FaRegTrashCan, FaPen, FaCheck, FaXmark } from "react-icons/fa6";
 
 export default function SingleLinks() {
   const [links, setLinks] = useState([]);
-   const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [editingSlug, setEditingSlug] = useState(null);
+  const [editUrl, setEditUrl] = useState("");
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,14 +37,43 @@ export default function SingleLinks() {
   // Handle deleting a single link with confirmation
   const handleDeleteLink = async (slug) => {
     const confirmDelete = window.confirm("Are you sure you want to delete this link?");
-    if (confirmDelete) {
+    try {
       const response = await deleteLink(slug);
       if (response.message) {
         handleSuccess(response.message);
-        loadLinks(); // Reload links after deletion
+        loadLinks();
       }
+    } catch {
+      handleError("Delete failed");
     }
   };
+
+   const startEdit = (link) => {
+    setEditingSlug(link.slug);
+    setEditUrl(link.originalUrl);
+  };
+
+  const cancelEdit = () => {
+    setEditingSlug(null);
+    setEditUrl("");
+  };
+
+  const saveEdit = async (slug) => {
+    if (!editUrl.trim()) {
+      return handleError("URL cannot be empty");
+    }
+
+    try {
+      await updateOriginalUrl(slug, editUrl);
+      handleSuccess("Original URL updated");
+      cancelEdit();
+      loadLinks();
+    } catch {
+      handleError("Failed to update URL");
+    }
+  };
+
+
   const sortedLinks = [...links].sort((a, b) => b.clicks - a.clicks);
   return (
     <Layout>
@@ -70,7 +102,18 @@ export default function SingleLinks() {
               <tbody>
                 {sortedLinks.map((item) => (
                   <tr key={item._id}>
-                    <td className="truncate">{item.originalUrl}</td>
+                     <td className={editingSlug === item.slug ? "edit-cell" : "truncate"}>
+                      {editingSlug === item.slug ? (
+                        <input
+                          type="text"
+                          value={editUrl}
+                          onChange={(e) => setEditUrl(e.target.value)}
+                          className="edit-url-input"
+                        />
+                      ) : (
+                        item.originalUrl
+                      )}
+                    </td>
 
                     <td>
                       <a
@@ -99,7 +142,29 @@ export default function SingleLinks() {
                       >
                         <FaRegCopy />
                       </button>
-
+                       {editingSlug === item.slug ? (
+                        <>
+                          <button
+                            className="save-btn"
+                            onClick={() => saveEdit(item.slug)}
+                          >
+                            <FaCheck />
+                          </button>
+                          <button
+                            className="cancel-btn"
+                            onClick={cancelEdit}
+                          >
+                            <FaXmark />
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          className="edit-btn"
+                          onClick={() => startEdit(item)}
+                        >
+                          <FaPen />
+                        </button>
+                      )}
                       <button
                         className="delete-btn"
                         onClick={() => handleDeleteLink(item.slug)}

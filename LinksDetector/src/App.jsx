@@ -1,5 +1,6 @@
 import {Navigate, Route, Routes, useNavigate} from 'react-router-dom';
 import { ToastContainer } from 'react-toastify'
+import { isTokenExpired } from "./utils/auth";
 
 import './App.css'
 import Login from './Pages/Login/Login';
@@ -19,10 +20,18 @@ function App() {
   return (
     <>
      <Routes>
-        <Route path="/" element={ localStorage.getItem("token")
-          ? <Navigate to={DEFAULT_ROUTE} />
-          : <Navigate to="/login" />
-            }
+        <Route
+          path="/"
+          element={
+            (() => {
+              const token = localStorage.getItem("token");
+              if (!token || isTokenExpired(token)) {
+                localStorage.clear();
+                return <Navigate to="/login" />;
+              }
+              return <Navigate to={DEFAULT_ROUTE} />;
+            })()
+          }
         />
         <Route path='/login' element={<Login/>}/>
         <Route path='/forgot-password' element={<ForgotPassword/>}/>

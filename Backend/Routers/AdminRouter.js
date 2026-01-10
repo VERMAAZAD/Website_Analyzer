@@ -18,8 +18,6 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
-
-
 // Apply both middlewares
 router.use(ensureAuthenticated, requireAdmin);
 

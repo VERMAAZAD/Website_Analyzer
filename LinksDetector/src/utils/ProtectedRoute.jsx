@@ -1,11 +1,16 @@
-import React from "react";
 import { Navigate } from "react-router-dom";
-import { getRole } from "./auth";
+import { isTokenExpired } from "./auth";
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
-  const role = getRole(); // 'admin' or 'user'
+  const token = localStorage.getItem("token");
+  const user = JSON.parse(localStorage.getItem("user"));
 
-  if (!allowedRoles.includes(role)) {
+  if (!token || isTokenExpired(token)) {
+    localStorage.clear();
+    return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && !allowedRoles.includes(user?.role)) {
     return <Navigate to="/login" replace />;
   }
 

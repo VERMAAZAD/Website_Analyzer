@@ -91,3 +91,22 @@ export const getLinkBySlug = async (slug) => {
   });
   return res.json();
 };
+
+
+
+export const updateOriginalUrl = async (slug, originalUrl) => {
+  const res = await fetch(`${API_BASE}/api/update-url/${slug}`, {
+    method: "PUT", 
+    headers: {
+      ...authHeaders(),
+      "Content-Type": "application/json" 
+    },
+    body: JSON.stringify({ originalUrl })
+  });
+
+  if (!res.ok) {
+    throw new Error("Update failed");
+  }
+
+  return res.json();
+};
