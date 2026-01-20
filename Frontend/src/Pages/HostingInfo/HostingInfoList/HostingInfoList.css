@@ -32,10 +32,6 @@
 
 /* Page */
 .hi-page-list {
-  min-height: 100%;
-  background: radial-gradient(1200px 800px at 10% -10%, rgba(124,154,255,0.15), transparent 55%),
-              radial-gradient(900px 700px at 100% 10%, rgba(102,234,215,0.12), transparent 60%),
-              var(--hi-bg);
   padding: 10px;
   overflow-x: auto;
 }
@@ -43,12 +39,9 @@
 /* Cards */
 .hi-card-list {
   width: 100%;
-  max-width: 1280px;
   margin: 0 auto;
   background: linear-gradient(180deg, var(--hi-card), var(--hi-card-2));
   border: 1px solid var(--hi-border);
-  box-shadow: var(--hi-shadow);
-  border-radius: var(--hi-radius);
   padding: clamp(16px, 2vw, 28px);
   position: relative;
 }
@@ -87,7 +80,6 @@
   margin-top: 18px;
   background: var(--hi-card);
   border: 1px solid var(--hi-border);
-  border-radius: var(--hi-radius);
   box-shadow: var(--hi-shadow);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;

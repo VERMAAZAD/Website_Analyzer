@@ -2,221 +2,250 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import "./ServerList.css";
-import "../HostingInfoList/HostingInfoList.css"
+import "../HostingInfoList/HostingInfoList.css";
 import { jwtDecode } from "jwt-decode";
 import { handleError, handleSuccess } from "../../../toastutils";
 
 const ServerList = () => {
-  const { email } = useParams();
+  const { email, platform } = useParams();
+  const navigate = useNavigate();
+
   const [servers, setServers] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [editData, setEditData] = useState(null);
-  const [oldServer, setOldServer] = useState(""); // store original server name
+  const [oldServer, setOldServer] = useState("");
+
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleteInput, setDeleteInput] = useState("");
   const [error, setError] = useState("");
 
-  const navigate = useNavigate();
+  // ================= FETCH SERVERS =================
+  const normalize = (v) => v?.trim().toLowerCase();
 
   useEffect(() => {
     const fetchServers = async () => {
-      try {
-        setLoading(true);
-        const token = localStorage.getItem("token");
-        const res = await axios.get(
-          `${import.meta.env.VITE_API_URI}/api/hosting/get-hostingInfo`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+  try {
+    setLoading(true);
+    const token = localStorage.getItem("token");
 
-        // filter by email
-        const filtered = res.data.all.filter(
-          (item) => item.email?.toLowerCase() === email.toLowerCase()
-        );
+    const res = await axios.get(
+      `${import.meta.env.VITE_API_URI}/api/hosting/get-hostingInfo`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-        // ✅ group servers with domain counts
-        const serverMap = {};
-        filtered.forEach((item) => {
-          if (item.server) {
-            if (!serverMap[item.server]) {
-              serverMap[item.server] = {
-                count: 0,
-                expiry: item.ServerExpiryDate || null,
-                _id: item._id,
-              };
-            }
-            if (
-              item.domain &&
-              item.domain.trim() !== "" &&
-              item.domain !== "-"
-            ) {
-              serverMap[item.server].count += 1;
-            }
-          }
-        });
+    const serversData = res.data.servers || [];
+    const domainsData = res.data.all || [];
 
-        const serverList = Object.entries(serverMap).map(([server, data]) => ({
-          server,
-          domainCount: data.count,
-          ServerExpiryDate: data.expiry,
-          _id: data._id,
-        }));
+    // filter servers by email + platform
+    const filteredServers = serversData
+    .filter(
+      s =>
+        normalize(s.email) === normalize(email) &&
+        normalize(s.platform) === normalize(platform)
+    )
+    .map(s => ({
+      ...s,
+      domainCount: s.domainCount || 0, // use pre-calculated
+    }));
 
-        setServers(serverList);
-      } catch (error) {
-        console.error("Error fetching servers:", error);
-      } finally {
-        setLoading(false);
+    const serverMap = {};
+
+    filteredServers.forEach(server => {
+      const key = server.server;
+
+      serverMap[key] = {
+        server: server.server,
+        platform: server.platform,
+        ServerExpiryDate: server.ServerExpiryDate,
+        domainCount: 0,
+      };
+    });
+
+    // count domains per server
+    domainsData.forEach(d => {
+      if (
+        normalize(d.email) === normalize(email) &&
+        normalize(d.platform) === normalize(platform) &&
+        d.server &&
+        serverMap[d.server] &&
+        d.domain &&
+        d.domain !== "-"
+      ) {
+        serverMap[d.server].domainCount += 1;
       }
-    };
+    });
+
+    setServers(Object.values(serverMap));
+  } catch (err) {
+    console.error(err);
+    handleError("Failed to load servers");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
     fetchServers();
-  }, [email]);
+  }, [email, platform]);
 
+  // ================= NAVIGATE =================
+  const handleServerClick = (server, platform) => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const { role } = jwtDecode(token);
+
+    navigate(
+    role === "admin"
+      ? `/admin/hosting/domains/${email}/${platform}/${server}`
+      : `/hosting/domains/${email}/${platform}/${server}`
+   );
+  };
+
+  // ================= UPDATE SERVER =================
   const handleEditSave = async () => {
     try {
       const token = localStorage.getItem("token");
+
       await axios.put(
         `${import.meta.env.VITE_API_URI}/api/hosting/update-server-everywhere`,
         {
           email,
-          oldServer, // original name
-          newServer: editData.server, // updated value
+          platform: editData.platform, 
+          oldServer,
+          newServer: editData.server,
           ServerExpiryDate: editData.ServerExpiryDate,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
+      handleSuccess("Server updated");
       setEditData(null);
       setOldServer("");
       window.location.reload();
     } catch (err) {
-      console.error("Update failed", err);
+      handleError("Update failed");
     }
   };
 
-  const handleServerClick = (server) => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    const { role } = jwtDecode(token);
-    if (role === "admin") {
-      navigate(
-        `/admin/hosting/domains/${encodeURIComponent(email)}/${encodeURIComponent(server)}`
-      );
-    } else {
-      navigate(
-        `/hosting/domains/${encodeURIComponent(email)}/${encodeURIComponent(server)}`
-      );
-    }
-  };
-
-   const confirmDelete = async () => {
-    if (!deleteConfirm) return;
+  // ================= DELETE SERVER =================
+  const confirmDelete = async () => {
     if (deleteInput.trim() !== deleteConfirm.server) {
-      setError("❌ Server name does not match. Try again.");
+      setError("❌ Server name does not match");
       return;
     }
-    
-   try {
+
+    try {
       const token = localStorage.getItem("token");
+
       await axios.delete(
-        `${import.meta.env.VITE_API_URI}/api/hosting/delete-server/${deleteConfirm._id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        `${import.meta.env.VITE_API_URI}/api/hosting/delete-server`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          data: {
+            email,
+            server: deleteConfirm.server,
+            platform: deleteConfirm.platform,
+          },
+        }
       );
 
-      setServers((prev) => prev.filter((srv) => srv._id !== deleteConfirm._id));
-      handleSuccess("✅ Server deleted successfully");
+      setServers((prev) =>
+        prev.filter((s) => s.server !== deleteConfirm.server)
+      );
+
+      handleSuccess("Server deleted");
       setDeleteConfirm(null);
       setDeleteInput("");
       setError("");
     } catch (err) {
-      handleError("❌ Failed to delete server");
+      handleError("Delete failed");
     }
   };
 
+  // ================= UI =================
   return (
-    <div>
-      <div className="hosting-domains-page">
-        <h2>
-          Servers for <span>{email || "-"}</span>
-        </h2>
+    <div className="hosting-domains-page">
+      <h2>
+        Servers for <span>{email}</span>
+      </h2>
+       {loading ? (
+        <div className="spinner-container">
+          <div className="spinner"></div>
+          <p>Loading servers...</p>
+        </div>
+      ) : (
+      <div className="hi-table-wrap">
+        <table className="hi-table">
+          <thead>
+            <tr>
+              <th>Server</th>
+              <th>Domain Count</th>
+              <th>Server Expiry Date</th>
+              <th>Show Domains</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {servers.map((srv) => (
+              <tr key={srv.server}>
+                <td>{srv.server}</td>
+                <td>{srv.domainCount}</td>
+                <td>
+                  {srv.ServerExpiryDate
+                    ? new Date(srv.ServerExpiryDate).toLocaleDateString()
+                    : "N/A"}
+                </td>
+                <td>
+                  <button
+                    className="hi-btn-list"
+                    onClick={() => handleServerClick(srv.server, srv.platform)}
+                  >
+                    View Domains
+                  </button>
+                </td>
+                <td>
+                  <button
+                    className="hi-btn-edit"
+                    onClick={() => {
+                      setEditData(srv);
+                      setOldServer(srv.server);
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="hi-btn-delete"
+                    onClick={() => setDeleteConfirm(srv)}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
 
-          <div className="hi-table-wrap">
-  <table className="hi-table">
-    <thead>
-      <tr>
-        <th>Server</th>
-        <th>Domain Count</th>
-        <th>Server Expiry Date</th>
-        <th>Show Domain</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {servers.map((srv) => (
-        <tr key={srv._id}>
-          <td>{srv.server}</td>
-          <td>{srv.domainCount || 0}</td>
-          <td>
-            {srv.ServerExpiryDate
-              ? new Date(srv.ServerExpiryDate).toLocaleDateString()
-              : "N/A"}
-          </td>
-          <td>
-            <button
-              className="hi-btn-list"
-              onClick={() => handleServerClick(srv.server)}
-            >
-              View Domains
-            </button>
-            
-          </td>
-          <td>
-                <button
-              className="hi-btn-edit"
-              onClick={() => {
-                setEditData(srv);
-                setOldServer(srv.server); // keep old server name
-              }}
-            >
-              Edit
-            </button>
-            <button
-              className="hi-btn-delete"
-              onClick={() => setDeleteConfirm(srv)}
-            >
-              Delete
-            </button>
-          </td>
-        </tr>
-      ))}
-      {servers.length === 0 && (
-        <tr>
-          <td colSpan="5" style={{ textAlign: "center" }}>
-            No servers found for this email.
-          </td>
-        </tr>
-      )}
-    </tbody>
-  </table>
-</div>
-
+            {!loading && servers.length === 0 && (
+              <tr>
+                <td colSpan="5" style={{ textAlign: "center" }}>
+                  No servers found
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
-
-
+       )}
+      {/* EDIT POPUP */}
       {editData && (
         <div className="popup">
           <div className="popup-content">
             <h3>Edit Server</h3>
-            <label>Server:</label>
             <input
-              type="text"
               value={editData.server}
               onChange={(e) =>
                 setEditData({ ...editData, server: e.target.value })
               }
             />
-            <label>Expiry Date:</label>
             <input
               type="date"
               value={
@@ -233,58 +262,37 @@ const ServerList = () => {
                 })
               }
             />
-            <div className="btns">
-              <button onClick={handleEditSave}>Save</button>
-              <button
-                onClick={() => {
-                  setEditData(null);
-                  setOldServer("");
-                }}
-              >
-                Cancel
-              </button>
-            </div>
+            <button onClick={handleEditSave}>Save</button>
+            <button onClick={() => setEditData(null)}>Cancel</button>
           </div>
         </div>
       )}
 
-       {deleteConfirm && (
+      {/* DELETE POPUP */}
+      {deleteConfirm && (
         <div className="hi-edit-popup">
           <div className="hi-edit-card">
             <h3>Confirm Delete</h3>
-            <p>
-              To delete <b>{deleteConfirm.server}</b>, please type the server
-              name below:
-            </p>
+            <p>Type <b>{deleteConfirm.server}</b></p>
             <input
-              type="text"
-              placeholder="Type server name..."
               value={deleteInput}
               onChange={(e) => setDeleteInput(e.target.value)}
             />
             {error && <p className="error-text">{error}</p>}
-            <div className="hi-edit-actions">
-              <button
-                className="hi-btn-delete"
-                onClick={confirmDelete}
-              >
-                Confirm Delete
-              </button>
-              <button
-                className="hi-btn-cancel"
-                onClick={() => {
-                  setDeleteConfirm(null);
-                  setDeleteInput("");
-                  setError("");
-                }}
-              >
-                Cancel
-              </button>
-            </div>
+            <button className="hi-btn-delete" onClick={confirmDelete}>
+              Delete
+            </button>
+            <button
+              className="hi-btn-cancel"
+              onClick={() => setDeleteConfirm(null)}
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
     </div>
   );
 };
+
 export default ServerList;

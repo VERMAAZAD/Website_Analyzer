@@ -3,26 +3,27 @@
   // Add Hosting Info
 exports.addHostingInfo = async (req, res) => {
   try {
-    const { email, server } = req.body;
+    const { email, server, platform } = req.body;
 
-    if (!email || !server) {
-      return res.status(400).json({ success: false, message: "Email and server are required" });
+    if (!email || !server || !platform) {
+      return res.status(400).json({ success: false, message: "Email, server and platform are required" });
     }
 
     // 🧠 Determine ownership based on role
     let ownerId;
-    if (req.user.role === "admin") {
-      ownerId = null; // Admin can add for anyone (optional: use req.body.user if provided)
+    if (req.user.role === "admin" && req.body.user) {
+      ownerId = req.body.user;
     } else if (req.user.role === "sub-user") {
       ownerId = req.user.parentUser; // Belongs to parent user
     } else {
-      ownerId = req.user._id; // Belongs to user
+      ownerId = req.user._id; 
     }
 
     // 🔍 Check for existing entry under this owner (unless admin)
     const query = {
       email: email.trim().toLowerCase(),
       server: server.trim().toLowerCase(),
+      platform: platform.trim().toLowerCase(),
     };
     if (ownerId) query.user = ownerId;
 
@@ -61,103 +62,132 @@ exports.addHostingInfo = async (req, res) => {
   const ScrapedGameSite = require("../Models/ScrapedGameSite");
   const ScrapedSite = require("../Models/ScrapedSite");
 
- exports.getHostingList = async (req, res) => {
+exports.getHostingList = async (req, res) => {
   try {
-    // 🧠 Determine ownership scope
+    // ================= 1️⃣ Ownership Filter =================
     let filter = {};
-
     if (req.user.role === "admin") {
-      filter = {}; // Admin sees everything
+      filter = {};
     } else if (req.user.role === "sub-user") {
-      filter = { user: req.user.parentUser }; // Sub-user sees parent’s data
+      filter = { user: req.user.parentUser };
     } else {
-      filter = { user: req.user._id }; // Normal user sees own data
+      filter = { user: req.user._id };
     }
 
-    // 1️⃣ Get standalone HostingInfo (main records)
-    const standalone = await HostingInfo.find(filter).sort({ createdAt: -1 });
+    // ================= 2️⃣ Fetch HostingInfo (Servers) =================
+    const hostingInfos = await HostingInfo.find(filter).lean();
 
-    // 2️⃣ Collect embedded hostingInfo from scraped models
-    const sources = [
-      await ScrapedDatingSite.find(filter, { domain: 1, hostingInfo: 1 }),
-      await ScrapedGameSite.find(filter, { domain: 1, hostingInfo: 1 }),
-      await ScrapedSite.find(filter, { domain: 1, hostingInfo: 1 }),
-    ];
+    // ================= 3️⃣ Fetch Scraped Domain Data =================
+    const [dating, games, sites] = await Promise.all([
+      ScrapedDatingSite.find(filter, { domain: 1, hostingInfo: 1 }).lean(),
+      ScrapedGameSite.find(filter, { domain: 1, hostingInfo: 1 }).lean(),
+      ScrapedSite.find(filter, { domain: 1, hostingInfo: 1 }).lean(),
+    ]);
 
-    // 3️⃣ Flatten and clean embedded hosting info
-    const embeddedData = sources
-      .flat()
-      .filter(site => site.hostingInfo && Object.keys(site.hostingInfo).length > 0)
-      .map(site => ({
-        _id: site._id,
-        domain: site.domain,
-        ...site.hostingInfo,
+    // Flatten scraped hostingInfo
+    const scrapedDomains = [...dating, ...games, ...sites]
+      .filter(d => d.hostingInfo && d.domain)
+      .map(d => ({
+        domain: d.domain.trim(),
+        platform: d.hostingInfo.platform?.trim(),
+        email: d.hostingInfo.email?.trim(),
+        server: d.hostingInfo.server?.trim() || null,
       }));
 
-    // 4️⃣ Combine standalone + embedded
+    // ================= 4️⃣ Combine HostingInfo + Scraped Domains =================
     const allRecords = [
-      ...standalone.map(info => ({
-        _id: info._id,
-        domain: info.domain,
-        platform: info.platform,
-        email: info.email,
-        server: info.server,
-        ServerExpiryDate: info.ServerExpiryDate,
+      ...hostingInfos.map(h => ({
+        domain: h.domain?.trim(),
+        platform: h.platform?.trim(),
+        email: h.email?.trim(),
+        server: h.server?.trim() || null,
       })),
-      ...embeddedData,
-    ].filter(item => item.email && item.email.trim() !== "" && item.email !== "-");
+      ...scrapedDomains,
+    ].filter(r => r.domain && r.platform && r.email && r.email !== "-");
 
-    // 5️⃣ Build aggregated list
-    const list = standalone.map(info => {
-      const relatedRecords = allRecords.filter(
-        r =>
-          r.email.toLowerCase() === info.email.toLowerCase() &&
-          (r.platform || "").toLowerCase() === (info.platform || "").toLowerCase()
-      );
+    // ================= 5️⃣ Aggregate by platform + email =================
+    const map = new Map();
 
-      const serverCount = new Set(relatedRecords.map(r => r.server).filter(Boolean)).size;
-      const domainCount = relatedRecords.filter(
-        r => r.domain && r.domain.trim() !== "" && r.domain !== "-"
-      ).length;
+    // Add servers (HostingInfo ONLY)
+    hostingInfos.forEach(h => {
+      if (!h.platform || !h.email) return;
 
-      return {
-        email: info.email,
-        platform: info.platform,
-        serverCount,
-        domainCount,
-      };
+      const key = `${h.platform.toLowerCase()}|${h.email.toLowerCase()}`;
+
+      if (!map.has(key)) {
+        map.set(key, {
+          platform: h.platform,
+          email: h.email,
+          servers: new Set(),
+          domains: new Set(),
+        });
+      }
+
+      if (h.server) {
+        map.get(key).servers.add(h.server.trim());
+      }
     });
 
-    // 6️⃣ Extract servers for quick lookup
-    const hostingServers = standalone
-      .filter(h => h.server && h.server.trim() !== "")
-      .map(h => ({
-        _id: h._id,
-        email: h.email,
-        server: h.server,
-        ServerExpiryDate: h.ServerExpiryDate,
-      }));
+    // Add domains (All records)
+    allRecords.forEach(r => {
+      const key = `${r.platform.toLowerCase()}|${r.email.toLowerCase()}`;
+      if (!map.has(key)) return;
+      map.get(key).domains.add(r.domain);
+    });
 
-    // ✅ Final response
+    // ================= 6️⃣ Final summary list =================
+    const list = Array.from(map.values()).map(item => ({
+      platform: item.platform,
+      email: item.email,
+      serverCount: item.servers.size,
+      domainCount: item.domains.size,
+    }));
+
+    // ================= 7️⃣ Server-level list (for Show Servers page) =================
+    const servers = hostingInfos
+      .filter(h => h.server && h.server.trim() !== "")
+      .map(h => {
+          // count domains for this server
+          const domainCount = allRecords.filter(
+            r =>
+              r.platform.toLowerCase() === h.platform.toLowerCase() &&
+              r.email.toLowerCase() === h.email.toLowerCase() &&
+              r.server === h.server &&
+              r.domain
+          ).length;
+
+          return {
+            _id: h._id,
+            platform: h.platform,
+            email: h.email,
+            server: h.server,
+            ServerExpiryDate: h.ServerExpiryDate,
+            domainCount,
+          };
+        });
+
+    // ================= 8️⃣ Response =================
     res.json({
       success: true,
-      list,
-      all: allRecords,
-      servers: hostingServers,
+      list,     // platform + email summary
+      servers,  // server-level (Show Servers)
+      all: allRecords, // domain-level (Show Domains)
     });
 
   } catch (error) {
     console.error("Error in getHostingList:", error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Failed to load hosting list",
+    });
   }
 };
 
 
 
-// Update Hosting Info everywhere (HostingInfo + Scraped Models)
 exports.updateHostingInfoEverywhere = async (req, res) => {
   try {
-    const { email, platform, updates } = req.body;
+    const { email, platform, server, updates } = req.body;
 
     if (!email || !platform) {
       return res.status(400).json({
@@ -166,58 +196,39 @@ exports.updateHostingInfoEverywhere = async (req, res) => {
       });
     }
 
-    // 🧠 Determine scope filter based on role
-    let filter = {};
-    if (req.user.role === "admin") {
-      // Admin → full access
-      filter = { email, platform };
-    } else if (req.user.role === "sub-user") {
-      // Sub-user → access to parent’s data
-      filter = { email, platform, user: req.user.parentUser };
-    } else {
-      // Regular user → only their own data
-      filter = { email, platform, user: req.user._id };
-    }
+    // Build filter
+    let filter = { email, platform };
+    if (server) filter.server = server;
 
-    // 🧩 Update HostingInfo (main collection)
+    if (req.user.role === "user") filter.user = req.user._id;
+    else if (req.user.role === "sub-user") filter.user = req.user.parentUser;
+    // admin → no extra filter
+
+    // Update HostingInfo
     const hostingUpdateResult = await HostingInfo.updateMany(filter, { $set: updates });
 
-    // 🧱 Prepare updates for embedded hostingInfo
+    // Prepare updates for embedded hostingInfo in scraped models
     const updateObj = {};
     for (let key in updates) {
-      if (updates[key] !== undefined) {
-        updateObj[`hostingInfo.${key}`] = updates[key];
-      }
+      if (updates[key] !== undefined) updateObj[`hostingInfo.${key}`] = updates[key];
     }
 
-    // 📂 Build filter for embedded hostingInfo updates
-    let filterScraped = {
-      "hostingInfo.email": email,
-      "hostingInfo.platform": platform,
-    };
+    // Build filter for embedded models
+    let filterScraped = { "hostingInfo.email": email, "hostingInfo.platform": platform };
+    if (server) filterScraped["hostingInfo.server"] = server;
 
-    // Apply ownership scope for embedded models
-    if (req.user.role === "admin") {
-      // No extra filter needed
-    } else if (req.user.role === "sub-user") {
-      filterScraped.user = req.user.parentUser;
-    } else {
-      filterScraped.user = req.user._id;
-    }
+    if (req.user.role === "user") filterScraped.user = req.user._id;
+    else if (req.user.role === "sub-user") filterScraped.user = req.user.parentUser;
+    // admin → no extra filter
 
-    // 🧾 Update all scraped models that embed hostingInfo
-    const results = await Promise.all([
+    // Update embedded models
+    await Promise.all([
       ScrapedDatingSite.updateMany(filterScraped, { $set: updateObj }),
       ScrapedGameSite.updateMany(filterScraped, { $set: updateObj }),
       ScrapedSite.updateMany(filterScraped, { $set: updateObj }),
     ]);
 
-    // ✅ If nothing matched in HostingInfo or scraped models, tell the user
-    const totalModified =
-      hostingUpdateResult.modifiedCount +
-      results.reduce((sum, r) => sum + (r.modifiedCount || 0), 0);
-
-    if (totalModified === 0) {
+    if (hostingUpdateResult.modifiedCount === 0) {
       return res.status(404).json({
         success: false,
         message: "No matching hosting records found or insufficient permission",
@@ -232,10 +243,11 @@ exports.updateHostingInfoEverywhere = async (req, res) => {
 };
 
 
+
 // Update Server name everywhere (by email)
 exports.updateServerEverywhere = async (req, res) => {
   try {
-    const { email, oldServer, newServer, ServerExpiryDate } = req.body;
+    const { email, platform, oldServer, newServer, ServerExpiryDate } = req.body;
 
     if (!email || !oldServer || !newServer) {
       return res.status(400).json({
@@ -245,7 +257,7 @@ exports.updateServerEverywhere = async (req, res) => {
     }
 
     // 🧠 Determine ownership filter
-    let filter = { email, server: oldServer };
+    let filter = { email, platform, server: oldServer };
     if (req.user.role === "user") {
       filter.user = req.user._id;
     } else if (req.user.role === "sub-user") {
@@ -262,7 +274,7 @@ exports.updateServerEverywhere = async (req, res) => {
     const updateObj = { "hostingInfo.server": newServer };
     if (ServerExpiryDate) updateObj["hostingInfo.ServerExpiryDate"] = ServerExpiryDate;
 
-    let filterScraped = { "hostingInfo.email": email, "hostingInfo.server": oldServer };
+    let filterScraped = { "hostingInfo.email": email, "hostingInfo.platform": platform, "hostingInfo.server": oldServer };
     if (req.user.role === "user") filterScraped.user = req.user._id;
     else if (req.user.role === "sub-user") filterScraped.user = req.user.parentUser;
 
@@ -286,8 +298,6 @@ exports.updateServerEverywhere = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
-
 
 // Update server + expiry date by id
 exports.updateServerInfo = async (req, res) => {
@@ -341,19 +351,31 @@ exports.updateServerInfo = async (req, res) => {
   }
 };
 
-
 exports.catheServerData = async (req, res) => {
   try {
-    const { server } = req.params;
+    const { server, platform, email } = req.params;
 
-    // 🔹 Build filter based on role
-    let filter = { server };
+    if (!server || !platform || !email) {
+      return res.status(400).json({
+        success: false,
+        message: "server, platform and email are required",
+      });
+    }
+
+    // 🔹 Base filter (CRITICAL FIX)
+    let filter = {
+      server,
+      platform,
+      email,
+    };
+
+    // 🔹 Role-based access
     if (req.user.role === "user") {
       filter.user = req.user._id;
     } else if (req.user.role === "sub-user") {
       filter.user = req.user.parentUser;
     }
-    // admin → no additional filter needed
+    // admin → no user filter
 
     const hostingInfo = await HostingInfo.findOne(filter);
 
@@ -372,11 +394,14 @@ exports.catheServerData = async (req, res) => {
       ServerExpiryDate: hostingInfo.ServerExpiryDate,
     });
   } catch (err) {
-    console.error("Error in catheServerData:", err);
-    res.status(500).json({ success: false, message: "Server error", error: err.message });
+    console.error("❌ Error in catheServerData:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: err.message,
+    });
   }
 };
-
 
 
 
@@ -482,37 +507,51 @@ exports.getExpiringServers = async (req, res) => {
 
 
 // DELETE a server by ID
- exports.deleteServer = async (req, res) => {
+exports.deleteServer = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { email, server, platform } = req.body;
 
-    if (!id) {
-      return res.status(400).json({ success: false, message: "Server ID is required" });
+    if (!email || !server) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and server name are required",
+      });
     }
 
-    // 🔹 Role-based query
-    let query = { _id: id };
+    // ================= ROLE BASED QUERY =================
+    let userQuery = {};
     if (req.user.role === "user") {
-      query.user = req.user._id;
+      userQuery.user = req.user._id;
     } else if (req.user.role === "sub-user") {
-      query.user = req.user.parentUser; // sub-user can delete parent's servers
+      userQuery.user = req.user.parentUser;
     }
-    // admin → can delete any server
+    // admin → unrestricted
 
-    // Find server first
-    const serverDoc = await HostingInfo.findOne(query);
-    if (!serverDoc) {
-      return res.status(404).json({ success: false, message: "Server not found or not authorized" });
+    // ================= VERIFY SERVER EXISTS =================
+    const exists = await HostingInfo.findOne({
+      email,
+      server,
+      platform,
+      ...userQuery,
+    });
+
+    if (!exists) {
+      return res.status(404).json({
+        success: false,
+        message: "Server not found or not authorized",
+      });
     }
 
-    const serverName = serverDoc.server;
-    const serverEMail = serverDoc.email;
+    // ================= DELETE ALL HOSTINGINFO RECORDS =================
+    const deleteResult = await HostingInfo.deleteMany({
+      email,
+      server,
+      platform,
+      ...userQuery,
+    });
 
-    // Delete from HostingInfo
-    await HostingInfo.deleteOne({ _id: serverDoc._id });
-
-    // Remove only hostingInfo.platform, hostingInfo.server, hostingInfo.email in scraped sites
-    const update = {
+    // ================= CLEAR HOSTING INFO FROM SCRAPED SITES =================
+    const unsetHostingInfo = {
       $unset: {
         "hostingInfo.platform": "",
         "hostingInfo.server": "",
@@ -520,24 +559,90 @@ exports.getExpiringServers = async (req, res) => {
       },
     };
 
-    const updatedResults = await Promise.all([
-      ScrapedSite.updateMany({ "hostingInfo.server": serverName, "hostingInfo.email": serverEMail }, update),
-      ScrapedGameSite.updateMany({ "hostingInfo.server": serverName, "hostingInfo.email": serverEMail }, update),
-      ScrapedDatingSite.updateMany({ "hostingInfo.server": serverName, "hostingInfo.email": serverEMail }, update),
+    const [sites, gameSites, datingSites] = await Promise.all([
+      ScrapedSite.updateMany(
+        { "hostingInfo.server": server, "hostingInfo.email": email },
+        unsetHostingInfo
+      ),
+      ScrapedGameSite.updateMany(
+        { "hostingInfo.server": server, "hostingInfo.email": email },
+        unsetHostingInfo
+      ),
+      ScrapedDatingSite.updateMany(
+        { "hostingInfo.server": server, "hostingInfo.email": email },
+        unsetHostingInfo
+      ),
     ]);
 
     res.json({
       success: true,
-      message: `Server '${serverName}' deleted from HostingInfo and hostingInfo fields cleared from related sites`,
-      updates: {
-        scrapedSitesModified: updatedResults[0].modifiedCount,
-        scrapedGameSitesModified: updatedResults[1].modifiedCount,
-        scrapedDatingSitesModified: updatedResults[2].modifiedCount,
+      message: `Server '${server}' deleted successfully`,
+      stats: {
+        hostingInfoDeleted: deleteResult.deletedCount,
+        scrapedSitesUpdated: sites.modifiedCount,
+        scrapedGameSitesUpdated: gameSites.modifiedCount,
+        scrapedDatingSitesUpdated: datingSites.modifiedCount,
       },
     });
   } catch (err) {
     console.error("❌ Error deleting server:", err);
-    res.status(500).json({ success: false, message: "Failed to delete server", error: err.message });
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete server",
+      error: err.message,
+    });
   }
 };
+
+
+exports.getServersByEmailPlatform = async (req, res) => {
+  try {
+    const { email, platform } = req.params;
+
+    const normalize = v => v.trim().toLowerCase();
+
+    let filter = {
+      email: normalize(email),
+      platform: normalize(platform),
+    };
+
+    if (req.user.role === "user") {
+      filter.user = req.user._id;
+    } else if (req.user.role === "sub-user") {
+      filter.user = req.user.parentUser;
+    }
+
+    // 🔥 SINGLE SOURCE → HostingInfo ONLY
+    const records = await HostingInfo.find(filter);
+
+    const serverMap = new Map();
+
+    records.forEach(r => {
+      if (!r.server) return;
+
+      if (!serverMap.has(r.server)) {
+        serverMap.set(r.server, {
+          server: r.server,
+          platform: r.platform,
+          domainCount: 0,
+          ServerExpiryDate: r.ServerExpiryDate || null,
+        });
+      }
+
+      if (r.domain && r.domain !== "-") {
+        serverMap.get(r.server).domainCount += 1;
+      }
+    });
+
+    res.json({
+      success: true,
+      servers: Array.from(serverMap.values()),
+    });
+
+  } catch (err) {
+    console.error("getServersByEmailPlatform error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 

@@ -43,7 +43,6 @@
 
 /* Cards */
 .hi-card {
-  max-width: 1100px;
   margin: 0 auto;
   background: linear-gradient(180deg, var(--hi-card), var(--hi-card-2));
   border: 1px solid var(--hi-border);

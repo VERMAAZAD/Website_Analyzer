@@ -4,9 +4,11 @@ import axios from "axios";
 import "./HostingDomains.css";
 
 export default function HostingDomains() {
-  const {server } = useParams();
+  const {email, platform, server } = useParams();
   const [domains, setDomains] = useState([]);
   const [loading, setLoading] = useState(true);
+
+   const normalize = (v) => v?.trim().toLowerCase();
 
   useEffect(() => {
     const fetchDomains = async () => {
@@ -18,9 +20,17 @@ export default function HostingDomains() {
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
-        const filtered = res.data.all.filter(
-          (item) => item.server === server
-        );
+     
+
+      const filtered = res.data.all.filter(
+        (item) =>
+          normalize(item.server) === normalize(server) &&
+          normalize(item.platform) === normalize(platform) &&
+          normalize(item.email) === normalize(email) &&
+          item.domain &&
+          item.domain.trim() !== "" &&
+          item.domain !== "-"
+      );
         setDomains(filtered);
       } catch (error) {
         console.error("Error fetching domains:", error);
@@ -30,7 +40,7 @@ export default function HostingDomains() {
     };
 
     fetchDomains();
-  }, [ server]);
+  }, [email, platform, server]);
 
   return (
     

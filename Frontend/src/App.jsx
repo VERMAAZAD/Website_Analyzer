@@ -66,8 +66,8 @@ function App() {
         <Route path='/not-index/:type' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><BingCheckerUser /></ProtectedRoute>}/>
         <Route path='/hosting-form' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><HostingInfoFormUser /></ProtectedRoute>}/>
         <Route path='/hosting-data' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><HostingInfoListUser /></ProtectedRoute>}/>
-        <Route path='/hosting/domains/:email/:server' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><HostingDomainsUser /></ProtectedRoute>}/>
-        <Route path='/servers/:email' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><ServerListUser /></ProtectedRoute>}/>
+        <Route path='/hosting/domains/:email/:platform/:server' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><HostingDomainsUser /></ProtectedRoute>}/>
+        <Route path='/servers/:email/:platform' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><ServerListUser /></ProtectedRoute>}/>
         <Route path='/subusers' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><SubUserManagement /></ProtectedRoute>}/>
 
 
@@ -85,8 +85,8 @@ function App() {
       <Route path='/admin/not-index/:type' element={<ProtectedRoute allowedRoles={['admin']}><BingCheckerAdmin /></ProtectedRoute>}/>
       <Route path='/admin/hosting-form' element={<ProtectedRoute allowedRoles={['admin']}><HostingInfoFormAdmin /></ProtectedRoute>}/>
       <Route path='/admin/hosting-data' element={<ProtectedRoute allowedRoles={['admin']}><HostingInfoListAdmin /></ProtectedRoute>}/>
-      <Route path='/admin/hosting/domains/:email/:server' element={<ProtectedRoute allowedRoles={['admin']}><HostingDomainsAdmin /></ProtectedRoute>}/>
-      <Route path='/admin/servers/:email' element={<ProtectedRoute allowedRoles={['admin']}><ServerListAdmin /></ProtectedRoute>}/>
+      <Route path='/admin/hosting/domains/:email/:platform/:server' element={<ProtectedRoute allowedRoles={['admin']}><HostingDomainsAdmin /></ProtectedRoute>}/>
+      <Route path='/admin/servers/:email/:platform' element={<ProtectedRoute allowedRoles={['admin']}><ServerListAdmin /></ProtectedRoute>}/>
 
       </Routes>
       <ToastContainer
