@@ -646,3 +646,39 @@ exports.getServersByEmailPlatform = async (req, res) => {
 };
 
 
+
+exports.catheDatabyServer = async (req, res) => {
+  try {
+    const { server } = req.params;
+
+    if (!server) {
+      return res.status(400).json({
+        success: false,
+        message: "server is required",
+      });
+    }
+
+    let filter = { server };
+
+    if (req.user.role === "user") {
+      filter.user = req.user._id;
+    } else if (req.user.role === "sub-user") {
+      filter.user = req.user.parentUser;
+    }
+
+    const hostingInfo = await HostingInfo.findOne(filter).sort({ createdAt: -1 });
+
+    if (!hostingInfo) {
+      return res.status(404).json({ success: false });
+    }
+
+    res.json({
+      success: true,
+      platform: hostingInfo.platform,
+      email: hostingInfo.email,
+      server: hostingInfo.server,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+};

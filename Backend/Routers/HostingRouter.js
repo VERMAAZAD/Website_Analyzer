@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const ensureAuthenticated = require("../Middlewares/Auth");
-const { addHostingInfo, getHostingList, updateHostingInfoEverywhere, catheServerData, updateServerInfo, updateServerEverywhere, getExpiringServers, renewServer, deleteServer, getServersByEmailPlatform } = require("../Controllers/HostingController");
+const { addHostingInfo, getHostingList, updateHostingInfoEverywhere, catheServerData, updateServerInfo, updateServerEverywhere, getExpiringServers, renewServer, deleteServer, getServersByEmailPlatform, catheDatabyServer } = require("../Controllers/HostingController");
 
 router.post("/add-hostingInfo", ensureAuthenticated, addHostingInfo);
 router.get("/get-hostingInfo", ensureAuthenticated, getHostingList);
@@ -13,6 +13,7 @@ router.get("/server-expire", ensureAuthenticated, getExpiringServers);
 router.post("/server-renew", ensureAuthenticated, renewServer);
 router.delete("/delete-server", ensureAuthenticated, deleteServer);
 router.get("/servers/:email/:platform", ensureAuthenticated, getServersByEmailPlatform);
+router.get("/by-server/:server", ensureAuthenticated, catheDatabyServer);
 
 
 module.exports = router;

@@ -78,25 +78,26 @@ const HostingInfoEditor = ({ domain }) => {
     });
   };
 
-  const fetchByServer = async (serverName) => {
-  if (!serverName) return;
+ useEffect(() => {
+  if (!server) return;
 
-  try {
-    const res = await axios.get(
-      `${import.meta.env.VITE_API_URI}/api/hosting/by-server/${serverName}`,
-      {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+  const fetch = async () => {
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URI}/api/hosting/by-server/${encodeURIComponent(server)}`,
+        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+      );
+
+      if (res.data.success) {
+        setPlatform(res.data.platform || "");
+        setEmail(res.data.email || "");
       }
-    );
+    } catch {}
+  };
 
-    const data = res.data;
-    // Autofill platform + email
-    if (data.platform) setPlatform(data.platform);
-    if (data.email) setEmail(data.email);
-  } catch (err) {
-    console.log("No auto-fill data found for this server");
-  }
-};
+  fetch();
+}, [server]);
+
 
   const handleSave = async () => {
     const data = {
@@ -175,7 +176,7 @@ const HostingInfoEditor = ({ domain }) => {
             type="text"
             value={server}
             list="server-options"
-            onChange={(e) => {setServer(e.target.value), fetchByServer(e.target.value)}}
+            onChange={(e) => {setServer(e.target.value)}}
             
             placeholder="e.g. Apache, NGINX"
           />

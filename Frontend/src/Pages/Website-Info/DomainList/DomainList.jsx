@@ -7,6 +7,8 @@ import NoteEditor from '../../../components/NoteEditor/NoteEditor';
 import HostingInfoEditor from "../../../components/HostingInfoEditor/HostingInfoEditor";
 import EditDomainName from '../EditDomainName/EditDomainName';
 import { handleError } from '../../../toastutils';
+import { FaServer, FaTrashAlt } from "react-icons/fa";
+import { FaRegMessage } from "react-icons/fa6";
 
 
 const extractBaseDomain = (url) => {
@@ -300,7 +302,7 @@ function DomainList() {
 
                   <div>
                     <button
-                      className="note-btn"
+                      className="note-btn server-btn"
                       onClick={() =>
                         setShowHostingEditorMap((prev) => ({
                           ...prev,
@@ -308,7 +310,7 @@ function DomainList() {
                         }))
                       }
                     >
-                      🖥️
+                       <FaServer />
                     </button>
                     <button
                       className="note-btn"
@@ -318,14 +320,14 @@ function DomainList() {
                       }))}
                       title="Add/Edit Note"
                     >
-                      📝
+                      <FaRegMessage />
                     </button>
                     <button
                       className="domain-delete"
                       onClick={() => handleDeleteDomain(baseDomain)}
                       title="Delete domain"
                     >
-                      ❌
+                      <FaTrashAlt />
                     </button>
                   </div>
                 </div>
