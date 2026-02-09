@@ -37,8 +37,20 @@ const ScrapedSiteSchema = new mongoose.Schema({
     default: "",
     index: true,
   },
+  affiliateCheckRunning: {
+    type: Boolean,
+    default: false
+  },
+  affiliateCheckReason: {
+    type: String,
+    default: null
+  },
+  affiliateCheckStatus: {
+    type: String,
+    enum: ["ok", "warning", "error", "checking"],
+    default: "checking"
+  },
   lastAffiliateCheck: { type: Date },
-  affiliateCheckStatus: { type: String },
   issueDate: { type: Date, default: null },
   note: { type: String, default: '' },
   isIndexedOnBing: { type: Boolean, default: false },

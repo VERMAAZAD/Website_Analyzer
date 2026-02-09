@@ -573,7 +573,10 @@ exports.saveCategoryAffiliate = async (req, res) => {
 
     affiliateLink = affiliateLink.trim();
 
-    let query = { brandCategory: category };
+     const query = {
+      brandCategory: category,
+      user: req.user._id   // ✅ FIX
+    };
 
     const canManageAffiliate =
       req.user.role === "admin" ||
@@ -583,6 +586,8 @@ exports.saveCategoryAffiliate = async (req, res) => {
     if (!canManageAffiliate) {
       return res.status(403).json({ error: "Affiliate access denied" });
     }
+
+   
 
     await ScrapedSite.updateMany(query, {
       $set: {
@@ -622,18 +627,12 @@ exports.getAffiliateMismatch = async (req, res) => {
       statusCode: 200,
       categoryAffiliateLink: { $ne: "" },
       affiliateLink: { $ne: null },
+      user: req.user._id 
     };
 
      if (category) {
       query.brandCategory = category;
     }
-
-     const canManageAffiliate =
-      req.user.role === "admin" ||
-      req.user.role === "user" ||
-      req.user.affiliateAccess === true;
-
-
 
     const sites = await ScrapedSite.find(query)
       .select("domain affiliateLink categoryAffiliateLink brandCategory")
@@ -662,14 +661,8 @@ exports.getAffiliateMismatchCounts = async (req, res) => {
       statusCode: 200,
       categoryAffiliateLink: { $ne: "" },
       affiliateLink: { $ne: null },
+      user: req.user._id 
     };
-
-     const canManageAffiliate =
-      req.user.role === "admin" ||
-      req.user.role === "user" ||
-      req.user.affiliateAccess === true;
-
-   
 
     const sites = await ScrapedSite.find(query)
       .select("brandCategory affiliateLink categoryAffiliateLink")
@@ -702,6 +695,7 @@ exports.getCategoryAffiliate = async (req, res) => {
     let query = {
       brandCategory: category,
       categoryAffiliateLink: { $ne: "" },
+      user: req.user._id
     };
 
      const canManageAffiliate =
@@ -732,6 +726,7 @@ exports.getCategoryAffiliateStatus = async (req, res) => {
   try {
     let query = {
       categoryAffiliateLink: { $exists: true, $ne: "" },
+      user: req.user._id 
     };
 
      const canManageAffiliate =

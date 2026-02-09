@@ -3,80 +3,96 @@ const cheerio = require("cheerio");
 const UserAgent = require("user-agents");
 
 async function deepAffiliateCheck(url) {
-  try {
-    const ua = new UserAgent().toString();
+  const ua = new UserAgent().toString();
 
+  try {
     const response = await axios.get(url, {
-      timeout: 15000,
+      timeout: 25000,
       maxRedirects: 10,
       headers: {
         "User-Agent": ua,
+        "Accept": "text/html,application/xhtml+xml",
         "Accept-Language": "en-US,en;q=0.9"
       },
       validateStatus: () => true
     });
 
-    const finalUrl = response.request.res.responseUrl;
-    const html = response.data || "";
+    const status = response.status;
 
-    // 🔴 Hard Fail Conditions
-    if (!response.status || response.status >= 400) {
-      return { status: "error", reason: "HTTP_ERROR" };
+    // 🔍 Final URL (reliable)
+    const finalUrl =
+      response.request?.res?.responseUrl || url;
+
+    // ❌ HARD FAILS ONLY
+    if (status >= 500) {
+      return {
+        status: "error",
+        reason: "SERVER_ERROR",
+        finalUrl
+      };
     }
 
-    if (!finalUrl) {
-      return { status: "error", reason: "NO_REDIRECT_TARGET" };
+    // ⚠️ TEMP BLOCK / BOT PROTECTION
+    if (status === 403 || status === 429) {
+      return {
+        status: "warning",
+        reason: "TEMP_BLOCKED",
+        finalUrl
+      };
     }
 
-    // 🔎 Tracking Param Check
-    const trackingParams = ["subid", "iclid", "affid", "utm"];
-    const trackingFound = trackingParams.some(p => finalUrl.includes(p));
-
-    if (!trackingFound) {
-      return { status: "error", reason: "TRACKING_LOST" };
+    // ❌ Invalid response
+    if (!status || status >= 400) {
+      return {
+        status: "error",
+        reason: "HTTP_ERROR",
+        finalUrl
+      };
     }
 
-    // 🔎 Page Content Analysis
-    const errorKeywords = [
-      "offer expired",
-      "campaign ended",
-      "tracking disabled",
-      "not available",
-      "404",
-      "page not found"
-    ];
+    // 🔎 Light landing page check (VERY SAFE)
+    const html = typeof response.data === "string" ? response.data : "";
+    if (html.length > 50) {
+      const $ = cheerio.load(html);
+      const text = $("body").text().toLowerCase();
 
-    const lowerHTML = html.toLowerCase();
-    const contentError = errorKeywords.some(k => lowerHTML.includes(k));
+      const fatalKeywords = [
+        "offer expired",
+        "campaign ended",
+        "link expired",
+        "no longer available",
+        "page not found",
+        "404 error"
+      ];
 
-    if (contentError) {
-      return { status: "error", reason: "LANDING_PAGE_ERROR" };
+      if (fatalKeywords.some(k => text.includes(k))) {
+        return {
+          status: "error",
+          reason: "OFFER_EXPIRED",
+          finalUrl
+        };
+      }
     }
 
-    // 🔎 Affiliate Script Detection
-    const $ = cheerio.load(html);
-    const scripts = $("script").toString();
-
-    const affiliateSignals = [
-      "clickbank",
-      "hasoffers",
-      "postback",
-      "tracking",
-      "affiliate"
-    ];
-
-    const trackingScriptFound = affiliateSignals.some(s =>
-      scripts.toLowerCase().includes(s)
-    );
-
+    // ✅ SUCCESS
     return {
-      status: trackingScriptFound ? "ok" : "warning",
-      finalUrl,
-      trackingPreserved: trackingFound
+      status: "ok",
+      finalUrl
     };
 
   } catch (err) {
-    return { status: "error", reason: "NETWORK_ERROR" };
+    // ⏳ TIMEOUT = SLOW, NOT DEAD
+    if (err.code === "ECONNABORTED") {
+      return {
+        status: "warning",
+        reason: "SLOW_RESPONSE"
+      };
+    }
+
+    return {
+      status: "error",
+      reason: "NETWORK_ERROR"
+    };
   }
 }
 

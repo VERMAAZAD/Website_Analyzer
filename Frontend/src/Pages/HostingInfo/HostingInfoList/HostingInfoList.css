@@ -32,7 +32,6 @@
 
 /* Page */
 .hi-page-list {
-  padding: 10px;
   overflow-x: auto;
 }
 
@@ -40,10 +39,17 @@
 .hi-card-list {
   width: 100%;
   margin: 0 auto;
-  background: linear-gradient(180deg, var(--hi-card), var(--hi-card-2));
-  border: 1px solid var(--hi-border);
-  padding: clamp(16px, 2vw, 28px);
+  padding: clamp(16px, 2vw, 2px);
   position: relative;
+}
+.hi-page-list {
+  overflow: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.hi-page-list::-webkit-scrollbar {
+  display: none;
 }
 
 .hi-card-list::after {
@@ -67,12 +73,8 @@
 .hi-title {
   font-size: clamp(20px, 2vw, 28px);
   font-weight: 700;
-  color: var(--hi-text);
   text-align: center;
   margin-bottom: 16px;
-  background: linear-gradient(90deg, var(--hi-accent), var(--hi-accent-2));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
 }
 
 /* ---------- Table/List ---------- */
@@ -83,6 +85,16 @@
   box-shadow: var(--hi-shadow);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+.hi-table-wrap {
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.hi-table-wrap::-webkit-scrollbar {
+  display: none;
 }
 
 .hi-table {
@@ -554,4 +566,14 @@
 .hi-btn-list:active {
   background: #0a3c1e; 
   transform: scale(0.95);
+}
+
+.hide-scrollbar {
+  overflow: auto;
+  scrollbar-width: none;          /* Firefox */
+  -ms-overflow-style: none;       /* IE / Edge */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;                  /* Chrome, Safari */
 }

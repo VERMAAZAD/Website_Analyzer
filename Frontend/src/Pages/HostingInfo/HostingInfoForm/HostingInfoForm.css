@@ -36,33 +36,20 @@
 .hi-page {
   min-height: 100%;
   padding: clamp(16px, 3vw, 32px);
-  background: radial-gradient(1200px 800px at 10% -10%, rgba(124,154,255,0.15), transparent 55%),
-              radial-gradient(900px 700px at 100% 10%, rgba(102,234,215,0.12), transparent 60%),
-              var(--hi-bg);
 }
 
 /* Cards */
 .hi-card {
   margin: 0 auto;
-  background: linear-gradient(180deg, var(--hi-card), var(--hi-card-2));
   border: 1px solid var(--hi-border);
   box-shadow: var(--hi-shadow);
-  border-radius: var(--hi-radius);
+  border-radius: 5px;
   padding: clamp(16px, 2.6vw, 28px);
   position: relative;
   overflow: hidden;
   isolation: isolate;
 }
 
-.hi-card::after {
-  content: "";
-  position: absolute;
-  inset: -2px;
-  background: conic-gradient(from 120deg at 10% 10%, transparent 0 20%, rgba(124,154,255,0.2) 20% 30%, transparent 30% 55%, rgba(102,234,215,0.2) 55% 65%, transparent 65% 100%);
-  filter: blur(24px);
-  opacity: 0.25;
-  z-index: -1;
-}
 
 /* Headings */
 .hi-title {
@@ -71,20 +58,10 @@
   gap: 10px;
   font-weight: 700;
   letter-spacing: 0.2px;
-  color: var(--hi-text);
   margin-bottom: 18px;
   font-size: clamp(18px, 2.2vw, 28px);
 }
 
-.hi-title::before {
-  content: "";
-  width: 10px;
-  height: 28px;
-  border-radius: 999px;
-  background: linear-gradient(180deg, var(--hi-accent), var(--hi-accent-2));
-  box-shadow: 0 6px 18px rgba(124,154,255,0.45);
-  transform: translateY(1px);
-}
 /* ---------- Form ----------- */
 .hi-form {
   display: grid;

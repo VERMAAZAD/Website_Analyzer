@@ -1,39 +1,38 @@
-const deepAffiliateCheck = require("../Utils/deepAffiliateCheck");
-const ScrapedSite = require('../Models/ScrapedSite');
+// Controllers/AffiliatelinkController.js
+const ScrapedSite = require("../Models/ScrapedSite");
 
 exports.categoryAffiliate = async (req, res) => {
   try {
     const affiliates = await ScrapedSite.aggregate([
       {
         $match: {
-          categoryAffiliateLink: { $ne: "", $exists: true }
+          categoryAffiliateLink: { $exists: true, $ne: "" }
         }
       },
       {
         $group: {
           _id: "$brandCategory",
-          affiliateLink: { $first: "$categoryAffiliateLink" }
+          affiliateLink: { $first: "$categoryAffiliateLink" },
+          affiliateStatus: { $first: "$affiliateCheckStatus" },
+          affiliateCheckReason: { $first: "$affiliateCheckReason" },
+          checking: { $max: "$affiliateCheckRunning" },
+          lastAffiliateCheck: { $max: "$lastAffiliateCheck" }
         }
       }
     ]);
 
-    const results = [];
-
-    for (const item of affiliates) {
-      const check = await deepAffiliateCheck(item.affiliateLink);
-
-      results.push({
+    return res.status(200).json(
+      affiliates.map(item => ({
         category: item._id,
         affiliateLink: item.affiliateLink,
-        affiliateStatus: check.status,
-        errorReason: check.reason || null,
-        finalUrl: check.finalUrl || null
-      });
-    }
-
-    res.json(results);
+        affiliateStatus: item.affiliateStatus,
+        affiliateReason: item.affiliateCheckReason,
+        checking: item.checking,
+        lastAffiliateCheck: item.lastAffiliateCheck
+      }))
+    );
   } catch (err) {
-    console.error("Affiliate deep check error:", err);
-    res.status(500).json({ error: "Affiliate validation failed" });
+    console.error(err);
+    return res.status(500).json({ error: "Failed to load affiliates" });
   }
 };
