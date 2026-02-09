@@ -1,10 +1,10 @@
 import Layout from '../../../components/Layouts/Layout';
-import SharedAffiliateErrors from './SharedAffiliateErrors';
+import ErrorAffiliate from './ErrorAffiliate';
 
 function ErrorAffiliatesUser() {
   return (
     <Layout>
-      <SharedAffiliateErrors />
+      <ErrorAffiliate />
     </Layout>
   );
 }

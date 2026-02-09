@@ -1,77 +1,212 @@
+/* ---------- Page ---------- */
 .subuser-container {
-  padding: 20px;
-  background: #f7f9fc;
-  border-radius: 12px;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+  padding: 10px;
 }
 
+/* ---------- Card ---------- */
+.subuser-container {
+  position: relative;
+}
+
+.subuser-container::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  background: conic-gradient(
+    from 120deg at 10% 10%,
+    transparent 0 20%,
+    rgba(124,154,255,0.2) 20% 30%,
+    transparent 30% 55%,
+    rgba(102,234,215,0.2) 55% 65%,
+    transparent 65% 100%
+  );
+  filter: blur(24px);
+  opacity: 0.25;
+  z-index: -1;
+}
+
+/* ---------- Title ---------- */
+.subuser-container h2 {
+  font-size: clamp(20px, 2vw, 28px);
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+/* ---------- Create Form ---------- */
 .subuser-form {
   display: flex;
+  gap: 12px;
   flex-wrap: wrap;
-  gap: 10px;
   margin-bottom: 20px;
 }
 
 .subuser-form input {
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
   flex: 1;
+  min-width: 180px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--hi-border);
+  background: var(--hi-bg-soft);
+  color: var(--hi-text);
+}
+
+.subuser-form input:focus {
+  outline: none;
+  border-color: var(--hi-accent);
+  box-shadow: 0 0 0 2px rgba(124,154,255,0.25);
 }
 
 .subuser-form button {
-  background: #4a90e2;
-  color: #fff;
+  background: linear-gradient(135deg, var(--hi-success), #2bc184);
+  color: white;
   border: none;
-  border-radius: 6px;
-  padding: 10px 20px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-weight: 700;
   cursor: pointer;
+}
+
+.subuser-form button:hover {
+  transform: translateY(-2px);
+}
+
+/* ---------- Table ---------- */
+.subuser-list {
+  padding: 10px;
+  background: var(--hi-card);
+  box-shadow: var(--hi-shadow);
 }
 
 .subuser-list table {
   width: 100%;
+  min-width: 900px;
   border-collapse: collapse;
-}
-
-.subuser-list th, .subuser-list td {
-  border: 1px solid #ddd;
-  padding: 8px;
-  text-align: left;
+  font-size: 13px;
 }
 
 .subuser-list th {
-  background-color: #f1f1f1;
+  text-align: left;
+  padding: 12px 14px;
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.06),
+    rgba(255,255,255,0.01)
+  );
+  color: var(--hi-text);
+  white-space: nowrap;
+}
+
+.subuser-list td {
+  padding: 10px 14px;
+  color: var(--hi-text-dim);
+  border-top: 1px solid var(--hi-border);
+  white-space: nowrap;
+  vertical-align: middle; 
+}
+.status-wrap {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.subuser-list tr {
+  align-items: center;
+}
+.subuser-list tr:hover {
+  background: rgba(124,154,255,0.09);
+}
+
+/* ---------- Status Pills ---------- */
+.online,
+.offline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;   /* 🔥 REQUIRED */
+  min-width: 70px;     /* consistent width */
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .online {
-  color: green;
-  font-weight: bold;
+  background: rgba(58,219,141,0.15);
+  color: var(--hi-success);
 }
 
 .offline {
-  color: red;
-  font-weight: bold;
+  background: rgba(255,107,107,0.15);
+  color: var(--hi-danger);
 }
 
+/* ---------- Action Buttons ---------- */
 .logout-btn {
-  background: #ff4d4d;
-  color: #fff;
+  background: #ffc048;
+  color: #222;
   border: none;
-  border-radius: 5px;
-  padding: 5px 10px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
   cursor: pointer;
+   margin-right: 6px;
+}
+
+.logout-btn:hover {
+  background: #ffb703;
 }
 
 .delete-btn {
-  background-color: #e74c3c;
+  background: #dc3545;
   color: white;
   border: none;
-  padding: 6px 10px;
+  padding: 6px 12px;
+ 
+  border-radius: 6px;
   cursor: pointer;
-  border-radius: 4px;
-  margin-left: 5px;
 }
 
 .delete-btn:hover {
-  background-color: #c0392b;
+  background: #c82333;
 }
+
+/* ---------- Mobile Cards ---------- */
+@media (max-width: 600px) {
+  .subuser-list table {
+    display: none;
+  }
+
+  .subuser-card {
+    background: var(--hi-card);
+    border: 1px solid var(--hi-border);
+    border-radius: var(--hi-radius);
+    box-shadow: var(--hi-shadow);
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+
+  .subuser-card p {
+    margin: 4px 0;
+    font-size: 13px;
+    color: var(--hi-text-dim);
+  }
+
+  .subuser-card strong {
+    color: var(--hi-text);
+  }
+}
+
+
+.table-container {
+  max-height: 720px;        
+  overflow-y: auto;
+  overflow-x: hidden;  
+}
+
+.subuser-list {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;     /* prevents overflow */
+}
+

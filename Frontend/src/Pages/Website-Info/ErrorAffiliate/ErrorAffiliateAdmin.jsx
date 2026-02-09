@@ -1,12 +1,12 @@
 import Layout from '../../AdminPanel/AdminComponents/Layouts/Layout';
-import SharedAffiliateErrors from './SharedAffiliateErrors';
+import ErrorAffiliate from './ErrorAffiliate';
 
 
 
 function ErrorAffiliatesAdmin() {
   return (
     <Layout>
-      <SharedAffiliateErrors />
+      <ErrorAffiliate />
     </Layout>
   );
 }

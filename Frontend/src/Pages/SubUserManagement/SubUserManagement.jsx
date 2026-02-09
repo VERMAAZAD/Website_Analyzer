@@ -83,6 +83,25 @@ const SubUserManagement = () => {
     fetchSubUsers();
   }, []);
 
+
+const handleAffiliateToggle = async (id, value) => {
+  try {
+    await axios.patch(
+      `${API_BASE}/api/subusers/${id}/affiliate-access`,
+      { affiliateAccess: value },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    fetchSubUsers();
+    alert("Affiliate access updated");
+  } catch (err) {
+    console.error(err);
+    alert("Failed to update affiliate access");
+  }
+};
+
   return (
     <Layout>
       <div className="subuser-container">
@@ -115,6 +134,7 @@ const SubUserManagement = () => {
           </button>
         </form>
 
+      <div className="table-container">
         <div className="subuser-list">
           <h3>Existing Sub-Users</h3>
           <table>
@@ -123,6 +143,7 @@ const SubUserManagement = () => {
                 <th>Name</th>
                 <th>Email</th>
                 <th>Status</th>
+                <th>Affiliate Access</th>
                 <th>Last Login</th>
                 <th>Action</th>
               </tr>
@@ -133,9 +154,23 @@ const SubUserManagement = () => {
                   <tr key={user._id}>
                     <td>{user.name}</td>
                     <td>{user.email}</td>
-                    <td className={user.isLoggedIn ? 'online' : 'offline'}>
-                      {user.isLoggedIn ? 'Online' : 'Offline'}
+                    <td>
+                      <div className="status-wrap">
+                        <span className={user.isLoggedIn ? 'online' : 'offline'}>
+                          {user.isLoggedIn ? 'Online' : 'Offline'}
+                        </span>
+                      </div>
                     </td>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={user.affiliateAccess === true}
+                        onChange={(e) =>
+                          handleAffiliateToggle(user._id, e.target.checked)
+                        }
+                      />
+                    </td>
+
                     <td>{user.lastLogin ? new Date(user.lastLogin).toLocaleString() : '-'}</td>
                     <td>
                       {user.isLoggedIn && (
@@ -162,6 +197,7 @@ const SubUserManagement = () => {
           </table>
         </div>
       </div>
+    </div>
     </Layout>
   );
 };

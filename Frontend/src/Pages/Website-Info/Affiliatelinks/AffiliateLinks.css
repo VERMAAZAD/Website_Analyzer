@@ -1,0 +1,82 @@
+/* Container */
+.affiliate-page {
+  margin: 1rem auto;
+  border-radius: 16px;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* Heading */
+.affiliate-page h2 {
+  text-align: left;
+  margin-bottom: 2rem;
+  color: #2b2e4a;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* Table */
+.affiliate-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  background-color: #fff;
+}
+
+/* Table cells */
+.affiliate-table th,
+.affiliate-table td {
+  padding: 0.6rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+  font-size: 0.85rem;
+  vertical-align: top;
+}
+
+/* Header */
+.affiliate-table th {
+  background-color: #e8f0fe;
+  color: #2b2e4a;
+  font-weight: 600;
+}
+
+/* Body text */
+.affiliate-table td {
+  color: #333;
+}
+
+/* Remove last border */
+.affiliate-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Hover effect */
+.affiliate-table tr:hover {
+  background-color: #f5faff;
+}
+
+/* Affiliate link style */
+.affiliate-table a {
+  color: #1a73e8;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.affiliate-table a:hover {
+  text-decoration: underline;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .affiliate-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .affiliate-table th,
+  .affiliate-table td {
+    padding: 0.75rem;
+  }
+}

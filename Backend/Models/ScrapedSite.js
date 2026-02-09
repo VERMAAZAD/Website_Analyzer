@@ -32,9 +32,13 @@ const ScrapedSiteSchema = new mongoose.Schema({
     required: true
   },
   affiliateLink: { type: String, default: null },
+  categoryAffiliateLink: {
+    type: String,
+    default: "",
+    index: true,
+  },
   lastAffiliateCheck: { type: Date },
   affiliateCheckStatus: { type: String },
-  affiliateErrorMessage: { type: String, default: null },
   issueDate: { type: Date, default: null },
   note: { type: String, default: '' },
   isIndexedOnBing: { type: Boolean, default: false },
@@ -47,6 +51,25 @@ const ScrapedSiteSchema = new mongoose.Schema({
     domainEmail: { type: String, default: "" },
     cloudflare: { type: String, default: "" },
     status: { type: String, default: "active" },
+},
+ manualError: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
+
+  manualErrorCategory: {
+    type: String,
+    default: null, // e.g. "Suspended", "Expired", "Parked"
+    index: true,
+  },
+  manualErrorAddedAt: {
+    type: Date,
+    default: null,
+  },
+  ignoredByUser: {
+  type: Boolean,
+  default: false,
 },
 });
 

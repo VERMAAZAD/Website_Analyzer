@@ -2,6 +2,7 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const https = require("https");
 const ScrapedSite = require('../Models/ScrapedSite');
+const User = require('../Models/User');
 
 const normalizeDomain = (url) => {
   try {
@@ -239,8 +240,9 @@ exports.getAllCategories = async (req, res) => {
 
     if (req.user.role === 'admin') {
       query = { brandCategory: { $ne: null } };
-    } else if (req.user.parentUser) {
-      query.user = req.user.parentUser;
+    } 
+    else if (req.user.role === "sub-user" && req.user.parentUser) {
+     query.user = req.user.parentUser;
     } else {
       query.user = req.user._id;
     }
@@ -390,6 +392,7 @@ exports.refreshStatusesAndGetErrors = async (req, res) => {
       let statusCode = 0;
       let failingUrl = url;
 
+
       try {
         const response = await axios.get(url, {
           timeout: 100000,
@@ -476,14 +479,13 @@ exports.refreshStatusesAndGetErrors = async (req, res) => {
   }
 };
 
-
 exports.getErrorDomains = async (req, res) => {
   if (!req.user || !req.user._id) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
     try {
-        let query = { statusCode: { $ne: 200 } };
+        let query = { statusCode: { $ne: 200 }, manualError: false };
         if (req.user.role === "admin") {
         } else if (req.user.parentUser) {
           query.user = req.user.parentUser;
@@ -503,201 +505,272 @@ exports.getErrorDomains = async (req, res) => {
   }
 };
 
-// 🔹 TEST AFFILIATE LINKS
-exports.testAffiliateLinks = async (req, res) => {
-  const limit = pLimit(30); // ✅ Concurrency control
+exports.addManualErrorDomain = async (req, res) => {
+  const { domain, category } = req.body;
+
+  if (!domain || !category) {
+    return res.status(400).json({ error: "Domain and category required" });
+  }
+
+ const site = await ScrapedSite.findOne({
+  domain,
+  user: req.user.parentUser || req.user._id
+});
+
+  if (!site) {
+    return res.status(404).json({ error: "Domain not found" });
+  }
+
+  site.manualError = true;
+  site.manualErrorCategory = category;
+  site.manualErrorAddedAt = new Date();
+  site.ignoredByUser = true;
+
+  await site.save();
+
+  res.json({ message: "Domain added to manual error list" });
+};
+
+exports.getManualErrorDomains = async (req, res) => {
+  let query = { manualError: true };
+
+  if (req.user.role !== "admin") {
+    query.user = req.user.parentUser || req.user._id;
+  }
+
+  const domains = await ScrapedSite.find(query)
+    .select("domain manualErrorCategory manualErrorReason lastChecked")
+     .sort({ manualErrorAddedAt: -1 });
+
+  res.json({ domains });
+};
+
+exports.restoreManualErrorDomain = async (req, res) => {
+  const { domain } = req.params;
+
+  await ScrapedSite.findOneAndUpdate(
+    { domain },
+    {
+      manualError: false,
+      manualErrorCategory: null,
+      manualErrorAddedAt: null,
+      ignoredByUser: false,
+    }
+  );
+
+  res.json({ success: true });
+};
+
+
+
+exports.saveCategoryAffiliate = async (req, res) => {
   try {
-    if (!req.user || !req.user._id) {
-      return res.status(401).json({ error: "Unauthorized" });
+    let { category, affiliateLink } = req.body;
+
+    if (!category || !affiliateLink?.trim()) {
+      return res.status(400).json({ error: "Missing data" });
     }
 
-    // ✅ Build filter dynamically
-    const filter = {
-      affiliateLink: { $exists: true, $ne: "" },
-      statusCode: 200,
-    };
+    affiliateLink = affiliateLink.trim();
 
-    if (req.user.role === "admin") {
-      // Admin → check all
-    } else if (req.user.parentUser) {
-      // Sub-user → check parent user’s links
-      filter.user = req.user.parentUser;
-    } else {
-      // Normal user → check their own
-      filter.user = req.user._id;
+    let query = { brandCategory: category };
+
+    const canManageAffiliate =
+      req.user.role === "admin" ||
+      req.user.role === "user" ||
+      req.user.affiliateAccess === true;
+
+    if (!canManageAffiliate) {
+      return res.status(403).json({ error: "Affiliate access denied" });
     }
 
-    const domains = await ScrapedSite.find(filter).lean();
-
-    if (!domains.length) {
-      return res.json({
-        message: "No affiliate links found to test.",
-        total: 0,
-        failed: 0,
-        errors: [],
-      });
-    }
-
-    const failedLinks = [];
-
-    const checkLink = async (site) => {
-      const link = site.affiliateLink;
-      let status = "ok";
-      let errorMessage = null;
-
-      try {
-        let resp;
-        try {
-          resp = await axios.head(link, {
-            timeout: 10000,
-            maxRedirects: 5,
-            validateStatus: () => true,
-            headers: {
-              "User-Agent": "Mozilla/5.0",
-              Accept: "text/html,application/xhtml+xml,application/xml;q=0.9",
-            },
-          });
-        } catch {
-          resp = await axios.get(link, {
-            timeout: 10000,
-            maxRedirects: 5,
-            validateStatus: () => true,
-            headers: {
-              "User-Agent": "Mozilla/5.0",
-              Accept: "text/html,application/xhtml+xml,application/xml;q=0.9",
-            },
-          });
-        }
-
-        const redirectLocation = resp.headers.location || "";
-
-        if ([301, 308].includes(resp.status)) {
-          status = "error";
-          errorMessage = `Permanent redirect ${resp.status} → ${redirectLocation}`;
-        } else if (
-          [302, 303, 307].includes(resp.status) &&
-          (redirectLocation.includes("errCode=invalidvendor") ||
-            redirectLocation.includes("error"))
-        ) {
-          status = "error";
-          errorMessage = `Redirect error ${resp.status} → ${redirectLocation}`;
-        } else if (resp.status >= 400) {
-          if ([403, 404, 406].includes(resp.status)) {
-            status = "ok"; 
-            errorMessage = null;
-          } else {
-            status = "error";
-            errorMessage = `HTTP ${resp.status}`;
-          }
-        }
-      } catch (err) {
-        status = "error";
-        errorMessage = err.message || "Unknown request error";
+    await ScrapedSite.updateMany(query, {
+      $set: {
+        categoryAffiliateLink: affiliateLink,
+        lastAffiliateCheck: new Date()
       }
-
-      // Save status in DB
-      await ScrapedSite.updateOne(
-        { _id: site._id },
-        {
-          $set: {
-            affiliateCheckStatus: status,
-            affiliateErrorMessage: status === "ok" ? null : errorMessage,
-            lastAffiliateCheck: new Date(),
-          },
-        }
-      );
-
-      if (status === "error") {
-        failedLinks.push({
-          domain: site.domain,
-          affiliateLink: link,
-          error: errorMessage,
-        });
-      }
-    };
-
-    await Promise.allSettled(domains.map((site) => limit(() => checkLink(site))));
-
-    res.json({
-      total: domains.length,
-      failed: failedLinks.length,
-      errors: failedLinks,
     });
+
+    res.json({ message: "Affiliate link saved for category" });
   } catch (err) {
-    console.error("Affiliate test failed:", err.message);
-    res.status(500).json({ error: "Internal server error" });
+    console.error(err);
+    res.status(500).json({ error: "Failed to save affiliate link" });
   }
 };
 
-// 🔹 GET AFFILIATE ERRORS
-exports.getAffiliateErrors = async (req, res) => {
+const normalizeAffiliate = (url) => {
   try {
-    if (!req.user || !req.user._id) {
-      return res.status(401).json({ error: "Unauthorized" });
+    const u = new URL(url);
+
+    // Sort query params
+    const params = [...u.searchParams.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, v]) => `${k}=${v}`)
+      .join("&");
+
+    return `${u.origin}${u.pathname}?${params}`;
+  } catch {
+    return "";
+  }
+};
+
+exports.getAffiliateMismatch = async (req, res) => {
+  try {
+    const { category } = req.query;
+
+    let query = {
+      statusCode: 200,
+      categoryAffiliateLink: { $ne: "" },
+      affiliateLink: { $ne: null },
+    };
+
+     if (category) {
+      query.brandCategory = category;
     }
 
-     let query = { statusCode: 200 };
-    if (req.user.role === "admin") {
-      query = { statusCode: 200 };
-    } else if (req.user.parentUser) {
-      query = { user: req.user.parentUser, statusCode: 200 };
-    } else {
-      query = { user: req.user._id, statusCode: 200 };
-    }
+     const canManageAffiliate =
+      req.user.role === "admin" ||
+      req.user.role === "user" ||
+      req.user.affiliateAccess === true;
 
-    const cutoff = new Date(Date.now() - 1000 * 60 * 10);
+
 
     const sites = await ScrapedSite.find(query)
-    .select("domain affiliateLink affiliateCheckStatus affiliateErrorMessage lastAffiliateCheck user")
+      .select("domain affiliateLink categoryAffiliateLink brandCategory")
       .lean();
 
-    const errors = sites
-      .filter((site) => {
-        // ✅ Broken affiliate link
-        if (site.affiliateCheckStatus === "error" && site.affiliateErrorMessage) {
-          if (!site.lastAffiliateCheck || site.lastAffiliateCheck < cutoff) {
-            return false; // ❌ stale
-          }
-          return true;
-        }
+      const errors = sites.filter(site => {
+      const domainAff = normalizeAffiliate(site.affiliateLink);
+      const categoryAff = normalizeAffiliate(site.categoryAffiliateLink);
+      return domainAff !== categoryAff;
+    });
 
-        // ✅ Missing link
-        if (!site.affiliateLink || site.affiliateLink.trim() === "") {
-          return true;
-        }
-
-        // ✅ Invalid link (exact same as domain, no affiliate param)
-        const normalized = `https://${site.domain}`;
-        if (site.affiliateLink === normalized) {
-          return true;
-        }
-
-        return false; // ✅ Valid link
-      })
-      .map((site) => {
-        let link = site.affiliateLink;
-        let errorMsg = site.affiliateErrorMessage || "Unknown error";
-
-        // Handle missing/invalid
-        if (!link || link.trim() === "" || link === `https://${site.domain}`) {
-          link = `https://${site.domain}`;
-          errorMsg = "No affiliate link found";
-        }
-
-        return {
-          domain: site.domain,
-          affiliateLink: link,
-          error: errorMsg,
-          lastChecked: site.lastAffiliateCheck || null,
-        };
-      });
-
-    res.json({ errors });
+    res.json({
+      totalChecked: sites.length,
+      mismatchCount: errors.length,
+      errors
+    });
   } catch (err) {
-    console.error("Get affiliate errors failed:", err.message);
-    res.status(500).json({ error: "Internal server error" });
+    console.error(err);
+    res.status(500).json({ error: "Failed to check affiliate mismatch" });
   }
 };
+
+exports.getAffiliateMismatchCounts = async (req, res) => {
+  try {
+    let query = {
+      statusCode: 200,
+      categoryAffiliateLink: { $ne: "" },
+      affiliateLink: { $ne: null },
+    };
+
+     const canManageAffiliate =
+      req.user.role === "admin" ||
+      req.user.role === "user" ||
+      req.user.affiliateAccess === true;
+
+   
+
+    const sites = await ScrapedSite.find(query)
+      .select("brandCategory affiliateLink categoryAffiliateLink")
+      .lean();
+
+    const counts = {};
+
+    sites.forEach(site => {
+      const domainAff = normalizeAffiliate(site.affiliateLink);
+      const categoryAff = normalizeAffiliate(site.categoryAffiliateLink);
+
+      if (domainAff !== categoryAff) {
+        counts[site.brandCategory] =
+          (counts[site.brandCategory] || 0) + 1;
+      }
+    });
+
+    res.json(counts);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to get mismatch counts" });
+  }
+};
+
+
+exports.getCategoryAffiliate = async (req, res) => {
+  try {
+    const { category } = req.params;
+
+    let query = {
+      brandCategory: category,
+      categoryAffiliateLink: { $ne: "" },
+    };
+
+     const canManageAffiliate =
+      req.user.role === "admin" ||
+      req.user.role === "user" ||
+      req.user.affiliateAccess === true;
+
+    if (!canManageAffiliate) {
+      return res.status(403).json({ error: "Affiliate access denied" });
+    }
+    // Get ANY one record from category
+    const site = await ScrapedSite.findOne(query)
+      .select("categoryAffiliateLink")
+      .lean();
+
+    return res.json({
+      affiliateLink: site ? site.categoryAffiliateLink : null,
+    });
+  } catch (err) {
+    console.error("Error fetching category affiliate:", err);
+    return res.status(500).json({
+      error: "Failed to fetch affiliate link",
+    });
+  }
+};
+
+exports.getCategoryAffiliateStatus = async (req, res) => {
+  try {
+    let query = {
+      categoryAffiliateLink: { $exists: true, $ne: "" },
+    };
+
+     const canManageAffiliate =
+      req.user.role === "admin" ||
+      req.user.role === "user" ||
+      req.user.affiliateAccess === true;
+
+    const sites = await ScrapedSite.find(query)
+      .select("brandCategory categoryAffiliateLink")
+      .lean();
+
+    const map = {};
+    sites.forEach(s => {
+      map[s.brandCategory] = true;
+    });
+
+    res.json(map);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to load affiliate status" });
+  }
+};
+
+exports.getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select(
+      "_id name email role affiliateAccess"
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json(user);
+  } catch (err) {
+    console.error("getMe error:", err);
+    res.status(500).json({ error: "Failed to fetch user" });
+  }
+};
+
 
 
 
@@ -891,44 +964,6 @@ exports.deleteNote = async (req, res) => {
   }
 };
 
-
-exports.getUnindexedDomains = async (req, res) => {
-  try {
-    if (!req.user || !req.user._id) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    // 🧠 Role-based filter logic
-    let query = { isIndexedOnBing: false };
-
-    if (req.user.role === "admin") {
-      // Admin → all users
-    } else if (req.user.parentUser) {
-      // Sub-user → parent’s data
-      query.user = req.user.parentUser;
-    } else {
-      // Normal user → own data
-      query.user = req.user._id;
-    }
-
-    // 🧾 Fetch unindexed domains
-    const sites = await ScrapedSite.find(query)
-      .select("domain lastBingCheck user")
-      .lean();
-
-    // 🧹 Prepare output
-    const unindexed = sites.map(site => ({
-      domain: site.domain,
-      lastBingCheck: site.lastBingCheck || null,
-    }));
-
-    res.json({ unindexed });
-  } catch (err) {
-    console.error("❌ Error fetching unindexed domains:", err.message);
-    res.status(500).json({ error: "Failed to fetch unindexed domains" });
-  }
-};
-
 exports.saveHostingInfo = async (req, res) => {
   const { domain } = req.params;
   const {
@@ -1086,329 +1121,39 @@ exports.updateDomainName = async (req, res) => {
 };
 
 
-
- const puppeteer = require('puppeteer-extra');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-const UserAgent = require('user-agents');
-
-puppeteer.use(StealthPlugin());
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-const safeClose = async (page) => {
-  if (!page) return;
-  try {
-    if (!page.isClosed && typeof page.isClosed === 'function') {
-      if (!(await page.isClosed())) {
-        await page.close({ runBeforeUnload: false });
-      }
-    } else {
-      await page.close({ runBeforeUnload: false });
-    }
-  } catch (err) {
-    const msg = err.message || '';
-    if (!msg.includes('No target with given id') && !msg.includes('Session closed')) {
-      console.warn(`⚠️ safeClose error: ${msg}`);
-    }
-  }
-};
-
-async function detectBingIndex(page, cleanDomain) {
-  return page.evaluate((domain) => {
-    try {
-      // Dismiss cookie / consent if present
-      const consentBtn = Array.from(document.querySelectorAll('button, input[type="submit"], a'))
-        .find(el => /accept|agree|consent|ok/i.test(el.textContent || ''));
-      if (consentBtn) {
-        try { consentBtn.click(); } catch (e) { /* ignore */ }
-      }
-
-      const bodyText = document.body.innerText.toLowerCase();
-
-      const noResultPhrases = [
-        'there are no results for',
-        'did not match any documents',
-        'no results found for',
-        'we didn’t find any results',
-        'no results containing',
-        'no web pages',
-        'did not match any results',
-        'no results for',
-      ];
-      if (noResultPhrases.some(phrase => bodyText.includes(phrase))) {
-        return { indexed: false, firstResult: null, resultCount: 0 };
-      }
-
-      // Extract organic result links
-      const anchors = Array.from(
-        document.querySelectorAll('li.b_algo h2 a, .b_title a, .b_algoheader h2 a, h2 > a, .b_attribution a')
-      );
-
-      const links = anchors
-        .map(el => el.href)
-        .filter(href => href && !href.includes('bing.com') && !href.includes('/images/') && !href.includes('microsoft.com'))
-        .map(href => {
-          try {
-            return (new URL(href)).hostname + (new URL(href)).pathname;
-          } catch (e) {
-            return href;
-          }
-        });
-
-      const uniqueLinks = Array.from(new Set(links));
-
-      const firstResult = uniqueLinks.length > 0 ? uniqueLinks[0] : null;
-      return { indexed: uniqueLinks.length > 0, firstResult, resultCount: uniqueLinks.length };
-    } catch (e) {
-      return { indexed: false, firstResult: null, resultCount: 0 };
-    }
-  }, cleanDomain);
-}
-
-const retryCheck = async (fullUrl, browser, retries = 3, delayBetweenRetries = 5000) => {
-  const cleanDomain = fullUrl
-    .replace(/^https?:\/\//i, '')
-    .replace(/\/.*$/, '')
-    .trim();
-
-  if (!cleanDomain || cleanDomain === 'about:blank') {
-    console.warn(`⚠️ Invalid domain skipped: ${fullUrl}`);
-    return { isBlocked: false, isIndexed: false, firstResult: null, resultCount: 0 };
-  }
-
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    let page = null;
-    try {
-      console.log(`\n🔍 [${cleanDomain}] Checking (Attempt ${attempt}/${retries})`);
-      page = await browser.newPage();
-
-      await page.setUserAgent(new UserAgent().toString());
-      await page.setViewport({
-        width: 1000 + Math.floor(Math.random() * 400),
-        height: 700 + Math.floor(Math.random() * 300),
-      });
-
-      page.on('console', msg => console.log(`🧠 [${cleanDomain}] console: ${msg.text()}`));
-      page.on('pageerror', err => console.error(`❗ [${cleanDomain}] JS error: ${err.message}`));
-
-      const bingQueryUrl = `https://www.bing.com/search?q=site:${encodeURIComponent(cleanDomain)}`;
-      console.log(`🌐 Navigating to: ${bingQueryUrl}`);
-
-      await page.setUserAgent(
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
-      );
-
-      await page.setExtraHTTPHeaders({
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Upgrade-Insecure-Requests': '1',
-        'DNT': '1',
-      });
-
-      const response = await page.goto(bingQueryUrl, {
-        waitUntil: 'domcontentloaded',
-        timeout: 90_000
-      });
-
-      if (!response || !response.ok()) {
-        console.warn(`⚠️ [${cleanDomain}] Bing response not OK: ${response ? response.status() : 'no response'}`);
-        await safeClose(page);
-        if (attempt < retries) {
-          await sleep(delayBetweenRetries);
-          continue;
-        }
-        return { isBlocked: false, isIndexed: false, firstResult: null, resultCount: 0 };
-      }
-
-      // Detect Turnstile CAPTCHA iframe (Cloudflare)
-      const turnstileCaptcha = await page.$('iframe[src*="challenges.cloudflare.com/turnstile"]');
-      if (turnstileCaptcha) {
-        console.warn(`🚫 [${cleanDomain}] Turnstile CAPTCHA detected`);
-        // Optional: Wait for manual solve or timeout before proceeding
-        // For example, wait up to 60 seconds for user to solve CAPTCHA manually:
-        await page.bringToFront();
-        console.log(`⏳ Waiting up to 60 seconds for manual CAPTCHA solving...`);
-        try {
-          await page.waitForFunction(() => !document.querySelector('iframe[src*="challenges.cloudflare.com/turnstile"]'), { timeout: 60000 });
-          console.log(`[${cleanDomain}] CAPTCHA iframe disappeared, continuing...`);
-        } catch {
-          console.warn(`[${cleanDomain}] CAPTCHA not solved in time, skipping...`);
-          await safeClose(page);
-          return { isBlocked: true, isIndexed: false, firstResult: null, resultCount: 0 };
-        }
-      } else {
-        // Wait for the checkbox CAPTCHA and try to click it if present
-        try {
-          const checkboxSelector = 'input[type="checkbox"][aria-label*="verify you are human"], input[type="checkbox"]';
-          await page.waitForSelector(checkboxSelector, { timeout: 7000 });
-          console.log(`[${cleanDomain}] CAPTCHA checkbox detected, clicking...`);
-          await page.click(checkboxSelector);
-
-          // Wait for either navigation or search results to appear/update
-          await Promise.race([
-            page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => { }),
-            page.waitForSelector('li.b_algo h2 a, .b_title a', { timeout: 15000 })
-          ]);
-          console.log(`[${cleanDomain}] CAPTCHA solved or page updated`);
-        } catch (e) {
-          console.log(`[${cleanDomain}] No CAPTCHA checkbox detected`);
-        }
-      }
-
-      // Wait for results or no-result indicator
-      try {
-        await Promise.race([
-          page.waitForSelector('li.b_algo h2 a, .b_title a', { timeout: 15000 }),
-          page.waitForFunction(
-            () => document.body.innerText.toLowerCase().includes('no results for') ||
-              document.body.innerText.toLowerCase().includes('did not match any documents'),
-            { timeout: 15000 }
-          )
-        ]);
-      } catch (e) {
-        console.log(`⏳ [${cleanDomain}] waiting additional time...`);
-        await sleep(7000);
-      }
-
-      // Detect blocking / captcha still present
-      const isBlocked = await page.evaluate(() => {
-        const txt = document.body.innerText.toLowerCase();
-        return (
-          document.querySelector('#b_captcha') ||
-          document.querySelector("iframe[src*='recaptcha']") ||
-          document.querySelector("iframe[src*='challenges.cloudflare.com/turnstile']") ||
-          txt.includes('verify you are human') ||
-          txt.includes('unusual traffic') ||
-          txt.includes('bot detect') ||
-          txt.includes('private access token') ||
-          txt.includes('access denied') ||
-          txt.includes('we’ve detected unusual activity')
-        );
-      });
-
-      if (isBlocked) {
-        console.warn(`🚫 [${cleanDomain}] CAPTCHA / Block still detected after attempt`);
-        await safeClose(page);
-        return { isBlocked: true, isIndexed: false, firstResult: null, resultCount: 0 };
-      }
-
-      // Detect index status
-      const { indexed, firstResult, resultCount } = await detectBingIndex(page, cleanDomain);
-      if (indexed) {
-        console.log(`✅ [${cleanDomain}] Indexed — first result: ${firstResult}, count: ${resultCount}`);
-      } else {
-        console.log(`ℹ️ [${cleanDomain}] Not indexed — found count: ${resultCount}`);
-      }
-      await safeClose(page);
-      return { isBlocked: false, isIndexed: indexed, firstResult, resultCount };
-
-    } catch (err) {
-      console.warn(`❌ [${cleanDomain}] Error on attempt ${attempt}: ${err.message}`);
-      if (page) {
-        await safeClose(page);
-      }
-      if (attempt < retries) {
-        console.log(`⏳ [${cleanDomain}] Retrying after ${delayBetweenRetries}ms`);
-        await sleep(delayBetweenRetries);
-      }
-    }
-  }
-
-  console.error(`❌ [${cleanDomain}] All ${retries} attempts failed`);
-  return { isBlocked: false, isIndexed: false, firstResult: null, resultCount: 0 };
-};
-
-exports.checkBingIndex = async (req, res) => {
+exports.getUnindexedDomains = async (req, res) => {
   try {
     if (!req.user || !req.user._id) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const startOfToday = new Date();
-    startOfToday.setUTCHours(0, 0, 0, 0);
+    // 🧠 Role-based filter logic
+    let query = { isIndexedOnBing: false };
 
-    let baseFilter;
     if (req.user.role === "admin") {
-      baseFilter = {};
+      // Admin → all users
     } else if (req.user.parentUser) {
-      baseFilter = { user: req.user.parentUser };
+      // Sub-user → parent’s data
+      query.user = req.user.parentUser;
     } else {
-      baseFilter = { user: req.user._id };
+      // Normal user → own data
+      query.user = req.user._id;
     }
 
-    const forceCheck = req.query.force === 'true';
+    // 🧾 Fetch unindexed domains
+    const sites = await ScrapedSite.find(query)
+      .select("domain lastBingCheck user")
+      .lean();
 
-    const filter = forceCheck
-      ? baseFilter
-      : {
-        ...baseFilter,
-        $or: [
-          { lastBingCheck: { $exists: false } },
-          { lastBingCheck: { $lt: startOfToday } }
-        ]
-      };
+    // 🧹 Prepare output
+    const unindexed = sites.map(site => ({
+      domain: site.domain,
+      lastBingCheck: site.lastBingCheck || null,
+    }));
 
-    const domains = await ScrapedSite.find(filter, 'domain');
-    console.log(`🧾 Domains to check: ${domains.length}`);
-
-    if (!domains.length) {
-      return res.json({ message: 'No domains to check today.' });
-    }
-
-    const browser = await puppeteer.launch({
-      headless: false, // so you can see the browser and manually solve if needed
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-blink-features=AutomationControlled',
-        '--lang=en-US,en'
-      ]
-    });
-
-    const limit = pLimit(2); // concurrency limit
-    const unindexed = [];
-    const checkedToday = [];
-
-    const tasks = domains.map(d =>
-      limit(async () => {
-        const domain = d.domain;
-        const { isBlocked, isIndexed, firstResult, resultCount } = await retryCheck(domain, browser, 3);
-
-        if (!isBlocked) {
-          const site = await ScrapedSite.findOne({ domain });
-          if (site) {
-            site.isIndexedOnBing = isIndexed;
-            site.lastBingCheck = new Date();
-            site.bingFirstResult = firstResult;
-            site.bingResultCount = resultCount;
-            await site.save();
-          }
-          if (!isIndexed) unindexed.push(domain);
-          checkedToday.push(domain);
-        } else {
-          console.log(`🛑 [${domain}] Skipped saving due to block`);
-        }
-      })
-    );
-
-    await Promise.all(tasks);
-
-    try {
-      await browser.close();
-    } catch (e) {
-      console.warn('⚠️ Browser close error:', e.message);
-    }
-
-    console.log(`✅ Done! Checked: ${checkedToday.length}, Unindexed: ${unindexed.length}`);
-    return res.json({
-      success: true,
-      checked: checkedToday.length,
-      unindexedCount: unindexed.length,
-      unindexed
-    });
-
+    res.json({ unindexed });
   } catch (err) {
-    console.error('❌ checkBingIndex error:', err);
-    return res.status(500).json({ error: 'Server error', details: err.message });
+    console.error("❌ Error fetching unindexed domains:", err.message);
+    res.status(500).json({ error: "Failed to fetch unindexed domains" });
   }
 };

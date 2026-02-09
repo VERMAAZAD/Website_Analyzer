@@ -11,8 +11,11 @@ const Sidebar = ({ isOpen, onClose }) => {
 
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
+     localStorage.removeItem('token');
     localStorage.removeItem('loggedInUser');
+    localStorage.removeItem('hostingHistory');
+    localStorage.removeItem('selectedCategory');
+    localStorage.removeItem('superCategory');
     handleSuccess('User Logged Out');
     setTimeout(() => navigate('/login'), 1500);
   };
@@ -42,8 +45,8 @@ const Sidebar = ({ isOpen, onClose }) => {
           <i className="fa-solid fa-triangle-exclamation"></i>
             <span>Error Domains</span>
         </NavLink></li>
-        <li><NavLink to={`/affiliate-errors/${superCategory}`}><i className="fa-solid fa-bug"></i>
-            <span>Error Affiliate</span>
+        <li><NavLink to={`/affiliate-links`}><i className="fa-solid fa-bug"></i>
+            <span>Affiliate Links</span>
           </NavLink></li>
         <li><NavLink to={`/domain-expire/${superCategory}`}>
           <i className="fa-solid fa-clock"></i>

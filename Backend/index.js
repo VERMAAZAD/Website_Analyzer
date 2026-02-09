@@ -10,6 +10,7 @@ require('./Models/database');
 const AuthRouter = require('./Routers/AuthRouter');
 const SubUserRoutes = require('./Routers/SubUserRoutes');
 const ScraperRouter = require("./Routers/ScraperRouter");
+const AffiliateRouter = require("./Routers/AffiliateRouter");
 const AdminRouter = require('./Routers/AdminRouter');
 const ScraperGameRouter = require('./Routers/ScraperGameRouter')
 const ScraperDatingRouter = require('./Routers/ScraperDatingRouter')
@@ -48,6 +49,7 @@ app.get('/', (req, res) => {
 app.use('/auth', AuthRouter)
 app.use('/api/subusers', SubUserRoutes)
 app.use('/api/scraper', ScraperRouter);
+app.use('/api/affiliate', AffiliateRouter);
 app.use('/admin', AdminRouter);
 app.use('/casino/scraper', ScraperGameRouter);
 app.use('/dating/scraper', ScraperDatingRouter);

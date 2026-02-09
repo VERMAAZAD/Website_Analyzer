@@ -71,29 +71,37 @@ const Login = () => {
       const result = await response.json();
       const { success, message, jwtToken, user } = result;
 
-      if (success) {
-        handleSuccess(message);
+      if (!success) {
+        handleError(message || 'Invalid or expired code');
+        return;
+      }
+
+      handleSuccess(message);
+
+        
+        const safeUser = {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          affiliateAccess: user.affiliateAccess === true
+        };
 
         localStorage.setItem('token', jwtToken);
-        localStorage.setItem('loggedInUser', JSON.stringify(user));
+        localStorage.setItem('loggedInUser', JSON.stringify(safeUser));
         localStorage.setItem('superCategory', 'natural');
 
-        if (user.role === 'admin') {
-             navigate('/admin/products/natural'); 
-                } else if (user.role === 'sub-user') {
-            navigate('/products/natural');
-              } else {
-              navigate(`/products/natural`);
-              }
-      } else {
-        handleError(result.message || 'Invalid or expired code');
-      }
-    } catch (err) {
-      handleError('Something went wrong. Try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+       navigate(
+            safeUser.role === 'admin'
+              ? '/admin/products/natural'
+              : '/products/natural'
+          );
+        } catch (err) {
+          handleError('Something went wrong. Try again.');
+        } finally {
+          setLoading(false);
+        }
+    };
 
   return (
     <div className="login-container">

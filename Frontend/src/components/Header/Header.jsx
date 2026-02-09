@@ -70,7 +70,10 @@ const Header = ({ onMenuClick, user }) => {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem('loggedInUser');
+    localStorage.removeItem('hostingHistory');
+    localStorage.removeItem('selectedCategory');
+    localStorage.removeItem('superCategory');
     handleSuccess('User Logged Out');
     setTimeout(() => navigate('/login'), 500);
   };

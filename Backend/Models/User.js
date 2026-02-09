@@ -13,6 +13,7 @@ const userSchema = new Schema({
     authCodeExpiry: { type: Date },
     isLoggedIn: { type: Boolean, default: false },
     lastLogin: { type: Date },
+    affiliateAccess: { type: Boolean, default: false }
 });
 
 

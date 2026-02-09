@@ -36,7 +36,8 @@ exports.createSubUser = async (req, res) => {
 // Get all sub-users under parent
 exports.getSubUsers = async (req, res) => {
   try {
-    const subUsers = await UserModel.find({ parentUser: req.user._id });
+    const subUsers = await UserModel.find({ parentUser: req.user._id })
+    .select("_id name email isLoggedIn lastLogin affiliateAccess");;
     res.json({ success: true, subUsers });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error" });
@@ -88,3 +89,43 @@ exports.deleteSubUser = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+
+
+
+// Toggle affiliate access for sub-user
+exports.updateAffiliateAccess = async (req, res) => {
+  try {
+    const { subUserId } = req.params;
+    const { affiliateAccess } = req.body;
+
+    // Only parent user or admin can update
+    const subUser = await UserModel.findOne({
+      _id: subUserId,
+      parentUser: req.user._id
+    });
+
+    if (!subUser) {
+      return res.status(404).json({
+        success: false,
+        message: "Sub-user not found or unauthorized"
+      });
+    }
+
+    subUser.affiliateAccess = affiliateAccess;
+    await subUser.save();
+
+    res.json({
+      success: true,
+      message: "Affiliate access updated successfully"
+    });
+  } catch (error) {
+    console.error("Affiliate access update error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update affiliate access"
+    });
+  }
+};
+
+

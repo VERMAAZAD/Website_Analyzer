@@ -10,8 +10,6 @@ import Dashboard from './Pages/AdminPanel/DashBoard/Dashboard';
 import Users from './Pages/AdminPanel/AdminComponents/UserData/Users';
 import ProtectedRoute from './components/ProtectedRoute';
 import UserDomains from './Pages/AdminPanel/AdminComponents/UserDomian/UserDomains';
-import ErrorAffiliatesUser from './Pages/Website-Info/ErrorAffiliate/ErrorAffiliateUser';
-import ErrorAffiliatesAdmin from './Pages/Website-Info/ErrorAffiliate/ErrorAffiliateAdmin';
 import DomainListUser from './Pages/Website-Info/DomainList/DomainListUser';
 import DomainListAdmin from './Pages/Website-Info/DomainList/DomainListAdmin';
 import ErrorDomainUser from './Pages/Website-Info/ErrorDomain/ErrorDomainUser';
@@ -34,14 +32,53 @@ import HostingDomainsAdmin from './Pages/HostingInfo/HostingDomains/HostingDomai
 import ServerListUser from './Pages/HostingInfo/ServerList/ServerListUser';
 import ServerListAdmin from './Pages/HostingInfo/ServerList/ServerListAdmin';
 import SubUserManagement from './Pages/SubUserManagement/SubUserManagement';
+import ErrorAffiliateUser from './Pages/Website-Info/ErrorAffiliate/ErrorAffiliateUser';
+import ErrorAffiliateAdmin from './Pages/Website-Info/ErrorAffiliate/ErrorAffiliateAdmin';
+import { useEffect, useState } from 'react';
+import axios from 'axios';
+import AffiliateLinksUser from './Pages/Website-Info/Affiliatelinks/AffiliateLinksUser';
+import AffiliateLinksAdmin from './Pages/Website-Info/Affiliatelinks/AffiliateLinksAdmin';
 
 function App() {
 
   const DEFAULT_USER_ROUTE = "/products/natural";
   const DEFAULT_ADMIN_ROUTE = "/admin/products/natural";
 
-  const user = JSON.parse(localStorage.getItem("loggedInUser"));
+  const [user, setUser] = useState(() =>
+    JSON.parse(localStorage.getItem("loggedInUser"))
+  );
+
   const isAdmin = user?.role === "admin";
+
+
+  useEffect(() => {
+  const refreshUser = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URI}/api/scraper/auth/me`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      localStorage.setItem(
+        "loggedInUser",
+        JSON.stringify(res.data)
+      );
+      setUser(res.data);
+    } catch (err) {
+      console.error(
+        "Failed to refresh user:",
+        err.response?.status,
+        err.response?.data || err.message
+      );
+    }
+  };
+
+  refreshUser();
+}, []);
+
 
 
   return (
@@ -60,7 +97,7 @@ function App() {
         <Route path='/urlscan/:type' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><UrlScanUser /></ProtectedRoute>}/>
         <Route path='/domains/' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><DomainListUser /></ProtectedRoute>}/>
         <Route path='/domain-errors/:type' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><ErrorDomainUser /></ProtectedRoute>}/>
-        <Route path='/affiliate-errors/:type' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><ErrorAffiliatesUser /></ProtectedRoute>}/>
+        <Route path='/affiliate-errors' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><ErrorAffiliateUser /></ProtectedRoute>}/>
         <Route path='/domain-expire/:type' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><DomainExpireUser /></ProtectedRoute>}/>
         <Route path='/hosting-expire/:type' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><ServerExpireUser /></ProtectedRoute>}/>
         <Route path='/not-index/:type' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><BingCheckerUser /></ProtectedRoute>}/>
@@ -69,6 +106,7 @@ function App() {
         <Route path='/hosting/domains/:email/:platform/:server' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><HostingDomainsUser /></ProtectedRoute>}/>
         <Route path='/servers/:email/:platform' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><ServerListUser /></ProtectedRoute>}/>
         <Route path='/subusers' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><SubUserManagement /></ProtectedRoute>}/>
+        <Route path='/affiliate-links' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><AffiliateLinksUser /></ProtectedRoute>}/>
 
 
       {/* Admin Routes */}
@@ -77,9 +115,9 @@ function App() {
       <Route path="/admin/products/:type" element={<ProtectedRoute allowedRoles={['admin']}><Dashboard /></ProtectedRoute>} />
       <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><Users /></ProtectedRoute>} />
       <Route path="/admin/user/:userId/domains" element={<ProtectedRoute allowedRoles={['admin']}><UserDomains /></ProtectedRoute>} />
-      <Route path='/admin/affiliate-errors/:type' element={<ProtectedRoute allowedRoles={['admin']}><ErrorAffiliatesAdmin /></ProtectedRoute>}/>
       <Route path='/admin/domains/:type' element={<ProtectedRoute allowedRoles={['admin']}><DomainListAdmin /></ProtectedRoute>}/>
       <Route path='/admin/domain-errors/:type' element={<ProtectedRoute allowedRoles={['admin']}><ErrorDomainAdmin /></ProtectedRoute>}/>
+      <Route path='/affiliate-errors' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><ErrorAffiliateAdmin /></ProtectedRoute>}/>
       <Route path='/admin/domain-expire/:type' element={<ProtectedRoute allowedRoles={['admin']}><DomainExpireAdmin /></ProtectedRoute>}/>
       <Route path='/admin/hosting-expire/:type' element={<ProtectedRoute allowedRoles={['admin']}><ServerExpireAdmin /></ProtectedRoute>}/>
       <Route path='/admin/not-index/:type' element={<ProtectedRoute allowedRoles={['admin']}><BingCheckerAdmin /></ProtectedRoute>}/>
@@ -87,6 +125,7 @@ function App() {
       <Route path='/admin/hosting-data' element={<ProtectedRoute allowedRoles={['admin']}><HostingInfoListAdmin /></ProtectedRoute>}/>
       <Route path='/admin/hosting/domains/:email/:platform/:server' element={<ProtectedRoute allowedRoles={['admin']}><HostingDomainsAdmin /></ProtectedRoute>}/>
       <Route path='/admin/servers/:email/:platform' element={<ProtectedRoute allowedRoles={['admin']}><ServerListAdmin /></ProtectedRoute>}/>
+      <Route path='/affiliate-links' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><AffiliateLinksAdmin /></ProtectedRoute>}/>
 
       </Routes>
       <ToastContainer
