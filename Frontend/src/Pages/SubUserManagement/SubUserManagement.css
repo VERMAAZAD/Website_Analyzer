@@ -1,212 +1,164 @@
-/* ---------- Page ---------- */
-.subuser-container {
-  padding: 10px;
+/* Container */
+.affiliate-page {
+  max-width: 1200px;
+  margin: 2rem auto;
+  font-family: 'Segoe UI', sans-serif;
+  padding: 0 1rem;
 }
 
-/* ---------- Card ---------- */
-.subuser-container {
-  position: relative;
-}
-
-.subuser-container::after {
-  content: "";
-  position: absolute;
-  inset: -2px;
-  background: conic-gradient(
-    from 120deg at 10% 10%,
-    transparent 0 20%,
-    rgba(124,154,255,0.2) 20% 30%,
-    transparent 30% 55%,
-    rgba(102,234,215,0.2) 55% 65%,
-    transparent 65% 100%
-  );
-  filter: blur(24px);
-  opacity: 0.25;
-  z-index: -1;
-}
-
-/* ---------- Title ---------- */
-.subuser-container h2 {
-  font-size: clamp(20px, 2vw, 28px);
+/* Heading */
+.affiliate-page h2 {
+  font-size: 2rem;
   font-weight: 700;
-  text-align: center;
-  margin-bottom: 16px;
+  margin-bottom: 1.5rem;
+  color: #1e1e2f;
 }
 
-/* ---------- Create Form ---------- */
-.subuser-form {
+/* Tabs */
+.affiliate-tabs {
   display: flex;
   gap: 12px;
-  flex-wrap: wrap;
   margin-bottom: 20px;
+  flex-wrap: wrap;
 }
 
-.subuser-form input {
-  flex: 1;
-  min-width: 180px;
-  padding: 10px;
+.tab {
+  padding: 10px 20px;
   border-radius: 8px;
-  border: 1px solid var(--hi-border);
-  background: var(--hi-bg-soft);
-  color: var(--hi-text);
-}
-
-.subuser-form input:focus {
-  outline: none;
-  border-color: var(--hi-accent);
-  box-shadow: 0 0 0 2px rgba(124,154,255,0.25);
-}
-
-.subuser-form button {
-  background: linear-gradient(135deg, var(--hi-success), #2bc184);
-  color: white;
-  border: none;
-  padding: 10px 18px;
-  border-radius: 10px;
-  font-weight: 700;
+  border: 1px solid #ddd;
+  background-color: #f5f5f5;
   cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
 }
 
-.subuser-form button:hover {
-  transform: translateY(-2px);
+.tab.active {
+  background-color: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
 }
 
-/* ---------- Table ---------- */
-.subuser-list {
-  padding: 10px;
-  background: var(--hi-card);
-  box-shadow: var(--hi-shadow);
+.tab:hover {
+  opacity: 0.9;
 }
 
-.subuser-list table {
-  width: 100%;
-  min-width: 900px;
-  border-collapse: collapse;
-  font-size: 13px;
+/* Cards layout */
+.affiliate-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
 }
 
-.subuser-list th {
-  text-align: left;
-  padding: 12px 14px;
-  background: linear-gradient(
-    180deg,
-    rgba(255,255,255,0.06),
-    rgba(255,255,255,0.01)
-  );
-  color: var(--hi-text);
-  white-space: nowrap;
+/* Card */
+.affiliate-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.subuser-list td {
-  padding: 10px 14px;
-  color: var(--hi-text-dim);
-  border-top: 1px solid var(--hi-border);
-  white-space: nowrap;
-  vertical-align: middle; 
+.affiliate-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
 }
-.status-wrap {
+
+/* Card header */
+.affiliate-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  height: 100%;
+  margin-bottom: 12px;
 }
 
-.subuser-list tr {
-  align-items: center;
-}
-.subuser-list tr:hover {
-  background: rgba(124,154,255,0.09);
-}
-
-/* ---------- Status Pills ---------- */
-.online,
-.offline {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 14px;   /* 🔥 REQUIRED */
-  min-width: 70px;     /* consistent width */
-  border-radius: 999px;
-  font-size: 12px;
+.affiliate-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
   font-weight: 700;
-  line-height: 1;
 }
 
-.online {
-  background: rgba(58,219,141,0.15);
-  color: var(--hi-success);
-}
-
-.offline {
-  background: rgba(255,107,107,0.15);
-  color: var(--hi-danger);
-}
-
-/* ---------- Action Buttons ---------- */
-.logout-btn {
-  background: #ffc048;
-  color: #222;
-  border: none;
+.status-badge {
   padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.status-badge.online {
+  background-color: #2ecc71;
+  color: #fff;
+}
+
+.status-badge.offline {
+  background-color: #e74c3c;
+  color: #fff;
+}
+
+/* Links */
+.affiliate-links {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.affiliate-link-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.link-label {
+  font-weight: 600;
+  min-width: 70px;
+  font-size: 0.85rem;
+}
+
+.link-label.primary {
+  color: #2563eb;
+}
+
+.link-label.secondary {
+  color: #9333ea;
+}
+
+.badge {
+  padding: 4px 8px;
   border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-   margin-right: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
-.logout-btn:hover {
-  background: #ffb703;
+.badge.ok {
+  background-color: #2ecc71;
+  color: #fff;
 }
 
-.delete-btn {
-  background: #dc3545;
-  color: white;
-  border: none;
-  padding: 6px 12px;
- 
-  border-radius: 6px;
-  cursor: pointer;
+.badge.error {
+  background-color: #e74c3c;
+  color: #fff;
+  margin-top: 0 !important;
 }
 
-.delete-btn:hover {
-  background: #c82333;
+.badge.warning {
+  background-color: #f39c12;
+  color: #fff;
 }
 
-/* ---------- Mobile Cards ---------- */
-@media (max-width: 600px) {
-  .subuser-list table {
-    display: none;
-  }
+/* Loading & no data */
+.loading,
+.no-data {
+  text-align: center;
+  font-size: 1rem;
+  color: #555;
+  margin-top: 2rem;
+}
 
-  .subuser-card {
-    background: var(--hi-card);
-    border: 1px solid var(--hi-border);
-    border-radius: var(--hi-radius);
-    box-shadow: var(--hi-shadow);
-    padding: 14px;
-    margin-bottom: 14px;
-  }
-
-  .subuser-card p {
-    margin: 4px 0;
-    font-size: 13px;
-    color: var(--hi-text-dim);
-  }
-
-  .subuser-card strong {
-    color: var(--hi-text);
+/* Responsive */
+@media (max-width: 768px) {
+  .affiliate-cards {
+    grid-template-columns: 1fr;
   }
 }
-
-
-.table-container {
-  max-height: 720px;        
-  overflow-y: auto;
-  overflow-x: hidden;  
-}
-
-.subuser-list {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;     /* prevents overflow */
-}
-

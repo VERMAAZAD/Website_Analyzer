@@ -32,23 +32,30 @@ const ScrapedSiteSchema = new mongoose.Schema({
     required: true
   },
   affiliateLink: { type: String, default: null },
-  categoryAffiliateLink: {
-    type: String,
-    default: "",
-    index: true,
-  },
-  affiliateCheckRunning: {
-    type: Boolean,
-    default: false
-  },
-  affiliateCheckReason: {
-    type: String,
-    default: null
-  },
-  affiliateCheckStatus: {
-    type: String,
-    enum: ["ok", "warning", "error", "checking"],
-    default: "checking"
+  categoryAffiliateLinks: {
+    primary: {
+      url: { type: String, default: "" },
+      status: {
+        type: String,
+        enum: ["ok", "warning", "error", "checking"],
+        default: "error"
+      },
+      reason: { type: String, default: null },
+      lastChecked: { type: Date },
+      redirectMismatch: { type: Boolean, default: false },
+      finalUrl: { type: String, default: "" }
+    },
+
+    secondary: {
+      url: { type: String, default: "" },
+      status: {
+        type: String,
+        enum: ["ok", "warning", "error", "checking"],
+        default: "error"
+      },
+      reason: { type: String, default: null },
+      lastChecked: { type: Date }
+    }
   },
   lastAffiliateCheck: { type: Date },
   issueDate: { type: Date, default: null },

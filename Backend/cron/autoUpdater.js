@@ -41,9 +41,18 @@ const ScrapedSite = require("../Models/ScrapedSite");
 
 let affiliateCronRunning = false;
 
-cron.schedule("0 * * * *", async () => {
+function normalizeUrl(url) {
+  try {
+    const u = new URL(url);
+    return `${u.protocol}//${u.host}${u.pathname.replace(/\/+$/, "")}`;
+  } catch {
+    return url;
+  }
+}
+
+cron.schedule("0 */2 * * *", async () => {
   if (affiliateCronRunning) {
-    console.log("⏭ Affiliate cron already running, skipping");
+    console.log("⏭ Affiliate cron already running");
     return;
   }
 
@@ -51,27 +60,69 @@ cron.schedule("0 * * * *", async () => {
   console.log("🔄 Affiliate cron started");
 
   try {
-    const affiliates = await ScrapedSite.find({
-      categoryAffiliateLink: { $ne: "" }
+    const sites = await ScrapedSite.find({
+      $or: [
+        { "categoryAffiliateLinks.primary.url": { $ne: "" } },
+        { "categoryAffiliateLinks.secondary.url": { $ne: "" } }
+      ]
     });
 
-    for (const site of affiliates) {
+    for (const site of sites) {
       try {
-        site.affiliateCheckRunning = true;
-        site.affiliateCheckStatus = "checking";
-        await site.save();
+        const primary = site.categoryAffiliateLinks.primary;
+        const secondary = site.categoryAffiliateLinks.secondary;
 
-        const result = await deepAffiliateCheck(site.categoryAffiliateLink);
+        let primaryResult = null;
+        let secondaryResult = null;
 
-        site.affiliateCheckStatus = result.status;
-        site.affiliateCheckReason = result.reason || null;
+        /* ===== PRIMARY ===== */
+        if (primary?.url) {
+          primaryResult = await deepAffiliateCheck(primary.url);
+          Object.assign(primary, {
+            status: primaryResult.status,
+            reason: primaryResult.reason || null,
+            finalUrl: primaryResult.finalUrl || "",
+            lastChecked: new Date(),
+            redirectMismatch: false // always reset
+          });
+        }
+
+        /* ===== SECONDARY ===== */
+        if (secondary?.url) {
+          secondaryResult = await deepAffiliateCheck(secondary.url);
+          Object.assign(secondary, {
+            status: secondaryResult.status,
+            reason: secondaryResult.reason || null,
+            lastChecked: new Date()
+          });
+        }
+
+        /* ===== REDIRECT MISMATCH ===== */
+        if (
+          primaryResult?.status === "ok" &&
+          secondaryResult?.status === "ok" &&
+          primaryResult.finalUrl
+        ) {
+          const primaryFinal = normalizeUrl(primaryResult.finalUrl);
+          const primaryOriginal = normalizeUrl(primary.url);
+          const secondaryExpected = normalizeUrl(secondary.url);
+
+          const didRedirect = primaryFinal !== primaryOriginal;
+
+          if (didRedirect && primaryFinal !== secondaryExpected) {
+            primary.redirectMismatch = true;
+            primary.reason = "REDIRECT_MISMATCH";
+          }
+        }
+
         site.lastAffiliateCheck = new Date();
-      } catch (e) {
-        site.affiliateCheckStatus = "error";
-        site.affiliateCheckReason = "CRON_FAILED";
-      } finally {
-        site.affiliateCheckRunning = false;
         await site.save();
+
+      } catch (err) {
+        console.error(
+          `❌ Affiliate check failed for ${site.domain}:`,
+          err.message
+        );
       }
     }
   } finally {
@@ -79,3 +130,4 @@ cron.schedule("0 * * * *", async () => {
     console.log("✅ Affiliate cron finished");
   }
 });
+

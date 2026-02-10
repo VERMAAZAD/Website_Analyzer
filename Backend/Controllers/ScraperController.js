@@ -565,20 +565,13 @@ exports.restoreManualErrorDomain = async (req, res) => {
 
 exports.saveCategoryAffiliate = async (req, res) => {
   try {
-    let { category, affiliateLink } = req.body;
+    let { category, primaryLink, secondaryLink } = req.body;
 
-    if (!category || !affiliateLink?.trim()) {
+    if (!category || (!primaryLink && !secondaryLink)) {
       return res.status(400).json({ error: "Missing data" });
     }
 
-    affiliateLink = affiliateLink.trim();
-
-     const query = {
-      brandCategory: category,
-      user: req.user._id   // ✅ FIX
-    };
-
-    const canManageAffiliate =
+     const canManageAffiliate =
       req.user.role === "admin" ||
       req.user.role === "user" ||
       req.user.affiliateAccess === true;
@@ -587,11 +580,25 @@ exports.saveCategoryAffiliate = async (req, res) => {
       return res.status(403).json({ error: "Affiliate access denied" });
     }
 
+     const query = {
+      brandCategory: category,
+      user: req.user._id   // ✅ FIX
+    };
    
 
     await ScrapedSite.updateMany(query, {
       $set: {
-        categoryAffiliateLink: affiliateLink,
+        ...(primaryLink && {
+          "categoryAffiliateLinks.primary.url": primaryLink.trim(),
+          "categoryAffiliateLinks.primary.status": "checking",
+          "categoryAffiliateLinks.primary.reason": null,
+        }),
+
+        ...(secondaryLink && {
+          "categoryAffiliateLinks.secondary.url": secondaryLink.trim(),
+          "categoryAffiliateLinks.secondary.status": "checking",
+          "categoryAffiliateLinks.secondary.reason": null,
+        }),
         lastAffiliateCheck: new Date()
       }
     });
@@ -625,8 +632,8 @@ exports.getAffiliateMismatch = async (req, res) => {
 
     let query = {
       statusCode: 200,
-      categoryAffiliateLink: { $ne: "" },
       affiliateLink: { $ne: null },
+      "categoryAffiliateLinks.primary.url": { $ne: "" },
       user: req.user._id 
     };
 
@@ -635,13 +642,15 @@ exports.getAffiliateMismatch = async (req, res) => {
     }
 
     const sites = await ScrapedSite.find(query)
-      .select("domain affiliateLink categoryAffiliateLink brandCategory")
+      .select("domain affiliateLink categoryAffiliateLinks brandCategory")
       .lean();
 
-      const errors = sites.filter(site => {
+    const errors = sites.filter(site => {
       const domainAff = normalizeAffiliate(site.affiliateLink);
-      const categoryAff = normalizeAffiliate(site.categoryAffiliateLink);
-      return domainAff !== categoryAff;
+      const primaryAff = normalizeAffiliate(
+        site.categoryAffiliateLinks?.primary?.url
+      );
+      return domainAff !== primaryAff;
     });
 
     res.json({
@@ -659,22 +668,24 @@ exports.getAffiliateMismatchCounts = async (req, res) => {
   try {
     let query = {
       statusCode: 200,
-      categoryAffiliateLink: { $ne: "" },
       affiliateLink: { $ne: null },
+      "categoryAffiliateLinks.primary.url": { $ne: "" },
       user: req.user._id 
     };
 
     const sites = await ScrapedSite.find(query)
-      .select("brandCategory affiliateLink categoryAffiliateLink")
+      .select("brandCategory affiliateLink categoryAffiliateLinks")
       .lean();
 
     const counts = {};
 
     sites.forEach(site => {
       const domainAff = normalizeAffiliate(site.affiliateLink);
-      const categoryAff = normalizeAffiliate(site.categoryAffiliateLink);
+      const primaryAff = normalizeAffiliate(
+        site.categoryAffiliateLinks?.primary.url
+      );
 
-      if (domainAff !== categoryAff) {
+      if (domainAff !== primaryAff) {
         counts[site.brandCategory] =
           (counts[site.brandCategory] || 0) + 1;
       }
@@ -692,12 +703,6 @@ exports.getCategoryAffiliate = async (req, res) => {
   try {
     const { category } = req.params;
 
-    let query = {
-      brandCategory: category,
-      categoryAffiliateLink: { $ne: "" },
-      user: req.user._id
-    };
-
      const canManageAffiliate =
       req.user.role === "admin" ||
       req.user.role === "user" ||
@@ -706,13 +711,22 @@ exports.getCategoryAffiliate = async (req, res) => {
     if (!canManageAffiliate) {
       return res.status(403).json({ error: "Affiliate access denied" });
     }
-    // Get ANY one record from category
-    const site = await ScrapedSite.findOne(query)
-      .select("categoryAffiliateLink")
+
+
+    const site = await ScrapedSite.findOne({
+      brandCategory: category,
+      user: req.user._id,
+      $or: [
+        { "categoryAffiliateLinks.primary": { $ne: "" } },
+        { "categoryAffiliateLinks.secondary": { $ne: "" } },
+      ],
+    })
+      .select("categoryAffiliateLinks")
       .lean();
 
     return res.json({
-      affiliateLink: site ? site.categoryAffiliateLink : null,
+      primaryLink: site?.categoryAffiliateLinks?.primary || "",
+      secondaryLink: site?.categoryAffiliateLinks?.secondary || "",
     });
   } catch (err) {
     console.error("Error fetching category affiliate:", err);
@@ -724,23 +738,34 @@ exports.getCategoryAffiliate = async (req, res) => {
 
 exports.getCategoryAffiliateStatus = async (req, res) => {
   try {
-    let query = {
-      categoryAffiliateLink: { $exists: true, $ne: "" },
-      user: req.user._id 
-    };
 
-     const canManageAffiliate =
-      req.user.role === "admin" ||
-      req.user.role === "user" ||
-      req.user.affiliateAccess === true;
-
-    const sites = await ScrapedSite.find(query)
-      .select("brandCategory categoryAffiliateLink")
+    const sites = await ScrapedSite.find({
+      user: req.user._id,
+      $or: [
+        { "categoryAffiliateLinks.primary": { $ne: "" } },
+        { "categoryAffiliateLinks.secondary": { $ne: "" } },
+      ],
+    })
+      .select("brandCategory categoryAffiliateLinks")
       .lean();
 
     const map = {};
-    sites.forEach(s => {
-      map[s.brandCategory] = true;
+
+    sites.forEach(site => {
+       if (!map[site.brandCategory]) {
+          map[site.brandCategory] = {
+            primary: false,
+            secondary: false,
+          };
+        }
+
+      if (site.categoryAffiliateLinks?.primary?.url) {
+        map[site.brandCategory].primary = true;
+      }
+
+      if (site.categoryAffiliateLinks?.secondary?.url) {
+        map[site.brandCategory].secondary = true;
+      }
     });
 
     res.json(map);

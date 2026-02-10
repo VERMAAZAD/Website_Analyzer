@@ -157,3 +157,42 @@
 .tab:hover {
   opacity: 0.9;
 }
+
+
+.affiliate-links-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.affiliate-link-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  word-break: break-all;
+}
+
+.link-label {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.link-label.primary {
+  color: #2563eb;
+}
+
+.link-label.secondary {
+  color: #9333ea;
+}
+
+.match-badge.success {
+  background: #16a34a;
+  color: #fff;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.no-affiliate{
+  margin-left: 20px;
+}

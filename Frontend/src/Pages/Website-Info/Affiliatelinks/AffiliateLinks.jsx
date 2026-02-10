@@ -5,8 +5,7 @@ import "./AffiliateLinks.css";
 const AffiliateLinks = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("working");
-
+  const [activeTab, setActiveTab] = useState("both-ok");
 
   const token = localStorage.getItem("token");
   const superCategory = localStorage.getItem("superCategory") || "natural";
@@ -39,36 +38,76 @@ const AffiliateLinks = () => {
     return () => clearInterval(interval);
   }, [superCategory]);
 
-  const filteredData = data.filter(item => {
-  if (activeTab === "working") return item.affiliateStatus === "ok";
-  if (activeTab === "error") return item.affiliateStatus === "error";
-  return true;
-});
+   const filteredData = data.filter(item => {
+    const pStatus = item.categoryAffiliateLinks?.primary;
+    const sStatus = item.categoryAffiliateLinks?.secondary;
+
+    if (!pStatus || !sStatus) return false;
+
+     if (activeTab === "both-ok") {
+      return pStatus.status === "ok" && sStatus.status === "ok" && !pStatus.redirectMismatch;
+    }
+
+    if (activeTab === "primary-error") {
+      return pStatus.status === "error";
+    }
+
+    if (activeTab === "secondary-error") {
+      return pStatus.status === "ok" && sStatus.status === "error";
+    }
+
+    if (activeTab === "both-error") {
+      return pStatus.status === "error" && sStatus.status === "error";
+    }
+
+    if (activeTab === "redirect-error") {
+      return pStatus.status === "ok" && sStatus.status === "ok" && pStatus.redirectMismatch;
+    }
+
+    return true;
+  });
 
   return (
     <section className="affiliate-page">
       <h2>Affiliate Links</h2>
-      <div className="affiliate-tabs">
+         <div className="affiliate-tabs">
         <button
-          className={activeTab === "working" ? "tab active" : "tab"}
-          onClick={() => setActiveTab("working")}
+          className={activeTab === "both-ok" ? "tab active" : "tab"}
+          onClick={() => setActiveTab("both-ok")}
         >
-           Working
+          Both Working
         </button>
 
         <button
-          className={activeTab === "error" ? "tab active" : "tab"}
-          onClick={() => setActiveTab("error")}
+          className={activeTab === "primary-error" ? "tab active" : "tab"}
+          onClick={() => setActiveTab("primary-error")}
         >
-           Not Working
+          Primary (Clocker Link) Error
+        </button>
+
+        <button
+          className={activeTab === "secondary-error" ? "tab active" : "tab"}
+          onClick={() => setActiveTab("secondary-error")}
+        >
+          Secondary (Main Link) Error
+        </button>
+
+        <button
+          className={activeTab === "both-error" ? "tab active" : "tab"}
+          onClick={() => setActiveTab("both-error")}
+        >
+          Both Error
+        </button>
+
+        <button
+          className={activeTab === "redirect-error" ? "tab active" : "tab"}
+          onClick={() => setActiveTab("redirect-error")}
+        >
+          Redirect Error
         </button>
       </div>
 
-      {loading ? (
-        <p>Loading...</p>
-      ) : data.length === 0 ? (
-        <p>No affiliate links added yet.</p>
-      ) : (
+     
         <table className="affiliate-table">
           <thead>
             <tr>
@@ -77,57 +116,63 @@ const AffiliateLinks = () => {
               <th className="status-th">Status</th>
             </tr>
           </thead>
-          <tbody>
-            {filteredData.map(item => (
-              <tr key={item.category}>
-                <td>{item.category}</td>
+           {loading ? (
+        <p>Loading...</p>
+      ) : filteredData.length === 0 ? (
+       <p className="no-affiliate"> No affiliate links.</p>
+      ) : (
+              <tbody>
+            {filteredData.map(item => {
+              const p = item.categoryAffiliateLinks?.primary;
+              const s = item.categoryAffiliateLinks?.secondary;
 
-                <td>
-                  <a
-                    href={item.affiliateLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {item.affiliateLink}
-                  </a>
-                </td>
+              return (
+                <tr key={item.category}>
+                  <td>{item.category}</td>
 
-                 <td className="status-affiliate">
-                    <div className="status-box">
-                    {item.checking && <span className="spinner"></span>}
-
-                    {!item.checking && item.affiliateStatus === "ok" && (
-                      <span className="online">Working</span>
+                  <td className="affiliate-links-cell">
+                    {p?.url && (
+                      <div className="affiliate-link-row">
+                        <strong>Clocker Link:</strong>{" "}
+                        <a href={p.url} target="_blank" rel="noreferrer">
+                          {p.url}
+                        </a>
+                        <span className={`badge ${p.status}`}>
+                          {p.status}
+                        </span>
+                      </div>
                     )}
 
-                    {!item.checking && item.affiliateStatus === "warning" && (
-                      <span className="warning">
-                        Tracking Hidden(
-                        {item.affiliateReason && (
-                          <small className="status-reason">
-                            {item.affiliateReason.replace(/_/g, " ")}
-                          </small>
-                        )})
-                      </span>
+                    {s?.url && (
+                      <div className="affiliate-link-row">
+                        <strong>Affiliate Link:</strong>{" "}
+                        <a href={s.url} target="_blank" rel="noreferrer">
+                          {s.url}
+                        </a>
+                        <span className={`badge ${s.status}`}>
+                          {s.status}
+                        </span>
+                      </div>
                     )}
-
-                    {!item.checking && item.affiliateStatus === "error" && (
-                      <span className="offline">
-                        Not Working (
-                        {item.affiliateReason && (
-                          <small className="status-reason">
-                            {item.affiliateReason.replace(/_/g, " ")}
-                          </small>
-                        )})
-                      </span>
-                    )}
-                    </div>
                   </td>
-              </tr>
-            ))}
+
+                   <td>
+                    {p.status === "ok" && s.status === "ok" ? (
+                      p.redirectMismatch ? (
+                        <span className="warning">Redirect Mismatch</span>
+                      ) : (
+                        <span className="online">Working</span>
+                      )
+                    ) : (
+                      <span className="offline">Not Working</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
+            )}
         </table>
-      )}
     </section>
   );
 };

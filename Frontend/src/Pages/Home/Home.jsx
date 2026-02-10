@@ -14,10 +14,12 @@ const Home = () => {
   const [lastReloadTime, setLastReloadTime] = useState(null);
   const [affiliateStatus, setAffiliateStatus] = useState({});
 
+  const [primaryAffiliateLink, setPrimaryAffiliateLink] = useState("");
+  const [secondaryAffiliateLink, setSecondaryAffiliateLink] = useState("");
+
 
   const [showModal, setShowModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [affiliateLink, setAffiliateLink] = useState("");
   const [saving, setSaving] = useState(false);
 
   const [mismatchCounts, setMismatchCounts] = useState({});
@@ -66,7 +68,7 @@ const apiBase =
       setCategories(categoriesRes.data);
       setCounts(countsRes.data);
       setMismatchCounts(mismatchRes.data);
-       setAffiliateStatus(affiliateStatusRes.data);
+      setAffiliateStatus(affiliateStatusRes.data);
 
       setLastReloadTime(new Date());
     } catch (err) {
@@ -92,7 +94,6 @@ const apiBase =
 
   const openAffiliateModal = async (category) => {
   setSelectedCategory(category);
-  setAffiliateLink("");
   setShowModal(true);
   try {
     const res = await axios.get(
@@ -102,8 +103,9 @@ const apiBase =
       }
     );
 
-    if (res.data?.affiliateLink) {
-      setAffiliateLink(res.data.affiliateLink);
+    if (res.data) {
+      setPrimaryAffiliateLink(res.data.primaryLink.url || "");
+      setSecondaryAffiliateLink(res.data.secondaryLink.url || "");
     }
   } catch (err) {
     console.error("Failed to load affiliate link", err);
@@ -112,8 +114,11 @@ const apiBase =
 
 
 const saveAffiliateLink = async () => {
-  if (!affiliateLink.trim()) {
-    handleError("Please enter affiliate link");
+  if (
+    !primaryAffiliateLink.trim() &&
+    !secondaryAffiliateLink.trim()
+  ) {
+    handleError("Please enter at least one affiliate link");
     return;
   }
 
@@ -123,7 +128,8 @@ const saveAffiliateLink = async () => {
       `${import.meta.env.VITE_API_URI}/${apiBase}/category-affiliate`,
       {
         category: selectedCategory,
-        affiliateLink,
+        primaryLink: primaryAffiliateLink,
+        secondaryLink: secondaryAffiliateLink,
       },
       {
         headers: { Authorization: `Bearer ${token}` },
@@ -149,12 +155,12 @@ const isAffiliateHealthy = (category) => {
   );
 };
 
-
 const hasAffiliate = (category) => {
-  return affiliateStatus[category] === true;
+  return (
+    affiliateStatus[category]?.primary ||
+    affiliateStatus[category]?.secondary
+  );
 };
-
-
 
   return (
     <Layout>
@@ -236,9 +242,16 @@ const hasAffiliate = (category) => {
 
       <input
         type="text"
-        placeholder="Paste affiliate link..."
-        value={affiliateLink}
-        onChange={(e) => setAffiliateLink(e.target.value)}
+        placeholder="Primary(Clockar Link) affiliate link"
+        value={primaryAffiliateLink}
+        onChange={(e) => setPrimaryAffiliateLink(e.target.value)}
+      />
+
+      <input
+        type="text"
+        placeholder="Secondary(Main Link) affiliate link"
+        value={secondaryAffiliateLink}
+        onChange={(e) => setSecondaryAffiliateLink(e.target.value)}
       />
 
       <div className="modal-actions">
