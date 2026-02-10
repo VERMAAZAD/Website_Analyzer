@@ -449,7 +449,7 @@ exports.refreshStatusesAndGetErrors = async (req, res) => {
       site.statusCode = statusCode || 526;
       site.failingUrl = site.statusCode !== 200 ? failingUrl : null;
       site.lastChecked = new Date();
-      await site.save();
+      await site.save({ validateBeforeSave: false });
 
       return site;
     };
@@ -560,7 +560,6 @@ exports.restoreManualErrorDomain = async (req, res) => {
 
   res.json({ success: true });
 };
-
 
 
 exports.saveCategoryAffiliate = async (req, res) => {
