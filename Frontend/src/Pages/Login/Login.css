@@ -8,13 +8,13 @@ body{
   display: flex;
   align-items: center;
   justify-content: center;
-  background-image: url('./website_background.jpg');
+  background-image: url('../../../public/website_background.jpg');
   background-repeat: no-repeat;
   background-size: cover;
   font-family:'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
 }
 .login-right{
-  background-image: url('./form-right-image.png');
+  background-image: url('../../../public/form-right-image.png');
   background-repeat: no-repeat;
   background-size: cover;
 }
