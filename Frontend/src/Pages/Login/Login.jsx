@@ -104,9 +104,12 @@ const Login = () => {
     };
 
   return (
-    <div className="login-container">
+  <div className="bg-login">
+    <div className="login-wrapper">
+      <div className="login-left">
       <form className="login-form" onSubmit={step === 1 ? handleLogin : handleVerifyCode}>
         <h2>{step === 1 ? 'Login' : 'Verify Code'}</h2>
+        <p>Welcome back! Please enter your details</p>
 
         {step === 1 && (
           <>
@@ -164,7 +167,7 @@ const Login = () => {
           {loading ? (
             <div className="spinner-login"></div> // show spinner inside button
           ) : step === 1 ? (
-            'Login Now'
+            'Log in'
           ) : (
             'Verify & Login'
           )}
@@ -178,7 +181,13 @@ const Login = () => {
           </div>
         )}
       </form>
+      </div>
+      <div
+          className="login-right"
+          
+        ></div>
     </div>
+  </div>
   );
 };
 

@@ -57,6 +57,15 @@ const ScrapedSiteSchema = new mongoose.Schema({
       lastChecked: { type: Date }
     }
   },
+  affiliateAlertSent: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
+  affiliateAlertSentAt: {
+    type: Date,
+    default: null,
+  },
   lastAffiliateCheck: { type: Date },
   issueDate: { type: Date, default: null },
   note: { type: String, default: '' },
