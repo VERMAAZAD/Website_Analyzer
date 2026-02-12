@@ -108,146 +108,203 @@ exports.checkTraffic = async (req, res) => {
 exports.GetallUniqueDomains = async (req, res) => {
   try {
     if (!req.userId && !req.user) {
-      console.error("❌ User not authenticated or req.user missing");
-      return res.status(401).json({ error: "Unauthorized: User not found in request" });
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const userId = req.userId || (req.user && req.user._id);
-    const userRole = (req.user && req.user.role) || "user";
+    const userId = req.userId || req.user?._id;
+    const userRole = req.user?.role || "user";
 
-    // base match condition: only records with domain
     const matchCondition = { domain: { $exists: true, $ne: "" } };
+
     if (userRole === "user") {
       matchCondition.userId = toObjectIdIfValid(userId);
     }
 
-    // compute IST date strings for today/yesterday, and compute UTC range to filter docs
     const now = new Date();
     const todayISTStr = getISTDateStr(now);
-    const yesterdayISTStr = getISTDateStr(new Date(now.getTime() - MS_IN_DAY));
+    const yesterdayISTStr = getISTDateStr(
+      new Date(now.getTime() - MS_IN_DAY)
+    );
 
-    // compute UTC start of yesterday IST (to reduce scanned docs)
-    const todayStartUTC = startOfISTDayUTC(now); // UTC instant when IST today starts
-    const yesterdayStartUTC = new Date(todayStartUTC.getTime() - MS_IN_DAY);
+    const todayStartUTC = startOfISTDayUTC(now);
+    const yesterdayStartUTC = new Date(
+      todayStartUTC.getTime() - MS_IN_DAY
+    );
 
-    // 1) All-time: group by domain + visitorId then per-domain counts
-    const allTime = await Trafficchecker.aggregate([
+    /* --------------------------------------------------
+       1️⃣ ALL TIME TOTAL VIEWS
+    -------------------------------------------------- */
+
+    const totalViewsAgg = await Trafficchecker.aggregate([
       { $match: matchCondition },
       {
         $group: {
-          _id: { domain: "$domain", visitorId: "$visitorId" },
-        },
+          _id: "$domain",
+          totalViews: { $sum: 1 }
+        }
+      }
+    ], { allowDiskUse: true });
+
+    /* --------------------------------------------------
+       2️⃣ ALL TIME UNIQUE VISITORS
+    -------------------------------------------------- */
+
+    const uniqueAgg = await Trafficchecker.aggregate([
+      { $match: matchCondition },
+      {
+        $group: {
+          _id: { domain: "$domain", visitor: "$visitorId" }
+        }
       },
       {
         $group: {
           _id: "$_id.domain",
-          totalViews: { $sum: 1 }, // count occurrences of (domain, visitorId) groups -> approximates unique visits
-          uniqueVisitors: { $sum: 1 }, // same as above (each group is a unique visitor per domain)
-        },
-      },
-      {
-        $project: {
-          domain: "$_id",
-          totalViews: 1,
-          uniqueVisitors: 1,
-          _id: 0,
-        },
-      },
+          uniqueVisitors: { $sum: 1 }
+        }
+      }
     ], { allowDiskUse: true });
 
-    // 2) Daily stats for yesterday & today: filter by timestamp >= yesterdayStartUTC
-    const dailyStats = await Trafficchecker.aggregate([
+    /* --------------------------------------------------
+       3️⃣ DAILY TOTALS (Today + Yesterday)
+    -------------------------------------------------- */
+
+    const dailyTotalAgg = await Trafficchecker.aggregate([
       {
         $match: {
           ...matchCondition,
-          timestamp: { $gte: yesterdayStartUTC }, // fetch only last two IST days worth of docs
-        },
+          timestamp: { $gte: yesterdayStartUTC }
+        }
       },
       {
         $group: {
           _id: {
             domain: "$domain",
-            visitorId: "$visitorId",
             day: {
               $dateToString: {
                 format: "%Y-%m-%d",
                 date: "$timestamp",
-                timezone: IST_TIMEZONE,
-              },
-            },
+                timezone: IST_TIMEZONE
+              }
+            }
           },
-        },
+          totalViews: { $sum: 1 }
+        }
+      }
+    ], { allowDiskUse: true });
+
+    /* --------------------------------------------------
+       4️⃣ DAILY UNIQUE (Safe grouping method)
+    -------------------------------------------------- */
+
+    const dailyUniqueAgg = await Trafficchecker.aggregate([
+      {
+        $match: {
+          ...matchCondition,
+          timestamp: { $gte: yesterdayStartUTC }
+        }
       },
       {
         $group: {
-          _id: { domain: "$_id.domain", day: "$_id.day" },
-          totalViews: { $sum: 1 },
-          uniqueVisitors: { $sum: 1 },
-        },
+          _id: {
+            domain: "$domain",
+            day: {
+              $dateToString: {
+                format: "%Y-%m-%d",
+                date: "$timestamp",
+                timezone: IST_TIMEZONE
+              }
+            },
+            visitor: "$visitorId"
+          }
+        }
       },
       {
-        $project: {
-          domain: "$_id.domain",
-          day: "$_id.day",
-          totalViews: 1,
-          uniqueVisitors: 1,
-          _id: 0,
-        },
-      },
+        $group: {
+          _id: {
+            domain: "$_id.domain",
+            day: "$_id.day"
+          },
+          uniqueVisitors: { $sum: 1 }
+        }
+      }
     ], { allowDiskUse: true });
 
-    // organize daily stats into map for quick lookup
-    const dailyMap = {};
-    dailyStats.forEach((s) => {
-      if (!dailyMap[s.domain]) {
-        dailyMap[s.domain] = {
-          today: { total: 0, unique: 0 },
-          yesterday: { total: 0, unique: 0 },
-        };
-      }
-      if (s.day === todayISTStr) {
-        dailyMap[s.domain].today = { total: s.totalViews, unique: s.uniqueVisitors };
-      } else if (s.day === yesterdayISTStr) {
-        dailyMap[s.domain].yesterday = { total: s.totalViews, unique: s.uniqueVisitors };
-      }
+    /* --------------------------------------------------
+       5️⃣ MERGE ALL RESULTS
+    -------------------------------------------------- */
+
+    const totalMap = {};
+    totalViewsAgg.forEach(t => {
+      totalMap[t._id] = { total: t.totalViews };
     });
 
-    // merge all-time with daily values and compute percent changes
-    const result = allTime.map((a) => {
-      const daily = dailyMap[a.domain] || {
-        today: { total: 0, unique: 0 },
-        yesterday: { total: 0, unique: 0 },
-      };
+    uniqueAgg.forEach(u => {
+      if (!totalMap[u._id]) totalMap[u._id] = {};
+      totalMap[u._id].unique = u.uniqueVisitors;
+    });
+
+    const dailyMap = {};
+
+    dailyTotalAgg.forEach(d => {
+      const { domain, day } = d._id;
+      if (!dailyMap[domain]) dailyMap[domain] = {};
+      if (!dailyMap[domain][day]) dailyMap[domain][day] = {};
+      dailyMap[domain][day].total = d.totalViews;
+    });
+
+    dailyUniqueAgg.forEach(d => {
+      const { domain, day } = d._id;
+      if (!dailyMap[domain]) dailyMap[domain] = {};
+      if (!dailyMap[domain][day]) dailyMap[domain][day] = {};
+      dailyMap[domain][day].unique = d.uniqueVisitors;
+    });
+
+    /* --------------------------------------------------
+       6️⃣ FINAL RESPONSE BUILD
+    -------------------------------------------------- */
+
+    const result = Object.keys(totalMap).map(domain => {
+
+      const today = dailyMap[domain]?.[todayISTStr] || {};
+      const yesterday = dailyMap[domain]?.[yesterdayISTStr] || {};
+
+      const todayTotal = today.total || 0;
+      const todayUnique = today.unique || 0;
+      const yesterdayTotal = yesterday.total || 0;
+      const yesterdayUnique = yesterday.unique || 0;
 
       const totalChange =
-        daily.yesterday.total > 0
-          ? (((daily.today.total - daily.yesterday.total) / daily.yesterday.total) * 100).toFixed(2)
+        yesterdayTotal > 0
+          ? (((todayTotal - yesterdayTotal) / yesterdayTotal) * 100).toFixed(2)
           : "N/A";
 
       const uniqueChange =
-        daily.yesterday.unique > 0
-          ? (((daily.today.unique - daily.yesterday.unique) / daily.yesterday.unique) * 100).toFixed(2)
+        yesterdayUnique > 0
+          ? (((todayUnique - yesterdayUnique) / yesterdayUnique) * 100).toFixed(2)
           : "N/A";
 
       return {
-        domain: a.domain,
-        allTimeTotal: a.totalViews,
-        allTimeUnique: a.uniqueVisitors,
-        todayTotal: daily.today.total,
-        todayUnique: daily.today.unique,
-        yesterdayTotal: daily.yesterday.total,
-        yesterdayUnique: daily.yesterday.unique,
+        domain,
+        allTimeTotal: totalMap[domain].total || 0,
+        allTimeUnique: totalMap[domain].unique || 0,
+        todayTotal,
+        todayUnique,
+        yesterdayTotal,
+        yesterdayUnique,
         totalChangePercent: totalChange,
-        uniqueChangePercent: uniqueChange,
+        uniqueChangePercent: uniqueChange
       };
     });
 
     res.json(result);
+
   } catch (err) {
     console.error("❌ Error fetching domain stats:", err);
     res.status(500).json({ error: "Failed to fetch domain stats" });
   }
 };
+
+
 
 /**
  * domainTraffic - visitor breakdown by country for a domain (supports ?filter=today)

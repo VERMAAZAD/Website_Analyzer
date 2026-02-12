@@ -81,8 +81,8 @@ const UserTraffic = () => {
     }
   });
 
-  const totalTraffic = sortedDomains.reduce((sum, d) => sum + (d.todayTotal || 0), 0);
-const totalUniqueTraffic = sortedDomains.reduce((sum, d) => sum + (d.todayUnique || 0), 0);
+  const totalTraffic = sortedDomains.reduce((sum, d) => sum + Number(d.todayTotal ?? 0), 0);
+const totalUniqueTraffic = sortedDomains.reduce((sum, d) => sum + Number(d.todayUnique ?? 0), 0);
 
 
   return (
@@ -152,7 +152,7 @@ const totalUniqueTraffic = sortedDomains.reduce((sum, d) => sum + (d.todayUnique
                               : "green",
                         }}
                       >
-                        {domain.totalChangePercent !== undefined
+                        {typeof  domain.totalChangePercent !== "number"
                           ? `${domain.totalChangePercent}%`
                           : "N/A"}
                       </td>
@@ -166,7 +166,7 @@ const totalUniqueTraffic = sortedDomains.reduce((sum, d) => sum + (d.todayUnique
                               : "green",
                         }}
                       >
-                        {domain.uniqueChangePercent !== undefined
+                        {typeof domain.uniqueChangePercent !== undefined
                           ? `${domain.uniqueChangePercent}%`
                           : "N/A"}
                       </td>
