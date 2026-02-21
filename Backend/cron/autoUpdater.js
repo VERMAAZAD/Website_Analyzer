@@ -1,7 +1,5 @@
 const cron = require('node-cron');
 const { updateChangedDomains } = require('../Controllers/UpdaterController');
-const sendMail = require("../Utils/sendEmail");
-const affiliateAlertEmail = require("../Utils/affiliateAlertEmail");
 
 
 const fakeReq = {
@@ -40,6 +38,7 @@ cron.schedule("0 * * * *", async () => {
 
 const deepAffiliateCheck = require("../Utils/deepAffiliateCheck");
 const ScrapedSite = require("../Models/ScrapedSite");
+const appendToSheet = require("../Utils/googleSheetLogger");
 
 let affiliateCronRunning = false;
 
@@ -52,7 +51,7 @@ function normalizeUrl(url) {
   }
 }
 
-cron.schedule("0 */2 * * *", async () => {
+cron.schedule("*/5 * * * *", async () => {
   if (affiliateCronRunning) {
     console.log("⏭ Affiliate cron already running");
     return;
@@ -160,20 +159,29 @@ cron.schedule("0 */2 * * *", async () => {
       }
     }
 
-    // Send one email per user per category
-    for (const alert of Object.values(brokenByUserCategory)) {
-      await sendMail(
-        alert.email,
-        `🚨 Broken Affiliate Links in Category: ${alert.category}`,
-        `Some affiliate links in your category "${alert.category}" are broken. Check your dashboard.`,
-        affiliateAlertEmail({
-          category: alert.category,
-          domains: alert.domains || [] 
-        })
-      );
 
-      console.log(`📧 Alert sent for category ${alert.category} to ${alert.email}`);
-    }
+    const rows = [];
+
+for (const alert of Object.values(brokenByUserCategory)) {
+  for (const domainData of alert.domains) {
+    rows.push([
+      new Date().toISOString(),
+      alert.email,
+      alert.category,
+      domainData.domain,
+      domainData.primary?.url || "",
+      domainData.primary?.status || "",
+      domainData.secondary?.url || "",
+      domainData.secondary?.status || "",
+      domainData.redirectMismatch ? "YES" : "NO"
+    ]);
+  }
+}
+
+if (rows.length > 0) {
+  await appendToSheet(rows);
+  console.log("📊 Affiliate issues saved to Google Sheets");
+}
 
   } finally {
     affiliateCronRunning = false;
