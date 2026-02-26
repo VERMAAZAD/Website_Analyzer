@@ -1,11 +1,17 @@
+const User = require("../Models/User");
 const ScrapedSite = require("../Models/ScrapedSite");
 
 exports.categoryAffiliate = async (req, res) => {
   try {
+    const ownerId =
+    req.user.role === "sub-user"
+      ? req.user.parentUser
+      : req.user._id;
+
     const affiliates = await ScrapedSite.aggregate([
   {
     $match: {
-      user: req.user._id,
+      user: ownerId,
       $or: [
         { "categoryAffiliateLinks.primary.url": { $ne: "" } },
         { "categoryAffiliateLinks.secondary.url": { $ne: "" } }

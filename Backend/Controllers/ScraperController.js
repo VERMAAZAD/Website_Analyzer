@@ -561,6 +561,11 @@ exports.restoreManualErrorDomain = async (req, res) => {
   res.json({ success: true });
 };
 
+ const getOwnerId = (req) => {
+  return req.user.role === "sub-user"
+    ? req.user.parentUser
+    : req.user._id;
+};
 
 exports.saveCategoryAffiliate = async (req, res) => {
   try {
@@ -579,9 +584,11 @@ exports.saveCategoryAffiliate = async (req, res) => {
       return res.status(403).json({ error: "Affiliate access denied" });
     }
 
+   
+     const ownerId = getOwnerId(req);
      const query = {
       brandCategory: category,
-      user: req.user._id   // ✅ FIX
+      user: ownerId  // ✅ FIX
     };
    
 
@@ -628,12 +635,13 @@ const normalizeAffiliate = (url) => {
 exports.getAffiliateMismatch = async (req, res) => {
   try {
     const { category } = req.query;
+    const ownerId = getOwnerId(req);
 
     let query = {
       statusCode: 200,
       affiliateLink: { $ne: null },
       "categoryAffiliateLinks.primary.url": { $ne: "" },
-      user: req.user._id 
+      user: ownerId
     };
 
      if (category) {
@@ -665,11 +673,12 @@ exports.getAffiliateMismatch = async (req, res) => {
 
 exports.getAffiliateMismatchCounts = async (req, res) => {
   try {
+    const ownerId = getOwnerId(req);
     let query = {
       statusCode: 200,
       affiliateLink: { $ne: null },
       "categoryAffiliateLinks.primary.url": { $ne: "" },
-      user: req.user._id 
+      user: ownerId
     };
 
     const sites = await ScrapedSite.find(query)
@@ -697,7 +706,6 @@ exports.getAffiliateMismatchCounts = async (req, res) => {
   }
 };
 
-
 exports.getCategoryAffiliate = async (req, res) => {
   try {
     const { category } = req.params;
@@ -711,10 +719,10 @@ exports.getCategoryAffiliate = async (req, res) => {
       return res.status(403).json({ error: "Affiliate access denied" });
     }
 
-
+    const ownerId = getOwnerId(req);
     const site = await ScrapedSite.findOne({
       brandCategory: category,
-      user: req.user._id,
+      user: ownerId,
       $or: [
         { "categoryAffiliateLinks.primary": { $ne: "" } },
         { "categoryAffiliateLinks.secondary": { $ne: "" } },
@@ -737,9 +745,9 @@ exports.getCategoryAffiliate = async (req, res) => {
 
 exports.getCategoryAffiliateStatus = async (req, res) => {
   try {
-
+    const ownerId = getOwnerId(req);
     const sites = await ScrapedSite.find({
-      user: req.user._id,
+      user: ownerId,
       $or: [
         { "categoryAffiliateLinks.primary": { $ne: "" } },
         { "categoryAffiliateLinks.secondary": { $ne: "" } },

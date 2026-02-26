@@ -51,7 +51,7 @@ function normalizeUrl(url) {
   }
 }
 
-cron.schedule("*/5 * * * *", async () => {
+cron.schedule("0 * * * *", async () => {
   if (affiliateCronRunning) {
     console.log("⏭ Affiliate cron already running");
     return;
@@ -83,7 +83,7 @@ cron.schedule("*/5 * * * *", async () => {
 
         // Check primary link
         if (primary?.url) {
-          primaryResult = await deepAffiliateCheck(primary.url);
+         let primaryResult = await deepAffiliateCheck(primary.url);
           Object.assign(primary, {
             status: primaryResult.status,
             reason: primaryResult.reason || null,
@@ -96,7 +96,7 @@ cron.schedule("*/5 * * * *", async () => {
 
         // Check secondary link
         if (!primaryError && secondary?.url) {
-          secondaryResult = await deepAffiliateCheck(secondary.url);
+         let secondaryResult = await deepAffiliateCheck(secondary.url);
           Object.assign(secondary, {
             status: secondaryResult.status,
             reason: secondaryResult.reason || null,

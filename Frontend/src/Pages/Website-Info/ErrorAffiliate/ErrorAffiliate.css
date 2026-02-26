@@ -1,71 +1,173 @@
 .affiliate-errors {
-  padding: 20px;
-  background-color: #f7f9fc;
+  padding: 10px;
+  background: linear-gradient(to bottom right, #f4f7ff, #f9fbff);
+  min-height: 100vh;
+  font-family: "Inter", sans-serif;
 }
 
+/* ============================= */
+/* Header */
+/* ============================= */
+
 .page-header {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
+}
+
+.page-header h2 {
+  font-size: 26px;
+  font-weight: 700;
+  color: #1e1e2f;
+  margin-bottom: 6px;
 }
 
 .page-header h2 span {
   color: #6c63ff;
-  font-weight: 500;
-}
-
-.back-btn {
-  width: fit-content;
-  background: none;
-  border: none;
-  color: #6c63ff;
-  cursor: pointer;
-  font-size: 14px;
+  font-weight: 600;
 }
 
 .count-info {
-  font-size: 14px;
+  font-size: 15px;
   color: #555;
+  background: #eef0ff;
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 10px;
+  font-weight: 500;
 }
 
+/* ============================= */
+/* Table Wrapper */
+/* ============================= */
+
 .table-wrapper {
+  background: #ffffff;
+  border-radius: 5px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
   overflow-x: auto;
 }
+
+/* ============================= */
+/* Table Styling */
+/* ============================= */
 
 .error-table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 800px;
 }
 
-.error-table th,
-.error-table td {
-  padding: 12px;
-  border-bottom: 1px solid #eee;
-  text-align: left;
+/* Header */
+
+.error-table thead {
+  background: linear-gradient(to right, #ecebff, #ecebff);
+  color: #000;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .error-table th {
-  background: #f8f9ff;
-  font-weight: 600;
+  padding: 13px;
+  font-size: 14px;
+  text-align: start;
+  letter-spacing: 0.5px;
 }
 
-.domain {
-  font-weight: 500;
+/* Body */
+
+.error-table td {
+  padding: 14px 16px;
+  font-size: 14px;
+  border-bottom: 1px solid #f1f1f1;
+  transition: background 0.3s ease;
 }
+
+.error-table tbody tr:hover {
+  background: #f5f7ff;
+}
+
+/* Domain Column */
+
+.domain {
+  font-weight: 600;
+  color: #1e1e2f;
+}
+
+/* Bad Affiliate */
 
 .bad-link {
   color: #d93025;
-  word-break: break-all;
+  background: rgba(217, 48, 37, 0.08);
+  padding: 6px 10px;
+  border-radius: 6px;
+  word-break: break-word;
+  font-size: 13px;
 }
+
+/* Good Affiliate */
 
 .good-link {
   color: #188038;
-  word-break: break-all;
+  background: rgba(24, 128, 56, 0.08);
+  padding: 6px 10px;
+  border-radius: 6px;
+  word-break: break-word;
+  font-size: 13px;
 }
 
+/* ============================= */
+/* Empty State */
+/* ============================= */
+
 .empty-state {
-  padding: 40px;
+  padding: 60px 20px;
   text-align: center;
+  font-size: 16px;
   color: #666;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
+}
+
+/* ============================= */
+/* Responsive Mobile Layout */
+/* ============================= */
+
+@media (max-width: 768px) {
+  .error-table thead {
+    display: none;
+  }
+
+  .error-table,
+  .error-table tbody,
+  .error-table tr,
+  .error-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .error-table tr {
+    background: #ffffff;
+    margin-bottom: 18px;
+    padding: 18px;
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+  }
+
+  .error-table td {
+    border: none;
+    padding: 8px 0;
+    font-size: 14px;
+  }
+
+  .error-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    display: block;
+    color: #6c63ff;
+    margin-bottom: 4px;
+    font-size: 12px;
+    text-transform: uppercase;
+  }
 }

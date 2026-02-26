@@ -77,18 +77,22 @@ const ErrorAffiliate = () => {
                   <th>Category Affiliate</th>
                 </tr>
               </thead>
-              <tbody>
-                {errors.map((item, index) => (
-                  <tr key={item._id || index}>
-                    <td>{index + 1}</td>
-                    <td className="domain">{item.domain}</td>
-                    <td className="bad-link">{item.affiliateLink}</td>
-                    <td className="good-link">
-                      {item.categoryAffiliateLink}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
+               <tbody>
+                  {errors.map((item, index) => (
+                    <tr key={item._id || index}>
+                      <td data-label="#"> {index + 1} </td>
+                      <td data-label="Domain" className="domain">
+                        {item.domain}
+                      </td>
+                      <td data-label="Page Affiliate" className="bad-link">
+                        {item.affiliateLink}
+                      </td>
+                      <td data-label="Category Affiliate" className="good-link">
+                        {item.categoryAffiliateLinks.primary.url}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
             </table>
           </div>
         )}
