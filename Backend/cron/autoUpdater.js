@@ -61,7 +61,7 @@ cron.schedule("0 * * * *", async () => {
 let affiliateCronRunning = false;
 const CRON_TIMEOUT_MS = 55 * 60 * 1000;
 
-cron.schedule("*/5 * * * *", async () => {
+cron.schedule("30 * * * *", async () => {
   if (affiliateCronRunning) {
     console.log("⏭️ Affiliate cron already running");
     return;
