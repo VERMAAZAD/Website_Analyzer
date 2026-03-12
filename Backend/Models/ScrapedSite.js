@@ -32,6 +32,7 @@ const ScrapedSiteSchema = new mongoose.Schema({
     required: true
   },
   affiliateLink: { type: String, default: null },
+
   categoryAffiliateLinks: {
     primary: {
       url: { type: String, default: "" },
@@ -41,9 +42,19 @@ const ScrapedSiteSchema = new mongoose.Schema({
         default: "error"
       },
       reason: { type: String, default: null },
-      lastChecked: { type: Date },
+      finalUrl: { type: String, default: "" },
+      
+      // ✅ NEW: Track full redirect chain
+      redirectChain: [{ type: String }],  // Array of all URLs in redirect chain
+      
+      // ✅ NEW: Performance metrics
+      responseTime: { type: Number, default: 0 },  // milliseconds
+      httpStatus: { type: Number, default: null },
+      
+      // ✅ NEW: Redirect mismatch flag
       redirectMismatch: { type: Boolean, default: false },
-      finalUrl: { type: String, default: "" }
+      
+      lastChecked: { type: Date },
     },
 
     secondary: {
@@ -54,6 +65,15 @@ const ScrapedSiteSchema = new mongoose.Schema({
         default: "error"
       },
       reason: { type: String, default: null },
+      finalUrl: { type: String, default: "" },
+      
+      // ✅ NEW: Track full redirect chain
+      redirectChain: [{ type: String }],  // Array of all URLs in redirect chain
+      
+      // ✅ NEW: Performance metrics
+      responseTime: { type: Number, default: 0 },  // milliseconds
+      httpStatus: { type: Number, default: null },
+      
       lastChecked: { type: Date }
     }
   },

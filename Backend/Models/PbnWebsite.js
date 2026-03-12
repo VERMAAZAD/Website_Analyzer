@@ -15,7 +15,6 @@ const PbnWebsiteSchema = new mongoose.Schema({
 
     domain: {
       type: String,
-      index: true,
     },
 
     path: {
@@ -53,7 +52,6 @@ const PbnWebsiteSchema = new mongoose.Schema({
     timestamp: {
       type: Date,
       default: Date.now,
-      index: true,
     },
   });
   
