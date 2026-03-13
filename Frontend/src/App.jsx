@@ -38,6 +38,8 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import AffiliateLinksUser from './Pages/Website-Info/Affiliatelinks/AffiliateLinksUser';
 import AffiliateLinksAdmin from './Pages/Website-Info/Affiliatelinks/AffiliateLinksAdmin';
+import ProductivityToolUser from './Pages/ProductivityTool/ProductivityToolUser';
+import ProductivityToolAdmin from './Pages/ProductivityTool/ProductivityToolAdmin';
 
 function App() {
 
@@ -107,6 +109,7 @@ function App() {
         <Route path='/servers/:email/:platform' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><ServerListUser /></ProtectedRoute>}/>
         <Route path='/subusers' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><SubUserManagement /></ProtectedRoute>}/>
         <Route path='/affiliate-links' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><AffiliateLinksUser /></ProtectedRoute>}/>
+        <Route path='/id-tracker' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><ProductivityToolUser /></ProtectedRoute>}/>
 
 
       {/* Admin Routes */}
@@ -126,6 +129,7 @@ function App() {
       <Route path='/admin/hosting/domains/:email/:platform/:server' element={<ProtectedRoute allowedRoles={['admin']}><HostingDomainsAdmin /></ProtectedRoute>}/>
       <Route path='/admin/servers/:email/:platform' element={<ProtectedRoute allowedRoles={['admin']}><ServerListAdmin /></ProtectedRoute>}/>
       <Route path='/affiliate-links' element={<ProtectedRoute allowedRoles={['user', 'sub-user']}><AffiliateLinksAdmin /></ProtectedRoute>}/>
+      <Route path='/id-tracker' element={<ProtectedRoute allowedRoles={['admin']}><ProductivityToolAdmin /></ProtectedRoute>}/>
 
       </Routes>
       <ToastContainer

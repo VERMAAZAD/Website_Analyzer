@@ -1,0 +1,353 @@
+/* Color Variables */
+:root {
+  --bg: #f0f4f8;
+  --bg-card: #ffffff;
+  --bg-card2: #f8fafc;
+  --border: #e2e8f0;
+  --border2: #edf2f7;
+  --primary: #2563eb;
+  --secondary: #0891b2;
+  --accent: #7c3aed;
+  --green: #059669;
+  --orange: #d97706;
+  --red: #dc2626;
+  --yellow: #ca8a04;
+  --purple: #7c3aed;
+  --text-primary: #0f172a;
+  --text-sub: #94a3b8;
+  --text-mid: #475569;
+}
+
+/* Base Styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: var(--bg);
+  color: var(--text-primary);
+}
+
+/* Animations */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Utility Classes */
+.container {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.card-sm {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.gradient-primary {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+}
+
+.gradient-success {
+  background: linear-gradient(135deg, var(--green), var(--secondary));
+}
+
+.text-primary {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.text-sub {
+  color: var(--text-sub);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.text-mid {
+  color: var(--text-mid);
+}
+
+.button-primary {
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.button-primary:disabled {
+  background: var(--border);
+  color: var(--text-sub);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.button-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+}
+
+.button-secondary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff5f5;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-radius: 8px;
+  padding: 7px 14px;
+  color: var(--red);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.button-secondary:hover {
+  background: #fee2e2;
+}
+
+/* Search Bar */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 12px;
+}
+
+.search-bar input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 12px;
+  width: 140px;
+  flex: 1;
+}
+
+.search-bar input::placeholder {
+  color: var(--text-sub);
+}
+
+.search-bar button {
+  background: none;
+  border: none;
+  color: var(--text-sub);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.search-bar button:hover {
+  color: var(--text-primary);
+}
+
+/* KPI Card */
+.kpi-card {
+  background: var(--bg-card);
+  border-radius: 14px;
+  padding: 18px 20px;
+  flex: 1;
+  min-width: 140px;
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, currentColor, rgba(0, 0, 0, 0.4));
+}
+
+.kpi-card-label {
+  color: var(--text-sub);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.kpi-card-value {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin-bottom: 6px;
+}
+
+.kpi-card-sub {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  color: var(--text-mid);
+  font-size: 11px;
+}
+
+/* Table Styles */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+thead tr {
+  border-bottom: 2px solid var(--border);
+  background: var(--bg);
+}
+
+thead th {
+  padding: 10px 12px;
+  font-weight: 700;
+  font-size: 9px;
+  text-align: right;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--text-sub);
+}
+
+thead th:first-child {
+  text-align: left;
+}
+
+thead th:nth-child(2) {
+  text-align: left;
+}
+
+tbody tr {
+  border-bottom: 1px solid var(--border2);
+}
+
+tbody td {
+  padding: 10px 12px;
+  color: var(--text-mid);
+}
+
+tfoot tr {
+  border-top: 2px solid var(--border);
+  background: var(--bg);
+}
+
+tfoot td {
+  padding: 10px 12px;
+  color: var(--text-mid);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.8px;
+}
+
+/* Chart Container */
+.chart-container {
+  width: 100%;
+  height: 220px;
+  margin-bottom: 16px;
+}
+
+/* Badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  border: 1px solid;
+}
+
+/* Input Styles */
+input[type='text'],
+input[type='number'],
+input[type='file'] {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 8px 12px;
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+input[type='text']:focus,
+input[type='number']:focus {
+  border-color: var(--primary);
+}
+
+/* Loading Spinner */
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--primary);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+
+  .kpi-card {
+    min-width: 120px;
+    padding: 14px 16px;
+  }
+
+  .search-bar input {
+    width: 100px;
+  }
+
+  table {
+    font-size: 11px;
+  }
+
+  .chart-container {
+    height: 180px;
+  }
+}

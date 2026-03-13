@@ -184,10 +184,16 @@ const dashboardPath = DASHBOARD_ROUTES[user?.role] || "/login";
             <span>Traffic Checker</span>
           </li>
           {role === "user" && !loggedInUser.parentUser && (
+            <>
           <li><Link to="/subusers">
             <i className="fa-solid fa-users-gear"></i>
               <span>Manage SubUsers</span>
             </Link></li>
+          <li><Link to="/id-tracker">
+            <i className="fa-solid fa-chart-line"></i>
+              <span>Track & Scale</span>
+            </Link></li>
+            </>
            )}
 
             <li className="logout" onClick={handleLogout}>
