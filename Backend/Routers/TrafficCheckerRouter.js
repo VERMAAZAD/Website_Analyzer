@@ -1,5 +1,5 @@
 const express = require("express");
-const { checkTraffic, GetallUniqueDomains, domainTraffic, GetLast7DaysTraffic, GetTopCountries, GetLast7DaysByDomain, GetCountriesByDomain } = require("../Controllers/TrafficCheckerController");
+const { checkTraffic, GetallUniqueDomains, domainTraffic, GetLast7DaysTraffic, GetTopCountries, GetLast7DaysByDomain, GetCountriesByDomain, addOrUpdateNote, getNote, getAllNotes, deleteNote } = require("../Controllers/TrafficCheckerController");
 const router = express.Router();
 const ensureAuthenticated = require('../Middlewares/Auth');
 
@@ -13,6 +13,9 @@ router.get("/stats/top-countries", ensureAuthenticated, GetTopCountries);
 router.get("/stats/domains/:domain", ensureAuthenticated, GetLast7DaysByDomain);
 router.get("/stats/domain/:domain/countries", ensureAuthenticated, GetCountriesByDomain);
 
-
+router.post("/notes/add", ensureAuthenticated, addOrUpdateNote);
+router.get("/notes/:domain", ensureAuthenticated, getNote);
+router.get("/notes", ensureAuthenticated, getAllNotes);
+router.delete("/notes/:domain", ensureAuthenticated, deleteNote);
 
 module.exports = router;

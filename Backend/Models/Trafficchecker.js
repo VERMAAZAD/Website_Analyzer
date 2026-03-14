@@ -53,11 +53,23 @@ const trafficSchema = new mongoose.Schema({
           type: Date,
           default: Date.now,
         },
+
+        domainNote: {
+          type: String,
+          default: null,
+        },
+
+        isNoteOnly: {
+          type: Boolean,
+          default: false,
+        },
 });
 
 trafficSchema.index({ timestamp: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 7 });
 
 trafficSchema.index({ userId: 1, siteId: 1 });
 trafficSchema.index({ domain: 1 });
+trafficSchema.index({ userId: 1, domain: 1, domainNote: 1 });
+
 
 module.exports = mongoose.model("Trafficchecker", trafficSchema);

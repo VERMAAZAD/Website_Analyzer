@@ -631,3 +631,149 @@ exports.GetCountriesByDomain = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch country stats" });
   }
 };
+
+
+
+
+exports.addOrUpdateNote = async (req, res) => {
+  try {
+    const { domain, notes } = req.body;
+    const userId = req.userId || req.user?._id;
+ 
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+ 
+    if (!domain) {
+      return res.status(400).json({ error: "Domain is required" });
+    }
+ 
+    // Store notes as a special field in the first traffic record of that domain
+    // Update the note field in all traffic records for this domain
+    const result = await Trafficchecker.updateMany(
+      { userId: toObjectIdIfValid(userId), domain },
+      { $set: { domainNote: notes } }
+    );
+ 
+    // If no records exist yet, create a placeholder
+    if (result.matchedCount === 0) {
+      const noteDoc = new Trafficchecker({
+        userId: toObjectIdIfValid(userId),
+        domain,
+        domainNote: notes,
+        isNoteOnly: true,
+      });
+      await noteDoc.save();
+    }
+ 
+    res.json({ success: true, data: { domain, notes } });
+  } catch (err) {
+    console.error("Error adding/updating note:", err);
+    res.status(500).json({ error: "Failed to save note" });
+  }
+};
+ 
+/**
+ * getNote - Get note for a specific domain
+ */
+exports.getNote = async (req, res) => {
+  try {
+    const { domain } = req.params;
+    const userId = req.userId || req.user?._id;
+ 
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+ 
+    if (!domain) {
+      return res.status(400).json({ error: "Domain is required" });
+    }
+ 
+    const record = await Trafficchecker.findOne({
+      userId: toObjectIdIfValid(userId),
+      domain,
+      domainNote: { $exists: true, $ne: null },
+    }).select("domainNote");
+ 
+    const notes = record?.domainNote || "";
+ 
+    res.json({ success: true, data: { domain, notes } });
+  } catch (err) {
+    console.error("Error fetching note:", err);
+    res.status(500).json({ error: "Failed to fetch note" });
+  }
+};
+ 
+/**
+ * getAllNotes - Get all notes for user's domains
+ */
+exports.getAllNotes = async (req, res) => {
+  try {
+    const userId = req.userId || req.user?._id;
+
+    const notes = await Trafficchecker.aggregate([
+      {
+        $match: {
+          userId: toObjectIdIfValid(userId),
+          domainNote: { $exists: true, $ne: null },
+        },
+      },
+      {
+        $group: {
+          _id: "$domain",
+          domainNote: { $first: "$domainNote" },
+        },
+      },
+    ]);
+
+    res.json({ success: true, data: notes.map(n => ({
+      domain: n._id,
+      domainNote: n.domainNote
+    })) });
+
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch notes" });
+  }
+};
+ 
+/**
+ * deleteNote - Delete a note for a domain
+ */
+exports.deleteNote = async (req, res) => {
+  try {
+    const { domain } = req.params;
+    const userId = req.userId || req.user?._id;
+
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    if (!domain) {
+      return res.status(400).json({ error: "Domain is required" });
+    }
+
+    const userObjectId = toObjectIdIfValid(userId);
+
+    // 1️⃣ Remove note from all traffic records
+    await Trafficchecker.updateMany(
+      { userId: userObjectId, domain },
+      { $set: { domainNote: null } }   // safer than $unset
+    );
+
+    // 2️⃣ Delete placeholder note document if it exists
+    await Trafficchecker.deleteMany({
+      userId: userObjectId,
+      domain,
+      isNoteOnly: true,
+    });
+
+    res.json({
+      success: true,
+      message: "Note deleted successfully",
+    });
+
+  } catch (err) {
+    console.error("Error deleting note:", err);
+    res.status(500).json({ error: "Failed to delete note" });
+  }
+};

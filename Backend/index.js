@@ -61,8 +61,6 @@ app.use("/adswebsite", AdsWebsiteRouter)
 app.use("/natural", NautraWebsiteRouter)
 app.use("/casinotraffic", CasinoTrafficRouter)
 app.use("/pbntraffic", PbnWebsiteRouter)
-
-
 app.use("/api", CreatelinkRoutes);
 app.get("/:slug", redirect);
 
