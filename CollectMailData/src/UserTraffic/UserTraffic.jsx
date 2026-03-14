@@ -12,6 +12,9 @@ const UserTraffic = () => {
   const [loadingStats, setLoadingStats] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOption, setSortOption] = useState("todayTotal");
+  const [notes, setNotes] = useState({});
+  const [editingDomain, setEditingDomain] = useState(null);
+  const [tempNote, setTempNote] = useState("");
 
   const [category, setCategory] = useState(
     localStorage.getItem("selectedCategory") || "traffic"
@@ -33,9 +36,6 @@ const UserTraffic = () => {
       .finally(() => setLoadingDomains(false));
   };
 
-  useEffect(() => {
-    fetchDomains(category);
-  }, []);
 
   useEffect(() => {
     const handleCategoryChange = () => {
@@ -84,6 +84,71 @@ const UserTraffic = () => {
   const totalTraffic = sortedDomains.reduce((sum, d) => sum + Number(d.todayTotal ?? 0), 0);
 const totalUniqueTraffic = sortedDomains.reduce((sum, d) => sum + Number(d.todayUnique ?? 0), 0);
 
+const fetchNotes = () => {
+  const token = localStorage.getItem("token");
+
+  axios
+    .get(`${import.meta.env.VITE_API_URI}/${category}/notes`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    .then((res) => {
+      const map = {};
+      res.data.data.forEach((n) => {
+        map[n.domain] = n.domainNote;
+      });
+      setNotes(map);
+    })
+    .catch((err) => console.error(err));
+};
+
+const saveNote = (domain) => {
+  const token = localStorage.getItem("token");
+
+   setNotes((prev) => ({
+    ...prev,
+    [domain]: tempNote,
+  }));
+
+  setEditingDomain(null);
+  setTempNote("");
+
+  axios
+    .post(
+      `${import.meta.env.VITE_API_URI}/${category}/notes/add`,
+      {
+        domain,
+        notes: tempNote,
+      },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    )
+    .catch((err) => {console.error(err); fetchNotes();} );
+};
+
+const deleteNote = (domain) => {
+  const token = localStorage.getItem("token");
+
+  setNotes((prev) => {
+    const updated = { ...prev };
+    delete updated[domain];
+    return updated;
+  });
+
+  axios
+    .delete(`${import.meta.env.VITE_API_URI}/${category}/notes/${domain}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    .catch((err) => {
+      console.error(err);
+     fetchNotes();
+    });
+};
+
+ useEffect(() => {
+    fetchDomains(category);
+    fetchNotes();
+  }, [category]);
 
   return (
     <Layout>
@@ -123,6 +188,7 @@ const totalUniqueTraffic = sortedDomains.reduce((sum, d) => sum + Number(d.today
                   <th>Change (Unique)</th>
                   <th>Today Traffic({totalTraffic})</th>
                   <th>Today Unique Traffic({totalUniqueTraffic})</th>
+                  <th>Notes</th>
                 </tr>
               </thead>
               <tbody>
@@ -172,6 +238,75 @@ const totalUniqueTraffic = sortedDomains.reduce((sum, d) => sum + Number(d.today
                       </td>
                       <td>{domain.todayTotal}</td>
                       <td>{domain.todayUnique}</td>
+                      <td>
+                        {editingDomain === domain.domain ? (
+                          <div className="note-edit">
+                            <input
+                              type="text"
+                              value={tempNote}
+                              onChange={(e) => setTempNote(e.target.value)}
+                              placeholder="Write note..."
+                            />
+
+                            <button
+                              className="note-save"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                saveNote(domain.domain);
+                              }}
+                            >
+                              <i class="fa-solid fa-check"></i>
+                            </button>
+
+                            <button
+                              className="note-cancel"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingDomain(null);
+                                setTempNote("");
+                              }}
+                            >
+                              <i class="fa-solid fa-xmark"></i>
+                            </button>
+                          </div>
+                        ) : notes[domain.domain] ? (
+                          <div className="note-display">
+                            <span>{notes[domain.domain]}</span>
+
+                            <button
+                              className="note-update"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingDomain(domain.domain);
+                                setTempNote(notes[domain.domain]);
+                              }}
+                            >
+                              <i className="fa-solid fa-pencil"></i>
+                            </button>
+
+                            <button
+                              className="note-delete"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteNote(domain.domain);
+                              }}
+                            >
+                              <i className="fa-solid fa-trash"></i>
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            className="note-add"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingDomain(domain.domain);
+                              setTempNote("");
+                            }}
+                          >
+                            Add Note
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))
                 )}

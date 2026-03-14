@@ -35,7 +35,7 @@
 .user-table td {
   padding: 12px 15px;
   border-bottom: 1px solid #ddd;
-  min-width: 200px;
+  min-width: 150px;
 }
 
 .user-table tbody tr:hover {
@@ -232,4 +232,58 @@
     margin-bottom: 15px;
     flex-direction: column;
   }
+}
+
+.note-add,
+.note-update {
+  background: #f8fbff;
+  color: #000;
+  border: 0.5px solid rgb(169, 169, 169);
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.note-edit{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+}
+
+.note-edit input {
+  padding: 4px;
+  margin-right: 6px;
+}
+
+.note-save {
+  background: green;
+  color: white;
+  border: none;
+  margin-right: 4px;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+
+.note-cancel {
+  background: red;
+  color: white;
+  border: none;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+
+.note-display {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.note-delete{
+  background:red;
+  color:white;
+  border:none;
+  padding:5px 8px;
+  margin-left:5px;
+  border-radius:4px;
+  cursor:pointer;
 }
