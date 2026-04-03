@@ -22,6 +22,7 @@ const AdsWebsiteRouter = require('./Routers/AdsWebsiteRouter')
 const NautraWebsiteRouter = require('./Routers/NautraWebsiteRouter')
 const CasinoTrafficRouter = require('./Routers/CasinoTrafficRouter');
 const PbnWebsiteRouter = require('./Routers/PbnWebsiteRouter');
+const IndexCheckerRouter = require('./Routers/IndexCheckerRouter');
 
 const CreatelinkRoutes = require('./Routers/CreatelinkRoutes');
 const { redirect } = require("./Controllers/LinkController");
@@ -48,6 +49,7 @@ app.get('/', (req, res) => {
 });
 app.use('/auth', AuthRouter)
 app.use('/api/subusers', SubUserRoutes)
+app.use('/api/indexcheck', IndexCheckerRouter);
 app.use('/api/scraper', ScraperRouter);
 app.use('/api/affiliate', AffiliateRouter);
 app.use('/admin', AdminRouter);

@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const { checkBingIndex } = require('../Controllers/BingIndexChecker');
 const {
   scrapeWebsite,
   saveScrapedData,
@@ -15,7 +14,6 @@ const {
   renewDomain,
   updateNote,
   deleteNote,
-  getUnindexedDomains,
   saveHostingInfo,
   getHostingInfo,
   updateDomainName,
@@ -57,8 +55,6 @@ router.post('/renew', ensureAuthenticated, renewDomain);
 router.get('/update-changed', ensureAuthenticated, updateChangedDomains);
 router.put('/note/:domain', ensureAuthenticated, updateNote);
 router.delete('/note/:domain', ensureAuthenticated, deleteNote);
-router.get('/bing-check', ensureAuthenticated, checkBingIndex);
-router.get('/unindexed-domains', ensureAuthenticated, getUnindexedDomains);
 router.put('/hosting-info/:domain', ensureAuthenticated, saveHostingInfo);
 router.get('/hosting-info/:domain', ensureAuthenticated, getHostingInfo);
 router.put("/update-domain-name", ensureAuthenticated, updateDomainName);

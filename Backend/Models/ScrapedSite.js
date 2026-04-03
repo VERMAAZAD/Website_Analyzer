@@ -89,8 +89,25 @@ const ScrapedSiteSchema = new mongoose.Schema({
   lastAffiliateCheck: { type: Date },
   issueDate: { type: Date, default: null },
   note: { type: String, default: '' },
-  isIndexedOnBing: { type: Boolean, default: false },
-  lastBingCheck: { type: Date },
+  
+  isIndexedOnBing: { 
+    type: Boolean, 
+    default: false,
+    index: true,  // Index for faster queries
+  },
+  lastBingCheck: { 
+    type: Date,
+    index: true,  // Index for date-based filtering
+  },
+  bingFirstResult: { 
+    type: String,
+    default: null 
+  },
+  bingResultCount: { 
+    type: Number,
+    default: 0 
+  },
+
   hostingInfo: {
     platform: { type: String, default: "" },
     email: { type: String, default: "" },
@@ -120,5 +137,9 @@ const ScrapedSiteSchema = new mongoose.Schema({
   default: false,
 },
 });
+
+ScrapedSiteSchema.index({ user: 1, isIndexedOnBing: 1 });
+ScrapedSiteSchema.index({ lastBingCheck: 1 });
+ScrapedSiteSchema.index({ user: 1, lastBingCheck: 1 });
 
 module.exports = mongoose.model('ScrapedSite', ScrapedSiteSchema);
