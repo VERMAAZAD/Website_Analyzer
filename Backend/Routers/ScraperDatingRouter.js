@@ -42,8 +42,6 @@ router.post('/renew', ensureAuthenticated, renewDomain);
 router.get('/update-changed', ensureAuthenticated, updateChangedDomains);
 router.put('/note/:domain', ensureAuthenticated, updateNote);
 router.delete('/note/:domain', ensureAuthenticated, deleteNote);
-router.get('/bing-check', ensureAuthenticated, checkBingIndex);
-router.get('/unindexed-domains', ensureAuthenticated, getUnindexedDomains);
 router.put('/hosting-info/:domain', ensureAuthenticated, saveHostingInfo);
 router.get('/hosting-info/:domain', ensureAuthenticated, getHostingInfo);
 router.put("/update-domain-name", ensureAuthenticated, updateDomainName);

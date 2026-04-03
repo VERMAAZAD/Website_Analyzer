@@ -583,7 +583,6 @@ exports.saveCategoryAffiliate = async (req, res) => {
     if (!canManageAffiliate) {
       return res.status(403).json({ error: "Affiliate access denied" });
     }
-
    
      const ownerId = getOwnerId(req);
      const query = {
@@ -1144,43 +1143,5 @@ exports.updateDomainName = async (req, res) => {
     res
       .status(500)
       .json({ message: "Server error while updating domain name." });
-  }
-};
-
-
-exports.getUnindexedDomains = async (req, res) => {
-  try {
-    if (!req.user || !req.user._id) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    // 🧠 Role-based filter logic
-    let query = { isIndexedOnBing: false };
-
-    if (req.user.role === "admin") {
-      // Admin → all users
-    } else if (req.user.parentUser) {
-      // Sub-user → parent’s data
-      query.user = req.user.parentUser;
-    } else {
-      // Normal user → own data
-      query.user = req.user._id;
-    }
-
-    // 🧾 Fetch unindexed domains
-    const sites = await ScrapedSite.find(query)
-      .select("domain lastBingCheck user")
-      .lean();
-
-    // 🧹 Prepare output
-    const unindexed = sites.map(site => ({
-      domain: site.domain,
-      lastBingCheck: site.lastBingCheck || null,
-    }));
-
-    res.json({ unindexed });
-  } catch (err) {
-    console.error("❌ Error fetching unindexed domains:", err.message);
-    res.status(500).json({ error: "Failed to fetch unindexed domains" });
   }
 };

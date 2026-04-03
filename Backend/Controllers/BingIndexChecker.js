@@ -22,7 +22,6 @@ function getOrCreateQueue(userId) {
       checkedCount: 0,
       blockedCount: 0,
       startTime: null,
-      // clientSocket: null,  // Removed: was initialized but never used
     });
   }
   return checkingQueues.get(userId);
@@ -45,6 +44,33 @@ function getQueueStatus(userId) {
   };
 }
 
+// ============ HELPER: resolve effective owner ID ============
+
+/**
+ * Returns the effective owner _id to use in DB queries.
+ * - admin    → null (no user filter)
+ * - sub-user → parentUser
+ * - user     → req.user._id
+ */
+function getOwnerId(req) {
+  if (req.user.role === 'admin') return null;
+  if (req.user.parentUser) return req.user.parentUser;
+  return req.user._id;
+}
+
+/**
+ * Build a Mongoose filter that already includes the correct user scope.
+ * Pass extra fields to merge them in.
+ */
+function buildFilter(req, extra = {}) {
+  const ownerId = getOwnerId(req);
+  if (ownerId === null) {
+    // Admin — no user restriction
+    return { ...extra };
+  }
+  return { user: ownerId, ...extra };
+}
+
 // ============ MAIN ENDPOINTS ============
 
 /**
@@ -60,42 +86,22 @@ exports.startBingCheck = async (req, res) => {
     const userId = req.user._id.toString();
     const queue = getOrCreateQueue(userId);
 
-    // Get domains to check
     let domainsToCheck = [];
-    
+
     if (req.query.domains) {
       // From query parameter
       domainsToCheck = req.query.domains.split(',').map(d => d.trim()).filter(d => d);
     } else {
-      // From database - all unchecked domains for this user
+      // From database — all unchecked domains scoped to this user/sub-user/admin
       const startOfToday = new Date();
       startOfToday.setUTCHours(0, 0, 0, 0);
 
-      let filter;
-      if (req.user.role === "admin") {
-        filter = {
-          $or: [
-            { lastBingCheck: { $exists: false } },
-            { lastBingCheck: { $lt: startOfToday } }
-          ]
-        };
-      } else if (req.user.parentUser) {
-        filter = {
-          user: req.user.parentUser,
-          $or: [
-            { lastBingCheck: { $exists: false } },
-            { lastBingCheck: { $lt: startOfToday } }
-          ]
-        };
-      } else {
-        filter = {
-          user: req.user._id,
-          $or: [
-            { lastBingCheck: { $exists: false } },
-            { lastBingCheck: { $lt: startOfToday } }
-          ]
-        };
-      }
+      const filter = buildFilter(req, {
+        $or: [
+          { lastBingCheck: { $exists: false } },
+          { lastBingCheck: { $lt: startOfToday } }
+        ]
+      });
 
       const domains = await ScrapedSite.find(filter).select('domain');
       domainsToCheck = domains.map(d => d.domain);
@@ -123,7 +129,6 @@ exports.startBingCheck = async (req, res) => {
     // If not already checking, start
     if (!queue.isChecking) {
       queue.isChecking = true;
-      // Don't await - let it run in background
       performNextCheck(userId).catch(err => {
         console.error('Check error:', err);
       });
@@ -219,18 +224,9 @@ exports.reportBingResult = async (req, res) => {
 
     console.log(`✅ [${domain}] Result received - Indexed: ${isIndexed}, Results: ${resultCount}`);
 
-    // FIX #5: Scope the DB lookup to the correct user to avoid cross-user data leaks
+    // Save result to DB scoped to the correct owner
     try {
-      // Determine which userId owns this domain
-      let ownerUserId = req.user._id;
-      if (req.user.parentUser) {
-        ownerUserId = req.user.parentUser;
-      }
-
-      const siteFilter = req.user.role === 'admin'
-        ? { domain }
-        : { domain, user: ownerUserId };
-
+      const siteFilter = buildFilter(req, { domain });
       const site = await ScrapedSite.findOne(siteFilter);
       if (site) {
         site.isIndexedOnBing = isIndexed;
@@ -249,7 +245,7 @@ exports.reportBingResult = async (req, res) => {
       queue.checkedCount++;
     }
 
-    // FIX #4: Only continue if the queue is still active (user may have stopped it)
+    // Only continue if the queue is still active (user may have stopped it)
     setTimeout(() => {
       if (queue.isChecking) {
         performNextCheck(userId).catch(err => {
@@ -310,7 +306,7 @@ exports.stopBingCheck = async (req, res) => {
     const userId = req.user._id.toString();
     const queue = getOrCreateQueue(userId);
 
-    // FIX #4: Set isChecking = false BEFORE clearing the queue so the setTimeout
+    // Set isChecking = false BEFORE clearing the queue so the setTimeout
     // guard in reportBingResult correctly prevents restarting
     queue.isChecking = false;
     queue.queue = [];
@@ -341,22 +337,15 @@ exports.getBingCheckReport = async (req, res) => {
     const userId = req.user._id.toString();
     const queue = getOrCreateQueue(userId);
 
-    // Get unindexed domains
-    let filter;
-    if (req.user.role === "admin") {
-      filter = { isIndexedOnBing: false };
-    } else if (req.user.parentUser) {
-      filter = { user: req.user.parentUser, isIndexedOnBing: false };
-    } else {
-      filter = { user: req.user._id, isIndexedOnBing: false };
-    }
+    // Get unindexed domains scoped to the correct owner
+    const filter = buildFilter(req, { isIndexedOnBing: false });
 
     const unindexed = await ScrapedSite.find(filter)
       .select('domain lastBingCheck bingResultCount')
       .sort({ lastBingCheck: -1 })
       .lean();
 
-    const duration = queue.startTime 
+    const duration = queue.startTime
       ? Math.round((Date.now() - queue.startTime.getTime()) / 1000 / 60)
       : 0;
 
@@ -409,12 +398,12 @@ async function performNextCheck(userId) {
     return;
   }
 
-  // Just log - actual checking happens in browser extension
   console.log(`📝 Queued for checking: ${nextDomain}`);
 }
 
 /**
  * Get unindexed domains (for UI display)
+ * GET /api/scraper/bing-unindexed
  */
 exports.getUnindexedDomains = async (req, res) => {
   try {
@@ -422,14 +411,7 @@ exports.getUnindexedDomains = async (req, res) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    let filter;
-    if (req.user.role === "admin") {
-      filter = { isIndexedOnBing: false };
-    } else if (req.user.parentUser) {
-      filter = { user: req.user.parentUser, isIndexedOnBing: false };
-    } else {
-      filter = { user: req.user._id, isIndexedOnBing: false };
-    }
+    const filter = buildFilter(req, { isIndexedOnBing: false });
 
     const unindexed = await ScrapedSite.find(filter)
       .select('domain lastBingCheck bingResultCount')
