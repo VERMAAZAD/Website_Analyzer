@@ -7,4 +7,4 @@ const CronLockSchema = new mongoose.Schema({
 });
 
 
-module.exports = mongoose.model("CornLock", CronLockSchema);
+module.exports = mongoose.model("CronLock", CronLockSchema);

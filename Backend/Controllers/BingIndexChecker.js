@@ -1,18 +1,7 @@
-// ============================================================================
-// BingIndexChecker.js - Extension-Based Approach
-// Single tab, user solves CAPTCHA, sequential checking
-// ============================================================================
-
 const ScrapedSite = require('../Models/ScrapedSite');
 
-// ============ QUEUE MANAGEMENT ============
+const checkingQueues = new Map(); 
 
-// In-memory queue for active checks
-const checkingQueues = new Map(); // userId -> { queue: [], isChecking: boolean }
-
-/**
- * Initialize or get checking queue for a user
- */
 function getOrCreateQueue(userId) {
   if (!checkingQueues.has(userId)) {
     checkingQueues.set(userId, {
@@ -27,9 +16,6 @@ function getOrCreateQueue(userId) {
   return checkingQueues.get(userId);
 }
 
-/**
- * Get queue status
- */
 function getQueueStatus(userId) {
   const queue = getOrCreateQueue(userId);
   return {
@@ -44,39 +30,22 @@ function getQueueStatus(userId) {
   };
 }
 
-// ============ HELPER: resolve effective owner ID ============
 
-/**
- * Returns the effective owner _id to use in DB queries.
- * - admin    → null (no user filter)
- * - sub-user → parentUser
- * - user     → req.user._id
- */
 function getOwnerId(req) {
   if (req.user.role === 'admin') return null;
   if (req.user.parentUser) return req.user.parentUser;
   return req.user._id;
 }
 
-/**
- * Build a Mongoose filter that already includes the correct user scope.
- * Pass extra fields to merge them in.
- */
+
 function buildFilter(req, extra = {}) {
   const ownerId = getOwnerId(req);
   if (ownerId === null) {
-    // Admin — no user restriction
     return { ...extra };
   }
   return { user: ownerId, ...extra };
 }
 
-// ============ MAIN ENDPOINTS ============
-
-/**
- * Start checking domains - single tab approach
- * GET /api/scraper/bing-check-start?domains=domain1.com,domain2.com
- */
 exports.startBingCheck = async (req, res) => {
   try {
     if (!req.user || !req.user._id) {
@@ -92,7 +61,6 @@ exports.startBingCheck = async (req, res) => {
       // From query parameter
       domainsToCheck = req.query.domains.split(',').map(d => d.trim()).filter(d => d);
     } else {
-      // From database — all unchecked domains scoped to this user/sub-user/admin
       const startOfToday = new Date();
       startOfToday.setUTCHours(0, 0, 0, 0);
 
@@ -115,7 +83,6 @@ exports.startBingCheck = async (req, res) => {
       });
     }
 
-    // Add to queue
     queue.queue = domainsToCheck.map(domain => ({
       domain,
       status: 'pending',
@@ -126,7 +93,6 @@ exports.startBingCheck = async (req, res) => {
     queue.blockedCount = 0;
     queue.startTime = new Date();
 
-    // If not already checking, start
     if (!queue.isChecking) {
       queue.isChecking = true;
       performNextCheck(userId).catch(err => {
@@ -147,10 +113,6 @@ exports.startBingCheck = async (req, res) => {
   }
 };
 
-/**
- * Get current queue status
- * GET /api/scraper/bing-check-status
- */
 exports.getBingCheckStatus = async (req, res) => {
   try {
     if (!req.user || !req.user._id) {
@@ -171,11 +133,6 @@ exports.getBingCheckStatus = async (req, res) => {
   }
 };
 
-/**
- * Report CAPTCHA detected
- * POST /api/scraper/bing-captcha-detected
- * Body: { domain: "example.com" }
- */
 exports.captchaDetected = async (req, res) => {
   try {
     if (!req.user || !req.user._id) {
@@ -186,7 +143,6 @@ exports.captchaDetected = async (req, res) => {
     const userId = req.user._id.toString();
     const queue = getOrCreateQueue(userId);
 
-    // Mark current domain as blocked
     const currentItem = queue.queue.find(item => item.domain === domain);
     if (currentItem) {
       currentItem.status = 'blocked';
@@ -207,11 +163,6 @@ exports.captchaDetected = async (req, res) => {
   }
 };
 
-/**
- * Report domain indexing result
- * POST /api/scraper/bing-report-result
- * Body: { domain: "example.com", isIndexed: true, resultCount: 42 }
- */
 exports.reportBingResult = async (req, res) => {
   try {
     if (!req.user || !req.user._id) {
@@ -224,7 +175,6 @@ exports.reportBingResult = async (req, res) => {
 
     console.log(`✅ [${domain}] Result received - Indexed: ${isIndexed}, Results: ${resultCount}`);
 
-    // Save result to DB scoped to the correct owner
     try {
       const siteFilter = buildFilter(req, { domain });
       const site = await ScrapedSite.findOne(siteFilter);
@@ -238,21 +188,19 @@ exports.reportBingResult = async (req, res) => {
       console.error(`⚠️ DB error for ${domain}:`, dbErr);
     }
 
-    // Mark as checked in queue
     const queueItem = queue.queue.find(item => item.domain === domain);
     if (queueItem) {
       queueItem.status = 'checked';
       queue.checkedCount++;
     }
 
-    // Only continue if the queue is still active (user may have stopped it)
     setTimeout(() => {
       if (queue.isChecking) {
         performNextCheck(userId).catch(err => {
           console.error('Check error:', err);
         });
       }
-    }, 3000); // 3 second delay before next check
+    }, 3000);
 
     return res.json({
       success: true,
@@ -266,10 +214,6 @@ exports.reportBingResult = async (req, res) => {
   }
 };
 
-/**
- * Get next domain to check
- * GET /api/scraper/bing-next-domain
- */
 exports.getNextDomain = async (req, res) => {
   try {
     if (!req.user || !req.user._id) {
@@ -293,10 +237,6 @@ exports.getNextDomain = async (req, res) => {
   }
 };
 
-/**
- * Stop checking
- * POST /api/scraper/bing-check-stop
- */
 exports.stopBingCheck = async (req, res) => {
   try {
     if (!req.user || !req.user._id) {
@@ -306,8 +246,6 @@ exports.stopBingCheck = async (req, res) => {
     const userId = req.user._id.toString();
     const queue = getOrCreateQueue(userId);
 
-    // Set isChecking = false BEFORE clearing the queue so the setTimeout
-    // guard in reportBingResult correctly prevents restarting
     queue.isChecking = false;
     queue.queue = [];
 
@@ -324,10 +262,6 @@ exports.stopBingCheck = async (req, res) => {
   }
 };
 
-/**
- * Get final report
- * GET /api/scraper/bing-check-report
- */
 exports.getBingCheckReport = async (req, res) => {
   try {
     if (!req.user || !req.user._id) {
@@ -337,7 +271,6 @@ exports.getBingCheckReport = async (req, res) => {
     const userId = req.user._id.toString();
     const queue = getOrCreateQueue(userId);
 
-    // Get unindexed domains scoped to the correct owner
     const filter = buildFilter(req, { isIndexedOnBing: false });
 
     const unindexed = await ScrapedSite.find(filter)
@@ -366,20 +299,12 @@ exports.getBingCheckReport = async (req, res) => {
   }
 };
 
-// ============ HELPER FUNCTIONS ============
-
-/**
- * Get next pending domain from queue
- */
 function getNextPendingDomain(userId) {
   const queue = getOrCreateQueue(userId);
   const pending = queue.queue.find(item => item.status === 'pending');
   return pending ? pending.domain : null;
 }
 
-/**
- * Perform next check in background (just coordinates, doesn't actually check)
- */
 async function performNextCheck(userId) {
   const queue = getOrCreateQueue(userId);
 
@@ -390,7 +315,6 @@ async function performNextCheck(userId) {
   const nextDomain = getNextPendingDomain(userId);
 
   if (!nextDomain) {
-    // Queue complete
     queue.isChecking = false;
     console.log(`✅ Check queue complete for user ${userId}`);
     console.log(`   Total checked: ${queue.checkedCount}`);
@@ -401,10 +325,6 @@ async function performNextCheck(userId) {
   console.log(`📝 Queued for checking: ${nextDomain}`);
 }
 
-/**
- * Get unindexed domains (for UI display)
- * GET /api/scraper/bing-unindexed
- */
 exports.getUnindexedDomains = async (req, res) => {
   try {
     if (!req.user || !req.user._id) {

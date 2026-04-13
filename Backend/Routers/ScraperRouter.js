@@ -27,13 +27,16 @@ const {
   getCategoryAffiliate,
   getCategoryAffiliateStatus,
   getMe,
-  categoryAffiliate,
+  getSeoScore,
+  getAllScrapedSitesPaginated,
+  updateIssueDate,
 } = require('../Controllers/ScraperController');
 const ensureAuthenticated = require('../Middlewares/Auth');
 const { updateChangedDomains } = require('../Controllers/UpdaterController');
 
 
-
+router.get('/seo-score/:domain', ensureAuthenticated, getSeoScore);
+router.get('/all-paginated', ensureAuthenticated, getAllScrapedSitesPaginated);
 router.post('/scan', scrapeWebsite);
 router.post('/save', ensureAuthenticated, saveScrapedData);
 router.get('/all', ensureAuthenticated, getAllScrapedSites); 
@@ -52,6 +55,7 @@ router.get("/auth/me", ensureAuthenticated, getMe);
 
 router.get('/expiring', ensureAuthenticated, getExpiringDomains);
 router.post('/renew', ensureAuthenticated, renewDomain);
+router.put('/issue-date/:domain', ensureAuthenticated, updateIssueDate);
 router.get('/update-changed', ensureAuthenticated, updateChangedDomains);
 router.put('/note/:domain', ensureAuthenticated, updateNote);
 router.delete('/note/:domain', ensureAuthenticated, deleteNote);

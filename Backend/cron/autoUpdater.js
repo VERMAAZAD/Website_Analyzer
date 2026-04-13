@@ -6,10 +6,6 @@ const { compareRedirectDestinations } = require("../Utils/deepAffiliateCheck");
 const ScrapedSite = require("../Models/ScrapedSite");
 const appendToSheet = require("../Utils/googleSheetLogger");
 
-// ============================================
-// DOMAIN UPDATE CRON (Unchanged)
-// ============================================
-
 const fakeReq = {
   user: {
     role: 'admin',   
@@ -26,30 +22,27 @@ const fakeRes = {
 
 cron.schedule("0 * * * *", async () => {
   const lockKey = 'domain-update';
-  
-  try {
-    const lock = await CronLock.findOneAndUpdate(
-      { key: lockKey },
-      { 
-        key: lockKey,
-        lockedAt: new Date(),
-        expiresAt: new Date(Date.now() + 75 * 60 * 1000)
-      },
-      { upsert: true, new: true }
-    );
 
-    if (lock.lockedAt !== new Date().toISOString()) {
-      console.log('Another instance is already updating');
+  try {
+    const existing = await CronLock.findOne({ key: lockKey });
+    if (existing) {
+      console.log('⏭️ Skipping — another instance is already running');
       return;
     }
 
-    await updateChangedDomains(fakeReq, fakeRes);
-    await CronLock.deleteOne({ key: lockKey });
-  } catch (err) {
-    console.error('❌ Domain update cron failed:', {
-      error: err.message,
-      timestamp: new Date().toISOString()
+    await CronLock.create({
+      key: lockKey,
+      lockedAt: new Date(),
+      expiresAt: new Date(Date.now() + 75 * 60 * 1000)
     });
+
+    await updateChangedDomains(fakeReq, fakeRes);
+
+  } catch (err) {
+    console.error('❌ Domain update cron failed:', err.message);
+  } finally {
+    // Always release lock
+    await CronLock.deleteOne({ key: lockKey });
   }
 });
 
@@ -117,13 +110,8 @@ cron.schedule("30 * * * *", async () => {
     ]);
 
     console.log(`📊 Found ${categoriesData.length} categories with affiliate links`);
-
-    // Track status changes
     const statusChanges = [];
 
-    // ========================================
-    // STEP 2: CHECK EACH CATEGORY ONCE
-    // ========================================
     for (const catData of categoriesData) {
       try {
         const categoryName = catData._id.category;

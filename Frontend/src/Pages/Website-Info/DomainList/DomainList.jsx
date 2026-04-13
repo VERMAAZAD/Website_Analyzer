@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import {jwtDecode} from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 import axios from 'axios';
 import './DomainList.css';
 import NoteEditor from '../../../components/NoteEditor/NoteEditor';
@@ -9,21 +9,18 @@ import EditDomainName from '../EditDomainName/EditDomainName';
 import { handleError } from '../../../toastutils';
 import { FaServer, FaTrashAlt } from "react-icons/fa";
 import { FaRegMessage } from "react-icons/fa6";
-
+import IssueDateEditor from '../IssueDateEditor/IssueDateEditor';
+import { FaCalendarAlt } from "react-icons/fa";
 
 const extractBaseDomain = (url) => {
   if (!url || typeof url !== "string") return "";
-
   try {
     const parsed = new URL(url);
     return parsed.hostname.replace(/^www\./, '');
   } catch {
-    return url.replace(/^https?:\/\//, '')
-      .replace(/^www\./, '')
-      .replace(/\/$/, '');
+    return url.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '');
   }
 };
-
 
 const getDomainExtension = (domain) => {
   const parts = domain.split('.');
@@ -33,79 +30,208 @@ const getDomainExtension = (domain) => {
   return parts.length >= 1 && last.length <= 3 ? `.${secondLast}.${last}` : `.${last}`;
 };
 
-function DomainList() {
-  const [domains, setDomains] = useState([]);
-  const [selectedDomain, setSelectedDomain] = useState(null);
-  const [scrapedDataMap, setScrapedDataMap] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [lastReloadTime, setLastReloadTime] = useState(null);
-  const [showNoteEditorMap, setShowNoteEditorMap] = useState({});
-  const [activeExtension, setActiveExtension] = useState("all");
-  const [showHostingEditorMap, setShowHostingEditorMap] = useState({});
-  const [hostingDetailsMap, setHostingDetailsMap] = useState({});
+const PAGE_SIZE = 20;
 
-  const superCategory = localStorage.getItem("superCategory") || "natural"; 
+function DomainList() {
+  const [domains, setDomains]           = useState([]);
+  const [total, setTotal]               = useState(0);
+  const [page, setPage]                 = useState(1);
+  const [hasMore, setHasMore]           = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);  // skeleton on first load
+  const [loadingMore, setLoadingMore]   = useState(false);      // spinner at bottom
+  const [error, setError]               = useState("");
+
+  const [searchTerm, setSearchTerm]     = useState("");
+  const [searchInput, setSearchInput]   = useState("");         // debounced separately
+  const [activeExtension, setActiveExtension] = useState("all");
+  const [extensionCounts, setExtensionCounts] = useState({});
+  const [lastReloadTime, setLastReloadTime]   = useState(null);
+
+  const [selectedDomain, setSelectedDomain]   = useState(null);
+  const [scrapedDataMap, setScrapedDataMap]   = useState({});
+  const [showNoteEditorMap, setShowNoteEditorMap]     = useState({});
+  const [showHostingEditorMap, setShowHostingEditorMap] = useState({});
+  const [hostingDetailsMap, setHostingDetailsMap]     = useState({});
+
+  const [seoScoreMap, setSeoScoreMap]     = useState({});
+  const [seoExpandedMap, setSeoExpandedMap] = useState({});
+  const [seoLoadingMap, setSeoLoadingMap]   = useState({});
+
+  const [showIssueDateEditorMap, setShowIssueDateEditorMap] = useState({});
+
+  // Tracks which domains are visible (for lazy SEO fetch)
+  const visibleDomainsRef = useRef(new Set());
+  const seoFetchedRef     = useRef(new Set());
+  const observerRef       = useRef(null);
+  const bottomRef         = useRef(null);   // sentinel for infinite scroll
+  const searchTimerRef    = useRef(null);
+
+  const superCategory = localStorage.getItem("superCategory") || "natural";
   const apiBase = superCategory === "casino"
     ? "casino/scraper"
     : superCategory === "dating"
     ? "dating/scraper"
     : "api/scraper";
 
-  const location = useLocation();
-  const navigate = useNavigate();
-  const queryParams = new URLSearchParams(location.search);
-  const category = queryParams.get("category");
+  const location  = useLocation();
+  const navigate  = useNavigate();
+  const category  = new URLSearchParams(location.search).get("category");
 
-  const fetchDomains = async () => {
-    setLoading(true);
-    setError("");
+  const roleToken = localStorage.getItem("token");
+  let role = "";
+  try { role = jwtDecode(roleToken).role; } catch {}
+
+  // ─── Fetch one page ──────────────────────────────────────────────────────
+  const fetchPage = useCallback(async (pageNum, reset = false) => {
+    if (reset) setInitialLoading(true);
+    else setLoadingMore(true);
+
     try {
       const token = localStorage.getItem("token");
-      const url = category
-        ? `${import.meta.env.VITE_API_URI}/${apiBase}/by-category/${encodeURIComponent(category)}`
-        : `${import.meta.env.VITE_API_URI}/${apiBase}/all`;
+      const params = new URLSearchParams({
+        page: pageNum,
+        limit: PAGE_SIZE,
+        ...(searchTerm && { search: searchTerm }),
+        ...(category   && { category }),
+        ...(activeExtension !== "all" && { extension: activeExtension }),
+      });
 
+      const url = `${import.meta.env.VITE_API_URI}/${apiBase}/all-paginated?${params}`;
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      if (Array.isArray(res.data)) {
-        setDomains(res.data);
-        setLastReloadTime(new Date());
-      } else {
-        throw new Error("Unexpected response format");
+      const { sites, total: t, hasMore: more } = res.data;
+
+      setDomains(prev => reset ? sites : [...prev, ...sites]);
+      setTotal(t);
+      setHasMore(more);
+      setPage(pageNum);
+      setLastReloadTime(new Date());
+
+      // Build extension counts only on full reload
+      if (reset) {
+        // Fetch counts separately (lightweight query)
+        fetchExtensionCounts();
       }
     } catch (err) {
       console.error('Failed to fetch domains:', err);
       setError("Failed to load domains. Please try again.");
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
+      setLoadingMore(false);
     }
+  }, [searchTerm, category, activeExtension, apiBase]);
+
+  // ─── Extension counts (separate lightweight call) ────────────────────────
+  const fetchExtensionCounts = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const params = new URLSearchParams({
+        ...(searchTerm && { search: searchTerm }),
+        ...(category   && { category }),
+      });
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URI}/${apiBase}/all?${params}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (Array.isArray(res.data)) {
+        const counts = res.data.reduce((acc, d) => {
+          const ext = getDomainExtension(d.domain);
+          acc[ext] = (acc[ext] || 0) + 1;
+          return acc;
+        }, {});
+        setExtensionCounts(counts);
+      }
+    } catch {}
+  }, [searchTerm, category, apiBase]);
+
+  // ─── Initial load & filter changes ───────────────────────────────────────
+  useEffect(() => {
+    seoFetchedRef.current = new Set();
+    setSeoScoreMap({});
+    fetchPage(1, true);
+  }, [searchTerm, category, activeExtension]);
+
+  // ─── Debounce search input ────────────────────────────────────────────────
+  const handleSearchChange = (val) => {
+    setSearchInput(val);
+    clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      setSearchTerm(val);
+    }, 350);
   };
 
+  // ─── Infinite scroll sentinel ─────────────────────────────────────────────
+  useEffect(() => {
+    const sentinel = bottomRef.current;
+    if (!sentinel) return;
+
+    const io = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && hasMore && !loadingMore && !initialLoading) {
+        fetchPage(page + 1, false);
+      }
+    }, { rootMargin: '300px' });
+
+    io.observe(sentinel);
+    return () => io.disconnect();
+  }, [hasMore, loadingMore, initialLoading, page, fetchPage]);
+
+  // ─── Lazy SEO fetch for visible domain cards ──────────────────────────────
+  useEffect(() => {
+    if (observerRef.current) observerRef.current.disconnect();
+
+    observerRef.current = new IntersectionObserver((entries) => {
+      const visible = entries
+        .filter(e => e.isIntersecting)
+        .map(e => e.target.dataset.domain)
+        .filter(d => d && !seoFetchedRef.current.has(d));
+
+      if (visible.length === 0) return;
+      visible.forEach(d => seoFetchedRef.current.add(d));
+
+      // Fetch in small batch
+      fetchSeoScoresBatch(visible);
+    }, { rootMargin: '100px' });
+
+    // Observe all current domain cards
+    document.querySelectorAll('[data-domain]').forEach(el => {
+      observerRef.current.observe(el);
+    });
+
+    return () => observerRef.current?.disconnect();
+  }, [domains]);
+
+  const fetchSeoScoresBatch = async (domainList) => {
+    const token = localStorage.getItem("token");
+    const results = await Promise.allSettled(
+      domainList.map(d =>
+        axios.get(
+          `${import.meta.env.VITE_API_URI}/${apiBase}/seo-score/${d}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+      )
+    );
+    setSeoScoreMap(prev => {
+      const updated = { ...prev };
+      results.forEach((r, i) => {
+        if (r.status === "fulfilled") updated[domainList[i]] = r.value.data;
+      });
+      return updated;
+    });
+  };
+
+  // ─── Domain detail click ──────────────────────────────────────────────────
   const handleDomainClick = async (domain) => {
     const baseDomain = extractBaseDomain(domain);
-    const extension = getDomainExtension(domain);
-    setActiveExtension(extension);
-
-    if (baseDomain === selectedDomain) {
-      setSelectedDomain(null);
-      return;
-    }
-
-    if (scrapedDataMap[baseDomain]) {
-      setSelectedDomain(baseDomain);
-      return;
-    }
+    if (baseDomain === selectedDomain) { setSelectedDomain(null); return; }
+    if (scrapedDataMap[baseDomain]) { setSelectedDomain(baseDomain); return; }
 
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_URI}/${apiBase}/domain/${baseDomain}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`
-        }
-      });
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URI}/${apiBase}/domain/${baseDomain}`,
+        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+      );
       setScrapedDataMap(prev => ({ ...prev, [baseDomain]: res.data }));
       setSelectedDomain(baseDomain);
     } catch (err) {
@@ -113,292 +239,292 @@ function DomainList() {
     }
   };
 
-
-  const handleDomainUpdate = (oldDomain, newDomain) => {
-    if (!oldDomain || !newDomain) {
-    handleError("Invalid domain values", oldDomain, newDomain);
-    return;
-  }
-  setDomains((prev) =>
-    prev.map((d) =>
-      extractBaseDomain(d.domain) === extractBaseDomain(oldDomain)
-        ? { ...d, domain: newDomain }
-        : d
-    )
-  );
-
-  setScrapedDataMap((prev) => {
-    const oldKey = extractBaseDomain(oldDomain);
-    const newKey = extractBaseDomain(newDomain);
-
-    const updated = { ...prev };
-    if (updated[oldKey]) {
-      updated[newKey] = updated[oldKey];
-      delete updated[oldKey];
+  // ─── SEO badge click — just toggle expand (already fetched by observer) ──
+  const handleSeoClick = async (baseDomain) => {
+    if (seoScoreMap[baseDomain]) {
+      setSeoExpandedMap(prev => ({ ...prev, [baseDomain]: !prev[baseDomain] }));
+      return;
     }
-    return updated;
-  });
-
-  setShowNoteEditorMap((prev) => {
-    const updated = { ...prev };
-    const oldKey = extractBaseDomain(oldDomain);
-    const newKey = extractBaseDomain(newDomain);
-    if (updated[oldKey]) {
-      updated[newKey] = updated[oldKey];
-      delete updated[oldKey];
-    }
-    return updated;
-  });
-
-  setShowHostingEditorMap((prev) => {
-    const updated = { ...prev };
-    const oldKey = extractBaseDomain(oldDomain);
-    const newKey = extractBaseDomain(newDomain);
-    if (updated[oldKey]) {
-      updated[newKey] = updated[oldKey];
-      delete updated[oldKey];
-    }
-    return updated;
-  });
-
-  setHostingDetailsMap((prev) => {
-    const updated = { ...prev };
-    const oldKey = extractBaseDomain(oldDomain);
-    const newKey = extractBaseDomain(newDomain);
-    if (updated[oldKey]) {
-      updated[newKey] = updated[oldKey];
-      delete updated[oldKey];
-    }
-    return updated;
-  });
-
-  setSelectedDomain((prev) =>
-    extractBaseDomain(prev) === extractBaseDomain(oldDomain)
-      ? extractBaseDomain(newDomain)
-      : prev
-  );
-};
-
-
-
-
-  const handleDeleteDomain = async (domainToDelete) => {
-    if (!window.confirm(`Are you sure you want to delete ${domainToDelete}?`)) return;
+    // Fallback: manual fetch if observer missed it
+    setSeoLoadingMap(prev => ({ ...prev, [baseDomain]: true }));
     try {
-      const token = localStorage.getItem("token");
-      await axios.delete(`${import.meta.env.VITE_API_URI}/${apiBase}/domain/${domainToDelete}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      setDomains(prev => prev.filter(d => extractBaseDomain(d.domain) !== domainToDelete));
-      setScrapedDataMap(prev => {
-        const updated = { ...prev };
-        delete updated[domainToDelete];
-        return updated;
-      });
-
-      if (selectedDomain === domainToDelete) {
-        setSelectedDomain(null);
-      }
-
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URI}/${apiBase}/seo-score/${baseDomain}`,
+        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+      );
+      setSeoScoreMap(prev => ({ ...prev, [baseDomain]: res.data }));
+      setSeoExpandedMap(prev => ({ ...prev, [baseDomain]: true }));
     } catch (err) {
-      console.error("Error deleting domain:", err);
-      alert("Failed to delete domain. Try again.");
+      console.error("SEO score error:", err);
+    } finally {
+      setSeoLoadingMap(prev => ({ ...prev, [baseDomain]: false }));
     }
   };
 
-  useEffect(() => {
-    fetchDomains();
-  }, [category]);
+  const handleDomainUpdate = (oldDomain, newDomain) => {
+    if (!oldDomain || !newDomain) { handleError("Invalid domain values"); return; }
+    const oldKey = extractBaseDomain(oldDomain);
+    const newKey = extractBaseDomain(newDomain);
 
-  const domainExtensions = Array.from(new Set(domains.map(d => getDomainExtension(d.domain)))).sort();
-  const domainExtensionCounts = domains.reduce((acc, d) => {
-    const ext = getDomainExtension(d.domain);
-    acc[ext] = (acc[ext] || 0) + 1;
-    return acc;
-  }, {});
-  const filteredDomains = domains.filter(site => {
-    const matchesSearch = site.domain.toLowerCase().includes(searchTerm.toLowerCase());
-    const extension = getDomainExtension(site.domain);
-    const matchesExtension = activeExtension === "all" || extension === activeExtension;
-    return matchesSearch && matchesExtension;
-  });
+    setDomains(prev => prev.map(d =>
+      extractBaseDomain(d.domain) === oldKey ? { ...d, domain: newDomain } : d
+    ));
+    // Remap all state maps
+    [setScrapedDataMap, setShowNoteEditorMap, setShowHostingEditorMap,
+     setHostingDetailsMap, setSeoScoreMap, setSeoExpandedMap].forEach(setter => {
+      setter(prev => {
+        const u = { ...prev };
+        if (u[oldKey]) { u[newKey] = u[oldKey]; delete u[oldKey]; }
+        return u;
+      });
+    });
+    setSelectedDomain(prev => prev === oldKey ? newKey : prev);
+  };
 
-  const roleToken = localStorage.getItem("token");
-  let role = "";
-  if (roleToken) {
+  // ─── Delete ───────────────────────────────────────────────────────────────
+  const handleDeleteDomain = async (domainToDelete) => {
+    if (!window.confirm(`Delete ${domainToDelete}?`)) return;
     try {
-      const decoded = jwtDecode(roleToken);
-      role = decoded.role;
-    } catch (err) {
-      console.error("Invalid token", err);
+      await axios.delete(
+        `${import.meta.env.VITE_API_URI}/${apiBase}/domain/${domainToDelete}`,
+        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+      );
+      setDomains(prev => prev.filter(d => extractBaseDomain(d.domain) !== domainToDelete));
+      setTotal(prev => prev - 1);
+      if (selectedDomain === domainToDelete) setSelectedDomain(null);
+    } catch {
+      alert("Failed to delete domain.");
     }
-  }
+  };
+
+  // ─── Skeleton loader ──────────────────────────────────────────────────────
+  const SkeletonCard = () => (
+    <li className="domain-card skeleton-card">
+      <div className="domain-header">
+        <div className="skeleton skeleton-text" style={{ width: '180px' }} />
+        <div className="skeleton skeleton-badge" />
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <div className="skeleton skeleton-icon" />
+          <div className="skeleton skeleton-icon" />
+          <div className="skeleton skeleton-icon" />
+        </div>
+      </div>
+    </li>
+  );
 
   return (
     <div className="domain-container">
-     
-
       {lastReloadTime && (
-        <p className="reload-info">Last Reload: {lastReloadTime.toLocaleTimeString()}</p>
+        <p className="reload-info">
+          Last Reload: {lastReloadTime.toLocaleTimeString()} · {total} domains
+        </p>
       )}
 
+      {/* ── Filter bar ── */}
       <div className="filter-bar">
         <input
           type="text"
           placeholder="Search domains..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          value={searchInput}
+          onChange={e => handleSearchChange(e.target.value)}
           className="search-input"
         />
         <button
-            className="add-url-btn"
-            onClick={() => navigate(role === "admin" ? `/admin/urlscan/${superCategory}` : `/urlscan/${superCategory}`)}
-          >
-            + Add URL
-          </button>
+          className="add-url-btn"
+          onClick={() => navigate(role === "admin"
+            ? `/admin/urlscan/${superCategory}`
+            : `/urlscan/${superCategory}`)}
+        >
+          + Add URL
+        </button>
       </div>
 
+      {/* ── TLD filter ── */}
       <div className="tld-filter-bar">
-  {Object.entries(domainExtensionCounts)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([ext, count]) => (
-      <button
-        key={ext}
-        className={`tld-btn ${activeExtension === ext ? 'active' : ''}`}
-        onClick={() => setActiveExtension(ext)}
-      >
-        {ext} ({count})
-      </button>
-    ))}
-  {activeExtension !== "all" && (
-    <button className="tld-btn clear" onClick={() => setActiveExtension("all")}>
-      Show All TLDs
-    </button>
-  )}
-</div>
+        {Object.entries(extensionCounts)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([ext, count]) => (
+            <button
+              key={ext}
+              className={`tld-btn ${activeExtension === ext ? 'active' : ''}`}
+              onClick={() => setActiveExtension(ext)}
+            >
+              {ext} ({count})
+            </button>
+          ))}
+        {activeExtension !== "all" && (
+          <button className="tld-btn clear" onClick={() => setActiveExtension("all")}>
+            Show All TLDs
+          </button>
+        )}
+      </div>
 
-
-      {loading ? (
-        <p>Loading domains...</p>
-      ) : error ? (
+      {/* ── List ── */}
+      {error ? (
         <p className="error">{error}</p>
-      ) : filteredDomains.length === 0 ? (
-        <p>No domains found.</p>
       ) : (
         <ul className="domain-list">
-          {filteredDomains.map((site) => {
-            const baseDomain = extractBaseDomain(site.domain);
-            const scraped = scrapedDataMap[baseDomain];
+          {/* Skeletons on initial load */}
+          {initialLoading
+            ? Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
+            : domains.length === 0
+            ? <p>No domains found.</p>
+            : domains.map((site) => {
+                const baseDomain = extractBaseDomain(site.domain);
+                const scraped    = scrapedDataMap[baseDomain];
+                const seo        = seoScoreMap[baseDomain];
 
-            return (
-              <li key={site.domain} className={`domain-card ${selectedDomain === baseDomain ? 'selected' : ''}`}>
-                <div className="domain-header">
-                  <EditDomainName
-                  domain={site.domain}
-                  onClick={handleDomainClick}
-                  onUpdate={handleDomainUpdate}
-                />
+                return (
+                  <li
+                    key={site.domain}
+                    data-domain={baseDomain}
+                    className={`domain-card ${selectedDomain === baseDomain ? 'selected' : ''}`}
+                  >
+                    <div className="domain-header">
+                      <EditDomainName
+                        domain={site.domain}
+                        onClick={handleDomainClick}
+                        onUpdate={handleDomainUpdate}
+                      />
 
-                  <div>
-                    <button
-                      className="note-btn server-btn"
-                      onClick={() =>
-                        setShowHostingEditorMap((prev) => ({
-                          ...prev,
-                          [baseDomain]: !prev[baseDomain],
-                        }))
-                      }
-                    >
-                       <FaServer />
-                    </button>
-                    <button
-                      className="note-btn"
-                      onClick={() => setShowNoteEditorMap(prev => ({
-                        ...prev,
-                        [baseDomain]: !prev[baseDomain],
-                      }))}
-                      title="Add/Edit Note"
-                    >
-                      <FaRegMessage />
-                    </button>
-                    <button
-                      className="domain-delete"
-                      onClick={() => handleDeleteDomain(baseDomain)}
-                      title="Delete domain"
-                    >
-                      <FaTrashAlt />
-                    </button>
-                  </div>
-                </div>
+                      <div>
+                         {/* SEO Badge */}
+                      <button
+                        className={`seo-badge-btn ${seo ? `seo-grade-${seo.grade}` : ''}`}
+                        onClick={() => handleSeoClick(baseDomain)}
+                        title="SEO Score"
+                      >
+                        {seoLoadingMap[baseDomain]
+                          ? <span className="seo-spinner" />
+                          : seo
+                          ? `${seo.totalScore}/100 · ${seo.grade}`
+                          : <span className="seo-skeleton-pulse">—</span>
+                        }
+                      </button>
+                        <button className="note-btn server-btn"
+                          onClick={() => setShowHostingEditorMap(p => ({ ...p, [baseDomain]: !p[baseDomain] }))}>
+                          <FaServer />
+                        </button>
+                        <button
+                          className="note-btn"
+                          title="Edit Issue Date"
+                          onClick={() => setShowIssueDateEditorMap(p => ({ ...p, [baseDomain]: !p[baseDomain] }))}
+                        >
+                          <FaCalendarAlt />
+                        </button>
+                        <button className="note-btn"
+                          onClick={() => setShowNoteEditorMap(p => ({ ...p, [baseDomain]: !p[baseDomain] }))}>
+                          <FaRegMessage />
+                        </button>
+                        <button className="domain-delete"
+                          onClick={() => handleDeleteDomain(baseDomain)}>
+                          <FaTrashAlt />
+                        </button>
+                      </div>
+                    </div>
 
-                {site.note && (
-                  <div className="domain-note"><strong>Note:</strong> {site.note}</div>
-                )}
-                
-                {showHostingEditorMap[baseDomain] && (
-              <HostingInfoEditor
-                domain={baseDomain}
-                initialData={hostingDetailsMap[baseDomain] || {}}
-                onSave={(domain, data) => {
-                  setHostingDetailsMap((prev) => ({
-                    ...prev,
-                    [domain]: data,
-                  }));
-                  alert(`Saved hosting info for ${domain}`);
-                  setShowHostingEditorMap((prev) => ({
-                    ...prev,
-                    [domain]: false,
-                  }));
-                }}
-              />
+                    {/* SEO Breakdown Panel */}
+                    {seoExpandedMap[baseDomain] && seo && (
+                      <div className="seo-breakdown-panel">
+                        <div className="seo-panel-header">
+                          <span>SEO breakdown</span>
+                          <span>{seo.totalScore}/100 · Grade {seo.grade}</span>
+                        </div>
+                        {seo.breakdown.map((item, idx) => (
+                          <div key={idx} className={`seo-row seo-row--${item.status}`}>
+                            <span className="seo-row-label">{item.label}</span>
+                            <span className="seo-row-detail">{item.detail}</span>
+                            <div className="seo-bar-wrap">
+                              <div className={`seo-bar seo-bar--${item.status}`}
+                                style={{ width: `${Math.round((item.score / item.max) * 100)}%` }} />
+                            </div>
+                            <span className="seo-row-pts">{item.score}/{item.max}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {site.note && (
+                      <div className="domain-note"><strong>Note:</strong> {site.note}</div>
+                    )}
+
+                    {showHostingEditorMap[baseDomain] && (
+                      <HostingInfoEditor
+                        domain={baseDomain}
+                        initialData={hostingDetailsMap[baseDomain] || {}}
+                        onSave={(domain, data) => {
+                          setHostingDetailsMap(p => ({ ...p, [domain]: data }));
+                          setShowHostingEditorMap(p => ({ ...p, [domain]: false }));
+                        }}
+                      />
+                    )}
+
+                    {showNoteEditorMap[baseDomain] && (
+                      <div>
+                        <h4>Note:</h4>
+                        <NoteEditor
+                          domain={baseDomain}
+                          currentNote={site.note}
+                          onSave={(newNote) => {
+                            setDomains(prev => prev.map(d =>
+                              extractBaseDomain(d.domain) === baseDomain
+                                ? { ...d, note: newNote } : d
+                            ));
+                            setShowNoteEditorMap(p => ({ ...p, [baseDomain]: false }));
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {showIssueDateEditorMap[baseDomain] && (
+                      <IssueDateEditor
+                        domain={baseDomain}
+                        currentIssueDate={site.issueDate}
+                        onSave={(newDate) => {
+                          setDomains(prev =>
+                            prev.map(d =>
+                              extractBaseDomain(d.domain) === baseDomain
+                                ? { ...d, issueDate: newDate }
+                                : d
+                            )
+                          );
+                          setShowIssueDateEditorMap(p => ({ ...p, [baseDomain]: false }));
+                        }}
+                      />
+                    )}
+
+                    {selectedDomain === baseDomain && scraped && (
+                      <div className="scraped-inline">
+                        {scraped.title && (<><h4>Title:</h4><p style={{ color: scraped.title.length > 60 ? 'red' : 'inherit' }}>{scraped.title} ({scraped.title.length} Char)</p></>)}
+                        {scraped.description && (<><h4>Description:</h4><p style={{ color: scraped.description.length > 160 ? 'red' : 'inherit' }}>{scraped.description} ({scraped.description.length} Char)</p></>)}
+                        {scraped.h1?.length > 0 && (<><h4>H1 Tags:</h4><ul>{scraped.h1.map((tag, i) => <li key={i}>{tag}</li>)}</ul></>)}
+                        {scraped.h2?.length > 0 && (<><h4>H2 Tags:</h4><ul>{scraped.h2.map((tag, i) => <li key={i}>{tag}</li>)}</ul></>)}
+                        {scraped.canonicals?.length > 0 && (<><h4>Canonical Links:</h4><ul>{scraped.canonicals.map((l, i) => <li key={i}><a href={l} target="_blank" rel="noopener noreferrer">{l}</a></li>)}</ul></>)}
+                        {scraped.affiliateLink && (<><h4>Affiliate Link:</h4><p>{scraped.affiliateLink}</p></>)}
+                        {scraped.robotsTxt && (<><h4>Robots:</h4><p>{scraped.robotsTxt}</p></>)}
+                        {scraped.wordCount && (<><h4>Word Count:</h4><p>{scraped.wordCount}</p></>)}
+                        <h4>Schema.org:</h4>
+                        <p>{scraped.schemaPresent ? '✅ Yes' : '❌ No'}</p>
+                        {scraped.lastChecked && (<><h4>Last Checked:</h4><p>{new Date(scraped.lastChecked).toLocaleString()}</p></>)}
+                      </div>
+                    )}
+                  </li>
+                );
+              })
+          }
+                    {/* Infinite scroll sentinel + bottom spinner */}
+          <li ref={bottomRef} style={{ listStyle: 'none', padding: '8px 0', textAlign: 'center' }}>
+            {loadingMore && (
+              <span style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}>
+                Loading more domains...
+              </span>
             )}
-                {showNoteEditorMap[baseDomain] && (
-                  <div>
-                    <h4>Note:</h4>
-                    <NoteEditor
-                      domain={baseDomain}
-                      currentNote={site.note}
-                      onSave={(newNote) => {
-                        setDomains(prev =>
-                          prev.map(d =>
-                            extractBaseDomain(d.domain) === baseDomain ? { ...d, note: newNote } : d
-                          )
-                        );
-                        setShowNoteEditorMap(prev => ({
-                          ...prev,
-                          [baseDomain]: false,
-                        }));
-                      }}
-                    />
-                  </div>
-                )}
-
-                {selectedDomain === baseDomain && scraped && (
-                  <div className="scraped-inline">
-                    {scraped.title && (<><h4>Title:</h4><p style={{ color: scraped.title.length > 60 ? 'red' : 'inherit' }}>{scraped.title} ({scraped.title.length} Char)</p></>)}
-                    {scraped.description && (<><h4>Description:</h4><p style={{ color: scraped.description.length > 160 ? 'red' : 'inherit' }}>{scraped.description} ({scraped.description.length} Char)</p></>)}
-                    {scraped.h1?.length > 0 && (<><h4>H1 Tags:</h4><ul>{scraped.h1.map((tag, idx) => <li key={idx}>{tag}</li>)}</ul></>)}
-                    {scraped.h2?.length > 0 && (<><h4>H2 Tags:</h4><ul>{scraped.h2.map((tag, idx) => <li key={idx}>{tag}</li>)}</ul></>)}
-                    {scraped.canonicals?.length > 0 && (<><h4>Canonical Links:</h4><ul>{scraped.canonicals.map((link, idx) => <li key={idx}><a href={link} target="_blank" rel="noopener noreferrer">{link}</a></li>)}</ul></>)}
-                    {scraped.affiliateLink && (<><h4>Affiliate Link:</h4><p>{scraped.affiliateLink}</p></>)}
-                    {scraped.issueDate && (<><h4>Domain Issue Date:</h4><p>{new Date(scraped.issueDate).toLocaleString()}</p></>)}
-                    {scraped.images?.length > 0 && (<><h4>Images:</h4><ul className="image-grid">{scraped.images.map((src, idx) => {
-                      const imgSrcRaw = src.startsWith('http') ? src : `https://${scraped.domain}${src}`;
-                      const imgSrc = imgSrcRaw.replace(/(\.[a-z]{2,})(?=assets\/)/, '$1/').replace(/(\.[a-z]{2,})\.\//, '$1/');
-                      const alt = scraped.altTags?.[idx] || 'No alt text';
-                      return (<li key={idx} className="image-item"><p><strong>URL:</strong> <a href={imgSrc} target="_blank" rel="noopener noreferrer">{imgSrc}</a></p><p><strong>Alt:</strong> {alt}</p></li>);
-                    })}</ul></>)}
-                    {scraped.robotsTxt && (<><h4>Robots:</h4><p>{scraped.robotsTxt}</p></>)}
-                    {scraped.wordCount && (<><h4>Word Count:</h4><p>{scraped.wordCount}</p></>)}
-                    <h4>Schema.org Present:</h4>
-                    <p>{scraped.schemaPresent ? '✅ Yes' : '❌ No'}</p>
-                    {scraped.lastChecked && (<><h4>Last Checked:</h4><p>{new Date(scraped.lastChecked).toLocaleString()}</p></>)}
-                  </div>
-                )}
-              </li>
-            );
-          })}
+            {!hasMore && domains.length > 0 && (
+              <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
+                All {total} domains loaded
+              </span>
+            )}
+          </li>
         </ul>
       )}
     </div>

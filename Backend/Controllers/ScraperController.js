@@ -916,10 +916,44 @@ exports.renewDomain = async (req, res) => {
 };
 
 
+exports.updateIssueDate = async (req, res) => {
+  try {
+    const { domain } = req.params;
+    const { issueDate } = req.body;
+
+    const cleanDomain = domain
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .trim()
+      .toLowerCase();
+
+    let query;
+    if (req.user.role === "admin") {
+      query = { domain: cleanDomain };
+    } else if (req.user.parentUser) {
+      query = { domain: cleanDomain, user: req.user.parentUser };
+    } else {
+      query = { domain: cleanDomain, user: req.user._id };
+    }
+
+    const updated = await ScrapedSite.findOneAndUpdate(
+      query,
+      { issueDate: issueDate ? new Date(issueDate) : null },
+      { new: true }
+    );
+
+    if (!updated) return res.status(404).json({ error: "Domain not found" });
+
+    res.json({ message: "Issue date updated", issueDate: updated.issueDate });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update issue date" });
+  }
+};
+
+
 
 // update note
 
-// PUT /api/scraper/note/:domain
 exports.updateNote = async (req, res) => {
   try {
     const { domain } = req.params;
@@ -1143,5 +1177,162 @@ exports.updateDomainName = async (req, res) => {
     res
       .status(500)
       .json({ message: "Server error while updating domain name." });
+  }
+};
+
+
+
+
+// [SEO Score Calculator]
+exports.getSeoScore = async (req, res) => {
+  const rawDomain = req.params.domain;
+  const baseDomain = normalizeDomain(rawDomain);
+
+  try {
+    let query = { domain: baseDomain };
+    if (req.user.role === 'admin') {
+      query = { domain: baseDomain };
+    } else if (req.user.parentUser) {
+      query.user = req.user.parentUser;
+    } else {
+      query.user = req.user._id;
+    }
+
+    const site = await ScrapedSite.findOne(query);
+    if (!site) return res.status(404).json({ error: 'Site not found' });
+
+    const scores = [];
+    let total = 0;
+
+    // 1. Status Code (10pts)
+    const statusScore = site.statusCode === 200 ? 10 : 0;
+    scores.push({ label: 'Site Reachable (200 OK)', score: statusScore, max: 10, status: statusScore === 10 ? 'pass' : 'fail', detail: `Status: ${site.statusCode}` });
+    total += statusScore;
+
+    // 2. Title (15pts)
+    let titleScore = 0;
+    let titleDetail = '';
+    if (!site.title) { titleDetail = 'Missing title tag'; }
+    else if (site.title.length < 10) { titleScore = 5; titleDetail = `Too short (${site.title.length} chars)`; }
+    else if (site.title.length > 60) { titleScore = 10; titleDetail = `Too long (${site.title.length} chars, ideal: 10–60)`; }
+    else { titleScore = 15; titleDetail = `Good length (${site.title.length} chars)`; }
+    scores.push({ label: 'Title Tag', score: titleScore, max: 15, status: titleScore === 15 ? 'pass' : titleScore > 0 ? 'warn' : 'fail', detail: titleDetail });
+    total += titleScore;
+
+    // 3. Meta Description (15pts)
+    let descScore = 0;
+    let descDetail = '';
+    if (!site.description) { descDetail = 'Missing meta description'; }
+    else if (site.description.length < 50) { descScore = 5; descDetail = `Too short (${site.description.length} chars)`; }
+    else if (site.description.length > 160) { descScore = 10; descDetail = `Too long (${site.description.length} chars, ideal: 50–160)`; }
+    else { descScore = 15; descDetail = `Good length (${site.description.length} chars)`; }
+    scores.push({ label: 'Meta Description', score: descScore, max: 15, status: descScore === 15 ? 'pass' : descScore > 0 ? 'warn' : 'fail', detail: descDetail });
+    total += descScore;
+
+    // 4. H1 Tag (10pts)
+    let h1Score = 0;
+    let h1Detail = '';
+    if (!site.h1 || site.h1.length === 0) { h1Detail = 'No H1 tag found'; }
+    else if (site.h1.length > 1) { h1Score = 5; h1Detail = `Multiple H1 tags (${site.h1.length}), use only one`; }
+    else { h1Score = 10; h1Detail = `Single H1 found`; }
+    scores.push({ label: 'H1 Tag', score: h1Score, max: 10, status: h1Score === 10 ? 'pass' : h1Score > 0 ? 'warn' : 'fail', detail: h1Detail });
+    total += h1Score;
+
+    // 5. H2 Tags (5pts)
+    const h2Score = site.h2 && site.h2.length > 0 ? 5 : 0;
+    scores.push({ label: 'H2 Tags', score: h2Score, max: 5, status: h2Score > 0 ? 'pass' : 'fail', detail: site.h2?.length > 0 ? `${site.h2.length} H2 tag(s) found` : 'No H2 tags' });
+    total += h2Score;
+
+    // 6. Images Alt Tags (10pts)
+    let altScore = 0;
+    let altDetail = 'No images found';
+    if (site.images && site.images.length > 0) {
+      const filledAlts = (site.altTags || []).filter(a => a && a.trim() !== '').length;
+      const ratio = filledAlts / site.images.length;
+      if (ratio === 1) { altScore = 10; altDetail = `All ${site.images.length} images have alt text`; }
+      else if (ratio >= 0.5) { altScore = 5; altDetail = `${filledAlts}/${site.images.length} images have alt text`; }
+      else { altScore = 2; altDetail = `Only ${filledAlts}/${site.images.length} images have alt text`; }
+    }
+    scores.push({ label: 'Image Alt Tags', score: altScore, max: 10, status: altScore === 10 ? 'pass' : altScore >= 5 ? 'warn' : 'fail', detail: altDetail });
+    total += altScore;
+
+    // 7. Word Count (10pts)
+    let wcScore = 0;
+    let wcDetail = '';
+    if (!site.wordCount || site.wordCount < 100) { wcDetail = `Too low (${site.wordCount || 0} words)`; }
+    else if (site.wordCount < 300) { wcScore = 5; wcDetail = `Below ideal (${site.wordCount} words, aim for 300+)`; }
+    else { wcScore = 10; wcDetail = `Good content length (${site.wordCount} words)`; }
+    scores.push({ label: 'Word Count', score: wcScore, max: 10, status: wcScore === 10 ? 'pass' : wcScore > 0 ? 'warn' : 'fail', detail: wcDetail });
+    total += wcScore;
+
+    // 8. Schema Markup (10pts)
+    const schemaScore = site.schemaPresent ? 10 : 0;
+    scores.push({ label: 'Schema.org Markup', score: schemaScore, max: 10, status: schemaScore > 0 ? 'pass' : 'fail', detail: site.schemaPresent ? 'Schema markup found' : 'No schema markup detected' });
+    total += schemaScore;
+
+    // 9. Canonical Tag (10pts)
+    const canonicalScore = site.canonicals && site.canonicals.length > 0 ? 10 : 0;
+    scores.push({ label: 'Canonical Tag', score: canonicalScore, max: 10, status: canonicalScore > 0 ? 'pass' : 'fail', detail: site.canonicals?.length > 0 ? `Canonical found: ${site.canonicals[0]}` : 'No canonical tag' });
+    total += canonicalScore;
+
+    // 10. Robots.txt (5pts)
+    const robotsScore = site.robotsTxt && site.robotsTxt !== 'Not Found' ? 5 : 0;
+    scores.push({ label: 'Robots.txt', score: robotsScore, max: 5, status: robotsScore > 0 ? 'pass' : 'fail', detail: robotsScore > 0 ? 'Robots.txt present' : 'Robots.txt not found' });
+    total += robotsScore;
+
+    const maxTotal = scores.reduce((sum, s) => sum + s.max, 0); // 100
+    const grade = total >= 90 ? 'A' : total >= 75 ? 'B' : total >= 60 ? 'C' : total >= 40 ? 'D' : 'F';
+
+    res.json({ domain: baseDomain, totalScore: total, maxScore: maxTotal, grade, breakdown: scores });
+
+  } catch (err) {
+    console.error('SEO Score error:', err.message);
+    res.status(500).json({ error: 'Failed to calculate SEO score' });
+  }
+};
+
+
+
+
+exports.getAllScrapedSitesPaginated = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+    const search = req.query.search || '';
+    const category = req.query.category || '';
+    const extension = req.query.extension || '';
+
+    let query = {};
+    if (req.user.role === 'admin') {}
+    else if (req.user.parentUser) query.user = req.user.parentUser;
+    else query.user = req.user._id;
+
+    if (category) query.brandCategory = category;
+    if (search) query.domain = { $regex: search, $options: 'i' };
+    if (extension) query.domain = { 
+      ...query.domain,
+      $regex: `\\${extension}$`, $options: 'i' 
+    };
+
+    const [sites, total] = await Promise.all([
+      ScrapedSite.find(query)
+        .select('domain note brandCategory statusCode issueDate')  // only fields needed for list view
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      ScrapedSite.countDocuments(query)
+    ]);
+
+    res.json({
+      sites,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+      hasMore: page * limit < total
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch paginated sites' });
   }
 };
