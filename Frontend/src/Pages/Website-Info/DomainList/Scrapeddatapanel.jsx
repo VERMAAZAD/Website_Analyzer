@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import './ScrapedDataPanel.css';
+import './Scrapeddatapanel.css';
 
-const ScrapedDataPanel = ({ domain, scraped }) => {
+const Scrapeddatapanel = ({ domain, scraped }) => {
   const [activeSection, setActiveSection] = useState('overview');
 
   if (!scraped) return null;
@@ -355,4 +355,4 @@ const ScrapedDataPanel = ({ domain, scraped }) => {
   );
 };
 
-export default ScrapedDataPanel;
+export default Scrapeddatapanel;
