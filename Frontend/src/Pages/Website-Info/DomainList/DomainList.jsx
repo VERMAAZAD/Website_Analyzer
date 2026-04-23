@@ -6,7 +6,7 @@ import './DomainList.css';
 import NoteEditor from '../../../components/NoteEditor/NoteEditor';
 import HostingInfoEditor from "../../../components/HostingInfoEditor/HostingInfoEditor";
 import EditDomainName from '../EditDomainName/EditDomainName';
-import ScrapedDataPanel from './ScrapedDataPanel';
+import Scrapeddatapanel from './Scrapeddatapanel';
 import { handleError } from '../../../toastutils';
 import { FaServer, FaTrashAlt } from "react-icons/fa";
 import { FaRegMessage } from "react-icons/fa6";
@@ -476,7 +476,7 @@ function DomainList() {
 
                     {/* ── Scraped Data Panel ── */}
                     {selectedDomain === baseDomain && (
-                      <ScrapedDataPanel domain={baseDomain} scraped={scraped} />
+                      <Scrapeddatapanel domain={baseDomain} scraped={scraped} />
                     )}
 
                   </li>
