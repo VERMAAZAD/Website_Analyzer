@@ -141,5 +141,6 @@ const ScrapedSiteSchema = new mongoose.Schema({
 ScrapedSiteSchema.index({ user: 1, isIndexedOnBing: 1 });
 ScrapedSiteSchema.index({ lastBingCheck: 1 });
 ScrapedSiteSchema.index({ user: 1, lastBingCheck: 1 });
+ScrapedSiteSchema.index({ user: 1, issueDate: 1 });
 
 module.exports = mongoose.model('ScrapedSite', ScrapedSiteSchema);

@@ -1,110 +1,353 @@
-.domain-expire-container {
-  max-width: 960px;
-  margin: 3rem auto;
-  padding: 2rem;
-  background: #ffffffee;
-  border-radius: 16px;
-  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.08);
-  font-family: 'Segoe UI', sans-serif;
+/* ─────────────────────────────────────────
+   DomainExpire — tab-based dashboard
+   ───────────────────────────────────────── */
+
+.de-container {
+  max-width: 1200px;
+  margin: 5px;
+  padding: 1.75rem 2rem;
+  background: #ffffff;
+  font-family: 'Segoe UI', 'Inter', sans-serif;
 }
 
-.domain-expire-container h2 {
-  text-align: left;
-  margin-bottom: 2rem;
-  color: #2b2e4a;
-  font-size: 1.50rem;
+/* ── Top bar ── */
+.de-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.de-page-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #1a1d2e;
+  margin: 0;
+}
+
+/* ── Refresh button ── */
+.de-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 0.85rem;
   font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
 }
 
-.expire-table {
+.de-refresh-btn svg {
+  font-size: 1.05rem;
+}
+
+.de-refresh-btn:hover {
+  background: #e2e8f0;
+  color: #1a1d2e;
+  border-color: #cbd5e1;
+}
+
+/* ── Tabs ── */
+.de-tabs {
+  display: flex;
+  gap: 6px;
+  border-bottom: 2px solid #e9edf5;
+  margin-bottom: 1.5rem;
+}
+
+.de-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 18px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  border-radius: 6px 6px 0 0;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+
+.de-tab:hover {
+  color: #1e293b;
+  background: #f8fafc;
+}
+
+.de-tab--active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+  background: #eff6ff;
+}
+
+.de-tab--active-red {
+  color: #dc2626 !important;
+  border-bottom-color: #dc2626 !important;
+  background: #fff5f5 !important;
+}
+
+.de-tab-icon {
+  font-size: 1rem;
+}
+
+/* ── Tab badges ── */
+.de-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.de-tab-badge--warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.de-tab-badge--red {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* ── Tab content area ── */
+.de-tab-content {
+  min-height: 200px;
+}
+
+/* ── Spinner ── */
+.de-spinner-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 3rem 1rem;
+  color: #94a3b8;
+  font-size: 0.92rem;
+}
+
+.de-spinner {
+  font-size: 1.4rem;
+  color: #3b82f6;
+  animation: de-spin 0.75s linear infinite;
+}
+
+@keyframes de-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── Empty state ── */
+.de-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.5rem 1.25rem;
+  background: #f8fafc;
+  border-radius: 10px;
+  color: #64748b;
+  font-size: 0.92rem;
+  border: 1px dashed #e2e8f0;
+}
+
+.de-empty p {
+  margin: 0;
+}
+
+.de-empty-icon {
+  font-size: 1.25rem;
+  color: #22c55e;
+  flex-shrink: 0;
+}
+
+/* ── Table wrapper ── */
+.de-table-wrap {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid #e9edf5;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+/* ── Table ── */
+.de-table {
   width: 100%;
   border-collapse: collapse;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-  background-color: #fff;
+  background: #fff;
+  font-size: 0.9rem;
 }
 
-.expire-table th,
-.expire-table td {
-  padding: 1rem;
-  text-align: left;
-  border-bottom: 1px solid #eee;
-  font-size: 0.95rem;
-  vertical-align: top;
-}
-
-.expire-table th {
-  background-color: #e8f0fe;
-  color: #2b2e4a;
+.de-table th {
+  background: #f0f4ff;
+  color: #374151;
   font-weight: 600;
+  padding: 0.8rem 1rem;
+  text-align: left;
+  border-bottom: 2px solid #dbeafe;
+  white-space: nowrap;
+  font-size: 0.83rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
-.expire-table td {
-  color: #333;
+.de-table td {
+  padding: 0.75rem 1rem;
+  color: #374151;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
 }
 
-.expire-table tr:last-child td {
+.de-table tr:last-child td {
   border-bottom: none;
 }
 
-.expire-table tr:hover {
-  background-color: #f5faff;
+.de-table tbody tr:hover td {
+  background: #fafbff;
 }
 
+/* Selected row */
+.de-row-selected td {
+  background: #eff6ff !important;
+}
+
+/* Reminder table accent */
+.de-table--reminder th {
+  background: #fff5f5;
+  border-bottom-color: #fecaca;
+}
+
+/* ── Domain cell ── */
+.de-domain-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.de-domain-name {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.de-domain-note {
+  font-size: 0.76rem;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* ── Select-all ── */
+.de-select-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.de-select-icon {
+  font-size: 1.1rem;
+  color: #3b82f6;
+}
+
+/* ── Checkbox ── */
 input[type='checkbox'] {
-  transform: scale(1.2);
+  width: 14px;
+  height: 14px;
+  accent-color: #2563eb;
   cursor: pointer;
 }
 
-/* Centered Save All button (if used) */
-.save-btn {
-  margin-top: 1.5rem;
-  padding: 10px 24px;
-  background-color: #2e7d32;
+/* ── Urgency badges ── */
+.de-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.urgency-critical {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.urgency-warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.urgency-ok {
+  background: #dcfce7;
+  color: #166534;
+}
+
+/* ── Renew button ── */
+.de-renew-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  background: #16a34a;
   color: #fff;
+  font-size: 0.82rem;
   font-weight: 600;
   border: none;
-  border-radius: 8px;
+  border-radius: 7px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
+  transition: background 0.2s, transform 0.15s;
+  white-space: nowrap;
 }
 
-.save-btn:hover {
-  background-color: #1b5e20;
+.de-renew-btn:hover:not(:disabled) {
+  background: #15803d;
+  transform: translateY(-1px);
 }
 
-/* Inline Save button inside each row */
-.save-btn-inline {
-  margin-top: 0.5rem;
-  padding: 6px 12px;
-  background-color: #2e7d32;
-  color: white;
-  font-size: 0.85rem;
-  font-weight: 600;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
+.de-renew-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
-.save-btn-inline:hover {
-  background-color: #1b5e20;
+/* ── Inline btn spinner ── */
+.de-btn-spinner {
+  animation: de-spin 0.75s linear infinite;
+  font-size: 0.9rem;
 }
 
-/* Optional: Make table scrollable on small screens */
+/* ── Responsive ── */
 @media (max-width: 768px) {
-  .expire-table {
-    display: block;
-    overflow-x: auto;
-    white-space: nowrap;
+  .de-container {
+    margin: 6px;
+    padding: 1.1rem;
   }
 
-  .expire-table th,
-  .expire-table td {
-    padding: 0.75rem;
+  .de-page-title {
+    font-size: 1.1rem;
+  }
+
+  .de-tabs {
+    gap: 2px;
+  }
+
+  .de-tab {
+    padding: 8px 12px;
+    font-size: 0.82rem;
+  }
+
+  .de-table th,
+  .de-table td {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.82rem;
   }
 }

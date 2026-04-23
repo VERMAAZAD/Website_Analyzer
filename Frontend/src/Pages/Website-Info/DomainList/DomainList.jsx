@@ -6,6 +6,7 @@ import './DomainList.css';
 import NoteEditor from '../../../components/NoteEditor/NoteEditor';
 import HostingInfoEditor from "../../../components/HostingInfoEditor/HostingInfoEditor";
 import EditDomainName from '../EditDomainName/EditDomainName';
+import ScrapedDataPanel from './ScrapedDataPanel';
 import { handleError } from '../../../toastutils';
 import { FaServer, FaTrashAlt } from "react-icons/fa";
 import { FaRegMessage } from "react-icons/fa6";
@@ -37,12 +38,12 @@ function DomainList() {
   const [total, setTotal]               = useState(0);
   const [page, setPage]                 = useState(1);
   const [hasMore, setHasMore]           = useState(true);
-  const [initialLoading, setInitialLoading] = useState(true);  // skeleton on first load
-  const [loadingMore, setLoadingMore]   = useState(false);      // spinner at bottom
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [loadingMore, setLoadingMore]   = useState(false);
   const [error, setError]               = useState("");
 
   const [searchTerm, setSearchTerm]     = useState("");
-  const [searchInput, setSearchInput]   = useState("");         // debounced separately
+  const [searchInput, setSearchInput]   = useState("");
   const [activeExtension, setActiveExtension] = useState("all");
   const [extensionCounts, setExtensionCounts] = useState({});
   const [lastReloadTime, setLastReloadTime]   = useState(null);
@@ -59,11 +60,10 @@ function DomainList() {
 
   const [showIssueDateEditorMap, setShowIssueDateEditorMap] = useState({});
 
-  // Tracks which domains are visible (for lazy SEO fetch)
   const visibleDomainsRef = useRef(new Set());
   const seoFetchedRef     = useRef(new Set());
   const observerRef       = useRef(null);
-  const bottomRef         = useRef(null);   // sentinel for infinite scroll
+  const bottomRef         = useRef(null);
   const searchTimerRef    = useRef(null);
 
   const superCategory = localStorage.getItem("superCategory") || "natural";
@@ -81,7 +81,7 @@ function DomainList() {
   let role = "";
   try { role = jwtDecode(roleToken).role; } catch {}
 
-  // ─── Fetch one page ──────────────────────────────────────────────────────
+  // ─── Fetch one page ───────────────────────────────────────────────────────
   const fetchPage = useCallback(async (pageNum, reset = false) => {
     if (reset) setInitialLoading(true);
     else setLoadingMore(true);
@@ -109,11 +109,7 @@ function DomainList() {
       setPage(pageNum);
       setLastReloadTime(new Date());
 
-      // Build extension counts only on full reload
-      if (reset) {
-        // Fetch counts separately (lightweight query)
-        fetchExtensionCounts();
-      }
+      if (reset) fetchExtensionCounts();
     } catch (err) {
       console.error('Failed to fetch domains:', err);
       setError("Failed to load domains. Please try again.");
@@ -123,7 +119,7 @@ function DomainList() {
     }
   }, [searchTerm, category, activeExtension, apiBase]);
 
-  // ─── Extension counts (separate lightweight call) ────────────────────────
+  // ─── Extension counts ─────────────────────────────────────────────────────
   const fetchExtensionCounts = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
@@ -146,59 +142,46 @@ function DomainList() {
     } catch {}
   }, [searchTerm, category, apiBase]);
 
-  // ─── Initial load & filter changes ───────────────────────────────────────
   useEffect(() => {
     seoFetchedRef.current = new Set();
     setSeoScoreMap({});
     fetchPage(1, true);
   }, [searchTerm, category, activeExtension]);
 
-  // ─── Debounce search input ────────────────────────────────────────────────
   const handleSearchChange = (val) => {
     setSearchInput(val);
     clearTimeout(searchTimerRef.current);
-    searchTimerRef.current = setTimeout(() => {
-      setSearchTerm(val);
-    }, 350);
+    searchTimerRef.current = setTimeout(() => setSearchTerm(val), 350);
   };
 
-  // ─── Infinite scroll sentinel ─────────────────────────────────────────────
+  // ─── Infinite scroll ──────────────────────────────────────────────────────
   useEffect(() => {
     const sentinel = bottomRef.current;
     if (!sentinel) return;
-
     const io = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting && hasMore && !loadingMore && !initialLoading) {
         fetchPage(page + 1, false);
       }
     }, { rootMargin: '300px' });
-
     io.observe(sentinel);
     return () => io.disconnect();
   }, [hasMore, loadingMore, initialLoading, page, fetchPage]);
 
-  // ─── Lazy SEO fetch for visible domain cards ──────────────────────────────
+  // ─── Lazy SEO fetch ───────────────────────────────────────────────────────
   useEffect(() => {
     if (observerRef.current) observerRef.current.disconnect();
-
     observerRef.current = new IntersectionObserver((entries) => {
       const visible = entries
         .filter(e => e.isIntersecting)
         .map(e => e.target.dataset.domain)
         .filter(d => d && !seoFetchedRef.current.has(d));
-
       if (visible.length === 0) return;
       visible.forEach(d => seoFetchedRef.current.add(d));
-
-      // Fetch in small batch
       fetchSeoScoresBatch(visible);
     }, { rootMargin: '100px' });
-
-    // Observe all current domain cards
     document.querySelectorAll('[data-domain]').forEach(el => {
       observerRef.current.observe(el);
     });
-
     return () => observerRef.current?.disconnect();
   }, [domains]);
 
@@ -226,7 +209,6 @@ function DomainList() {
     const baseDomain = extractBaseDomain(domain);
     if (baseDomain === selectedDomain) { setSelectedDomain(null); return; }
     if (scrapedDataMap[baseDomain]) { setSelectedDomain(baseDomain); return; }
-
     try {
       const res = await axios.get(
         `${import.meta.env.VITE_API_URI}/${apiBase}/domain/${baseDomain}`,
@@ -239,13 +221,12 @@ function DomainList() {
     }
   };
 
-  // ─── SEO badge click — just toggle expand (already fetched by observer) ──
+  // ─── SEO click ────────────────────────────────────────────────────────────
   const handleSeoClick = async (baseDomain) => {
     if (seoScoreMap[baseDomain]) {
       setSeoExpandedMap(prev => ({ ...prev, [baseDomain]: !prev[baseDomain] }));
       return;
     }
-    // Fallback: manual fetch if observer missed it
     setSeoLoadingMap(prev => ({ ...prev, [baseDomain]: true }));
     try {
       const res = await axios.get(
@@ -265,11 +246,9 @@ function DomainList() {
     if (!oldDomain || !newDomain) { handleError("Invalid domain values"); return; }
     const oldKey = extractBaseDomain(oldDomain);
     const newKey = extractBaseDomain(newDomain);
-
     setDomains(prev => prev.map(d =>
       extractBaseDomain(d.domain) === oldKey ? { ...d, domain: newDomain } : d
     ));
-    // Remap all state maps
     [setScrapedDataMap, setShowNoteEditorMap, setShowHostingEditorMap,
      setHostingDetailsMap, setSeoScoreMap, setSeoExpandedMap].forEach(setter => {
       setter(prev => {
@@ -297,7 +276,7 @@ function DomainList() {
     }
   };
 
-  // ─── Skeleton loader ──────────────────────────────────────────────────────
+  // ─── Skeleton ─────────────────────────────────────────────────────────────
   const SkeletonCard = () => (
     <li className="domain-card skeleton-card">
       <div className="domain-header">
@@ -339,24 +318,27 @@ function DomainList() {
         </button>
       </div>
 
-      {/* ── TLD filter ── */}
-      <div className="tld-filter-bar">
+      {/* ── TLD Tabs ── */}
+      <div className="dl-tabs">
+        <button
+          className={`dl-tab ${activeExtension === 'all' ? 'dl-tab--active' : ''}`}
+          onClick={() => setActiveExtension('all')}
+        >
+          All
+          <span className="dl-tab-badge dl-tab-badge--blue">{total}</span>
+        </button>
         {Object.entries(extensionCounts)
           .sort(([a], [b]) => a.localeCompare(b))
           .map(([ext, count]) => (
             <button
               key={ext}
-              className={`tld-btn ${activeExtension === ext ? 'active' : ''}`}
+              className={`dl-tab ${activeExtension === ext ? 'dl-tab--active' : ''}`}
               onClick={() => setActiveExtension(ext)}
             >
-              {ext} ({count})
+              {ext}
+              <span className="dl-tab-badge dl-tab-badge--blue">{count}</span>
             </button>
           ))}
-        {activeExtension !== "all" && (
-          <button className="tld-btn clear" onClick={() => setActiveExtension("all")}>
-            Show All TLDs
-          </button>
-        )}
       </div>
 
       {/* ── List ── */}
@@ -364,7 +346,6 @@ function DomainList() {
         <p className="error">{error}</p>
       ) : (
         <ul className="domain-list">
-          {/* Skeletons on initial load */}
           {initialLoading
             ? Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
             : domains.length === 0
@@ -388,19 +369,19 @@ function DomainList() {
                       />
 
                       <div>
-                         {/* SEO Badge */}
-                      <button
-                        className={`seo-badge-btn ${seo ? `seo-grade-${seo.grade}` : ''}`}
-                        onClick={() => handleSeoClick(baseDomain)}
-                        title="SEO Score"
-                      >
-                        {seoLoadingMap[baseDomain]
-                          ? <span className="seo-spinner" />
-                          : seo
-                          ? `${seo.totalScore}/100 · ${seo.grade}`
-                          : <span className="seo-skeleton-pulse">—</span>
-                        }
-                      </button>
+                        {/* SEO Badge */}
+                        <button
+                          className={`seo-badge-btn ${seo ? `seo-grade-${seo.grade}` : ''}`}
+                          onClick={() => handleSeoClick(baseDomain)}
+                          title="SEO Score"
+                        >
+                          {seoLoadingMap[baseDomain]
+                            ? <span className="seo-spinner" />
+                            : seo
+                            ? `${seo.totalScore}/100 · ${seo.grade}`
+                            : <span className="seo-skeleton-pulse">—</span>
+                          }
+                        </button>
                         <button className="note-btn server-btn"
                           onClick={() => setShowHostingEditorMap(p => ({ ...p, [baseDomain]: !p[baseDomain] }))}>
                           <FaServer />
@@ -493,26 +474,17 @@ function DomainList() {
                       />
                     )}
 
-                    {selectedDomain === baseDomain && scraped && (
-                      <div className="scraped-inline">
-                        {scraped.title && (<><h4>Title:</h4><p style={{ color: scraped.title.length > 60 ? 'red' : 'inherit' }}>{scraped.title} ({scraped.title.length} Char)</p></>)}
-                        {scraped.description && (<><h4>Description:</h4><p style={{ color: scraped.description.length > 160 ? 'red' : 'inherit' }}>{scraped.description} ({scraped.description.length} Char)</p></>)}
-                        {scraped.h1?.length > 0 && (<><h4>H1 Tags:</h4><ul>{scraped.h1.map((tag, i) => <li key={i}>{tag}</li>)}</ul></>)}
-                        {scraped.h2?.length > 0 && (<><h4>H2 Tags:</h4><ul>{scraped.h2.map((tag, i) => <li key={i}>{tag}</li>)}</ul></>)}
-                        {scraped.canonicals?.length > 0 && (<><h4>Canonical Links:</h4><ul>{scraped.canonicals.map((l, i) => <li key={i}><a href={l} target="_blank" rel="noopener noreferrer">{l}</a></li>)}</ul></>)}
-                        {scraped.affiliateLink && (<><h4>Affiliate Link:</h4><p>{scraped.affiliateLink}</p></>)}
-                        {scraped.robotsTxt && (<><h4>Robots:</h4><p>{scraped.robotsTxt}</p></>)}
-                        {scraped.wordCount && (<><h4>Word Count:</h4><p>{scraped.wordCount}</p></>)}
-                        <h4>Schema.org:</h4>
-                        <p>{scraped.schemaPresent ? '✅ Yes' : '❌ No'}</p>
-                        {scraped.lastChecked && (<><h4>Last Checked:</h4><p>{new Date(scraped.lastChecked).toLocaleString()}</p></>)}
-                      </div>
+                    {/* ── Scraped Data Panel ── */}
+                    {selectedDomain === baseDomain && (
+                      <ScrapedDataPanel domain={baseDomain} scraped={scraped} />
                     )}
+
                   </li>
                 );
               })
           }
-                    {/* Infinite scroll sentinel + bottom spinner */}
+
+          {/* Infinite scroll sentinel */}
           <li ref={bottomRef} style={{ listStyle: 'none', padding: '8px 0', textAlign: 'center' }}>
             {loadingMore && (
               <span style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}>

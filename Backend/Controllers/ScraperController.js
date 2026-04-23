@@ -803,54 +803,61 @@ exports.getMe = async (req, res) => {
 exports.getExpiringDomains = async (req, res) => {
   try {
     const now = new Date();
-    const tenDaysFromNow = new Date();
-    tenDaysFromNow.setDate(now.getDate() + 10);
+    const tenDaysFromNow = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000);
+    const fiveDaysAgo    = new Date(now.getTime() -  5 * 24 * 60 * 60 * 1000);
 
-    // Admin can see all; normal users only their own
-    let query = {};
-
-     if (req.user.role === 'admin') {
-      query = {}; // Admin sees all
-    } else if (req.user.parentUser) {
-      query.user = req.user.parentUser; // Sub-user sees parent's domains
-    } else {
-      query.user = req.user._id; // Normal user sees their own domains
+    let baseQuery = {};
+    if (req.user.role !== 'admin') {
+      baseQuery.user = req.user.parentUser || req.user._id;
     }
 
-    const domains = await ScrapedSite.find(query);
+    // issueDate must exist for expiry logic to work
+    baseQuery.issueDate = { $ne: null };
 
-    const expiring = [];
-    const reminder = [];
-    const deleteAfter = [];
+    const MS_YEAR    = 365 * 24 * 60 * 60 * 1000;
+    const expiryExpr = { $add: ['$issueDate', MS_YEAR] };
+    const select     = 'domain issueDate note';
 
-    domains.forEach(domain => {
-      if (!domain.issueDate) return;
+    // Run all 3 queries in parallel — no sequential waiting
+    const [expiring, reminder, toDelete] = await Promise.all([
 
-      const issueDate = new Date(domain.issueDate);
-      const expiryDate = new Date(issueDate);
-      expiryDate.setFullYear(issueDate.getFullYear() + 1);
+      // expiry between now → +10 days
+      ScrapedSite.find({
+        ...baseQuery,
+        $expr: {
+          $and: [
+            { $gte: [expiryExpr, now] },
+            { $lte: [expiryExpr, tenDaysFromNow] }
+          ]
+        }
+      }).select(select).lean(),
 
-      if (expiryDate >= now && expiryDate <= tenDaysFromNow) {
-        expiring.push(domain);
-      } 
-      else if (expiryDate < now && expiryDate >= new Date(now.getTime() - (5 * 24 * 60 * 60 * 1000))) {
-        reminder.push(domain);
-      } 
-      else if (expiryDate < new Date(now.getTime() - (5 * 24 * 60 * 60 * 1000))) {
-        deleteAfter.push(domain._id);
-      }
-    });
+      // expired within last 5 days
+      ScrapedSite.find({
+        ...baseQuery,
+        $expr: {
+          $and: [
+            { $lt:  [expiryExpr, now] },
+            { $gte: [expiryExpr, fiveDaysAgo] }
+          ]
+        }
+      }).select(select).lean(),
 
-    // delete domains older than 5 days past expiry
-    if (deleteAfter.length > 0) {
-      await ScrapedSite.deleteMany({ _id: { $in: deleteAfter } });
+      // expired more than 5 days ago — _id only for deletion
+      ScrapedSite.find({
+        ...baseQuery,
+        $expr: { $lt: [expiryExpr, fiveDaysAgo] }
+      }).select('_id').lean(),
+
+    ]);
+
+    // Delete stale — fire and forget, don't block the response
+    if (toDelete.length > 0) {
+      ScrapedSite.deleteMany({ _id: { $in: toDelete.map(d => d._id) } })
+        .catch(err => console.error('Stale domain cleanup error:', err));
     }
 
-    res.json({
-      success: true,
-      expiring,
-      reminder
-    });
+    res.json({ success: true, expiring, reminder });
 
   } catch (err) {
     console.error(err);
@@ -869,52 +876,48 @@ exports.renewDomain = async (req, res) => {
       return res.status(400).json({ error: 'Expected non-empty array of domains' });
     }
 
-    const results = await Promise.all(
-      domains.map(async (domain) => {
-        let query;
+    const userId = req.user.parentUser || req.user._id;
+    const domainList = domains.map(d => d.toLowerCase());
 
-        // ✅ Role-based logic
-        if (req.user.role === "admin") {
-          query = { domain: domain.toLowerCase() };
-        } else if (req.user.parentUser) {
-          query = { user: req.user.parentUser, domain: domain.toLowerCase() };
-        } else {
-          query = { user: req.user._id, domain: domain.toLowerCase() };
+    // Single query to get all at once
+    const query = req.user.role === 'admin'
+      ? { domain: { $in: domainList } }
+      : { domain: { $in: domainList }, user: userId };
+
+    const existing = await ScrapedSite.find(query).select('domain issueDate').lean();
+
+    const bulkOps = existing.map(site => {
+      const newIssueDate = site.issueDate
+        ? new Date(new Date(site.issueDate).setFullYear(new Date(site.issueDate).getFullYear() + 1))
+        : new Date();
+
+      return {
+        updateOne: {
+          filter: { _id: site._id },
+          update: { $set: { issueDate: newIssueDate } }
         }
+      };
+    });
 
-        const existing = await ScrapedSite.findOne(query);
+    if (bulkOps.length > 0) {
+      await ScrapedSite.bulkWrite(bulkOps);
+    }
 
-        if (!existing) {
-          return { domain, status: 'not found' };
-        }
-
-        let newIssueDate;
-        if (existing.issueDate) {
-          // Add 1 year to current issueDate
-          newIssueDate = new Date(existing.issueDate);
-          newIssueDate.setFullYear(newIssueDate.getFullYear() + 1);
-        } else {
-          // Set to today if not present
-          newIssueDate = new Date();
-        }
-
-        existing.issueDate = newIssueDate;
-        await existing.save();
-
-        return { domain, status: 'renewed', newIssueDate };
-      })
+    const notFound = domainList.filter(
+      d => !existing.find(e => e.domain === d)
     );
 
     res.json({
       message: 'Renew process completed',
-      results
+      renewed: existing.map(e => e.domain),
+      notFound
     });
+
   } catch (err) {
-    console.error("Renewal error:", err);
+    console.error('Renewal error:', err);
     res.status(500).json({ error: 'Renewal failed', details: err.message });
   }
 };
-
 
 exports.updateIssueDate = async (req, res) => {
   try {
